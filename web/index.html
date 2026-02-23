@@ -3,183 +3,598 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPIZ Intelligence Dashboard</title>
+    <title>SPIZ · Monitor Clienti</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        :root { --snam-blue: #003366; --spiz-bg: #f4f7f6; }
-        body { background-color: var(--spiz-bg); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
-        .main-row { height: 100vh; }
-        .chat-section { height: 100vh; display: flex; flex-direction: column; padding: 25px; border-right: 1px solid #e0e0e0; background: #fff; }
-        .dashboard-section { height: 100vh; overflow-y: auto; background: #fdfdfd; padding: 25px; }
-        .chat-box { flex-grow: 1; overflow-y: auto; background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid #efefef; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        .card-stats { background: var(--snam-blue); color: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,51,102,0.2); }
-        .client-item { background: white; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-        .client-item:hover { border-color: var(--snam-blue); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-        .btn-report { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .upload-area { border: 2px dashed #ccc; border-radius: 10px; padding: 15px; text-align: center; background: #fafafa; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background-color: #f8fafd; }
+        .card-custom {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 51, 102, 0.04);
+            border: 1px solid rgba(0, 51, 102, 0.04);
+            height: 100%;
+        }
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #003366;
+            line-height: 1.1;
+        }
+        .stat-label {
+            color: #5e6f88;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .upload-area {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            border: 2px dashed #b8c9e0;
+            transition: all 0.2s;
+        }
+        .upload-area:hover {
+            border-color: #003366;
+            background: #f5f9ff;
+        }
+        .client-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .client-item {
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .client-item:hover {
+            background: #eef3fa;
+        }
+        .client-item.active {
+            background: #e0e9f5;
+            border-left-color: #003366;
+            font-weight: 600;
+        }
+        .client-name {
+            font-weight: 500;
+        }
+        .client-count {
+            background: #003366;
+            color: white;
+            border-radius: 30px;
+            padding: 2px 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .article-item {
+            padding: 16px;
+            border-radius: 12px;
+            background: #f9fbfe;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .article-item:hover {
+            background: #eef3fa;
+        }
+        .article-title {
+            font-weight: 600;
+            color: #003366;
+        }
+        .article-meta {
+            font-size: 0.9rem;
+            color: #5e6f88;
+        }
+        .back-button {
+            cursor: pointer;
+            color: #003366;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .back-button:hover {
+            text-decoration: underline;
+        }
+        .detail-view {
+            white-space: pre-wrap;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .edit-form input, .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .edit-form label {
+            font-weight: 600;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container-fluid">
-    <div class="row main-row">
-        <div class="col-md-7 chat-section">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="m-0">🕵️ SPIZ <small class="text-muted" style="font-size: 0.9rem;">| Strategic Intelligence</small></h4>
-                <span class="badge bg-success">Live Analysis</span>
-            </div>
+<div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h1 class="display-6 fw-bold" style="color: #003366;">📊 SPIZ · Monitor Clienti</h1>
+        <div>
+            <a href="/chat" class="btn btn-outline-primary px-4 py-2 me-2">🧠 Vai all'analisi qualitativa</a>
+            <span class="badge bg-light text-dark p-3" id="last-upload-label">
+                📅 Ultimo caricamento: <span id="last-upload-date">--</span>
+            </span>
+        </div>
+    </div>
 
-            <div id="chat-box" class="chat-box">
-                <div class="mb-3"><strong>SPIZ:</strong> Geronimo, i dati della tabella <code>clients</code> sono stati caricati. La dashboard è aggiornata. Come posso aiutarti nell'analisi?</div>
+    <!-- Upload CSV -->
+    <div class="upload-area mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-7">
+                <label class="fw-semibold mb-2">📁 Carica agenzie (CSV multipli)</label>
+                <input type="file" id="file-input" class="form-control" multiple>
             </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100 py-2" onclick="handleUpload()">
+                    📥 CARICA
+                </button>
+            </div>
+            <div class="col-md-2 text-end">
+                <small class="text-soft">Supporto CSV, max 10 file</small>
+            </div>
+        </div>
+    </div>
 
-            <div class="input-group shadow-sm">
-                <input type="text" id="user-input" class="form-control" placeholder="Chiedi analisi sui dati o sui rischi..." onkeypress="if(event.key==='Enter') sendMessage()">
-                <button class="btn btn-primary px-4" onclick="sendMessage()">Invia</button>
+    <!-- Statistiche rapide -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">📚 TOTALE ARCHIVIO</span>
+                <span class="stat-number" id="stat-total">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">📰 ARTICOLI OGGI</span>
+                <span class="stat-number" id="stat-today">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">✍️ GIORNALISTI OGGI</span>
+                <span class="stat-number" id="stat-giornalisti-oggi">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">🏷️ TESTATE OGGI</span>
+                <span class="stat-number" id="stat-testate-oggi">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Due colonne: sinistra clienti, destra articoli -->
+    <div class="row g-4">
+        <!-- Colonna sinistra: clienti (1/4) -->
+        <div class="col-md-3">
+            <div class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">📁 Citazioni odierne clienti</h5>
+                    <a href="/clients" class="text-decoration-none small">Gestisci</a>
+                </div>
+                <div id="client-list-container" class="client-list">
+                    <div class="text-soft">Caricamento clienti...</div>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-5 dashboard-section">
-            <div class="mb-4">
-                <h6 class="text-uppercase fw-bold text-muted small mb-2">📥 Ingestion Dati (Multi-CSV)</h6>
-                <div class="upload-area">
-                    <input type="file" id="file-input" class="form-control form-control-sm" multiple>
-                    <button class="btn btn-dark btn-sm w-100 mt-2 fw-bold" onclick="handleUpload()">CARICA FILE</button>
-                </div>
-            </div>
-
-            <div class="card-stats">
-                <h6 class="text-uppercase opacity-75 small fw-bold">Totale articoli in archivio</h6>
-                <div class="row text-center mt-3">
-                    <div class="col">
-                        <h3 id="stat-total" class="m-0 fw-bold">0</h3>
-                        <small class="opacity-75">Articoli</small>
-                    </div>
-                    <div class="col">
-                        <h3 id="stat-firmati" class="m-0 fw-bold">0</h3>
-                        <small class="opacity-75">Firmati</small>
-                    </div>
-                    <div class="col">
-                        <h3 id="stat-anonimi" class="m-0 fw-bold">0</h3>
-                        <small class="opacity-75">Redazionali</small>
+        <!-- Colonna destra: articoli del cliente selezionato (3/4) -->
+        <div class="col-md-9">
+            <div class="card-custom" id="articles-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0" id="panel-title">📰 Seleziona un cliente</h5>
+                    <div id="period-selector" style="display: none;">
+                        <select id="period-select" class="form-select form-select-sm w-auto d-inline-block">
+                            <option value="today">Oggi</option>
+                            <option value="7days">Ultimi 7 giorni</option>
+                            <option value="30days">Ultimi 30 giorni</option>
+                            <option value="3months">Ultimi 3 mesi</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="text-uppercase fw-bold text-muted small m-0">📁 Monitoraggio Clienti</h6>
-                <a href="/clients" class="btn btn-sm btn-link text-decoration-none p-0">⚙️ Gestisci</a>
-            </div>
-
-            <div id="client-list">
-                <div class="text-center text-muted p-4">Caricamento clienti in corso...</div>
+                <div id="articles-list">
+                    <p class="text-soft">Clicca su un cliente a sinistra per vedere gli articoli.</p>
+                </div>
+                <div id="article-detail" style="display: none;">
+                    <a class="back-button" id="back-to-list">← Torna alla lista</a>
+                    <div class="action-buttons">
+                        <button class="btn btn-outline-primary btn-sm" id="edit-article-btn">✏️ Modifica</button>
+                        <button class="btn btn-outline-danger btn-sm" id="delete-article-btn">🗑️ Elimina</button>
+                    </div>
+                    <div id="detail-content"></div>
+                    <div id="edit-form-container" style="display: none;">
+                        <h6 class="fw-bold mt-3">Modifica articolo</h6>
+                        <form id="edit-article-form" class="edit-form">
+                            <label>Titolo</label>
+                            <input type="text" id="edit-titolo" class="form-control">
+                            <label>Testata</label>
+                            <input type="text" id="edit-testata" class="form-control">
+                            <label>Data</label>
+                            <input type="date" id="edit-data" class="form-control">
+                            <label>Giornalista</label>
+                            <input type="text" id="edit-giornalista" class="form-control">
+                            <label>Occhiello</label>
+                            <input type="text" id="edit-occhiello" class="form-control">
+                            <label>Sottotitolo</label>
+                            <input type="text" id="edit-sottotitolo" class="form-control">
+                            <label>Testo completo</label>
+                            <textarea id="edit-testo_completo" rows="6" class="form-control"></textarea>
+                            <label>Tono (tone)</label>
+                            <input type="text" id="edit-tone" class="form-control">
+                            <label>Rischio reputazionale</label>
+                            <input type="text" id="edit-reputational_risk" class="form-control">
+                            <label>Rischio politico</label>
+                            <input type="text" id="edit-political_risk" class="form-control">
+                            <label>Topic dominante</label>
+                            <input type="text" id="edit-dominant_topic" class="form-control">
+                            <label>Macrosettori</label>
+                            <input type="text" id="edit-macrosettori" class="form-control">
+                            <label>Tipologia articolo</label>
+                            <input type="text" id="edit-tipologia_articolo" class="form-control">
+                            <label>AVE (€)</label>
+                            <input type="number" step="0.01" id="edit-ave" class="form-control">
+                            <label>Tipo fonte</label>
+                            <input type="text" id="edit-tipo_fonte" class="form-control">
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-edit">Annulla</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Caricamento dati Dashboard all'avvio
+    // Stato applicazione
+    let currentClient = null;
+    let currentPeriod = 'today';
+    let allClients = [];
+    let todayStats = null;
+    let currentArticleId = null;
+    let currentArticleData = null;
+
+    // Funzioni di utilità
+    function formatDate(dateStr) {
+        if (!dateStr) return '--';
+        const d = new Date(dateStr + 'T12:00:00');
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function getDateRange(period) {
+        const today = new Date();
+        const end = today.toISOString().split('T')[0];
+        let start;
+        switch(period) {
+            case 'today':
+                start = end;
+                break;
+            case '7days':
+                start = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+                break;
+            case '30days':
+                start = new Date(today.setDate(today.getDate() - 30)).toISOString().split('T')[0];
+                break;
+            case '3months':
+                start = new Date(today.setMonth(today.getMonth() - 3)).toISOString().split('T')[0];
+                break;
+            default:
+                start = end;
+        }
+        return { start, end };
+    }
+
+    // Carica statistiche generali e clienti
     async function loadDashboard() {
         try {
-            // 1. Carica Statistiche (Totali, Firmati, Anonimi) - ora sono totali complessivi
+            // Statistiche generali
             const resStats = await fetch('/api/dashboard-stats');
             const stats = await resStats.json();
             document.getElementById('stat-total').innerText = stats.total;
-            document.getElementById('stat-firmati').innerText = stats.firmati;
-            document.getElementById('stat-anonimi').innerText = stats.anonimi;
 
-            // 2. Carica Menzioni Clienti (sempre riferite a oggi)
+            // Data ultimo caricamento
+            const resLast = await fetch('/api/last-upload');
+            const last = await resLast.json();
+            document.getElementById('last-upload-date').innerText = last.last_upload ? formatDate(last.last_upload) : 'nessuno';
+
+            // Statistiche di oggi
+            const resToday = await fetch('/api/today-stats');
+            todayStats = await resToday.json();
+            document.getElementById('stat-today').innerText = todayStats.total_today;
+            document.getElementById('stat-giornalisti-oggi').innerText = todayStats.giornalisti.length;
+            document.getElementById('stat-testate-oggi').innerText = todayStats.testate.length;
+
+            // Carica clienti e menzioni di oggi
             const resMentions = await fetch('/api/today-mentions');
-            const mentions = await resMentions.json();
-            const listContainer = document.getElementById('client-list');
+            let clients = await resMentions.json();
+            // Ordine alfabetico per nome
+            clients.sort((a, b) => a.name.localeCompare(b.name));
+            allClients = clients;
+            renderClientList();
+        } catch (err) {
+            console.error('Errore caricamento dashboard:', err);
+        }
+    }
 
-            if (mentions.length === 0) {
-                listContainer.innerHTML = '<div class="alert alert-light text-center small">Nessun cliente trovato in tabella.</div>';
+    function renderClientList() {
+        const container = document.getElementById('client-list-container');
+        if (!allClients.length) {
+            container.innerHTML = '<div class="text-soft">Nessun cliente presente.</div>';
+            return;
+        }
+        let html = '';
+        allClients.forEach(c => {
+            const activeClass = (currentClient && currentClient.id === c.id) ? 'active' : '';
+            html += `
+                <div class="client-item ${activeClass}" data-client-id="${c.id}" data-client-name="${c.name}" data-client-keywords="${c.keywords || ''}">
+                    <span class="client-name">${c.name}</span>
+                    <span class="client-count">${c.today}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        document.querySelectorAll('.client-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const clientId = this.dataset.clientId;
+                const clientName = this.dataset.clientName;
+                const clientKeywords = this.dataset.clientKeywords;
+                selectClient({ id: clientId, name: clientName, keywords: clientKeywords });
+            });
+        });
+    }
+
+    function selectClient(client) {
+        document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.querySelector(`.client-item[data-client-id="${client.id}"]`);
+        if (activeItem) activeItem.classList.add('active');
+
+        currentClient = client;
+        document.getElementById('period-selector').style.display = 'block';
+        document.getElementById('panel-title').innerText = `📰 Articoli per ${client.name}`;
+
+        loadArticlesForClient();
+    }
+
+    async function loadArticlesForClient() {
+        if (!currentClient) return;
+
+        const { start, end } = getDateRange(currentPeriod);
+        try {
+            const res = await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
+            const articles = await res.json();
+            renderArticlesList(articles);
+        } catch (err) {
+            console.error(err);
+            document.getElementById('articles-list').innerHTML = '<p class="text-danger">Errore nel caricamento articoli.</p>';
+        }
+    }
+
+    function renderArticlesList(articles) {
+        const listDiv = document.getElementById('articles-list');
+        const detailDiv = document.getElementById('article-detail');
+        listDiv.style.display = 'block';
+        detailDiv.style.display = 'none';
+
+        if (!articles || articles.length === 0) {
+            listDiv.innerHTML = '<p class="text-soft">Nessun articolo trovato per questo periodo.</p>';
+            return;
+        }
+
+        let html = '';
+        articles.forEach(a => {
+            html += `
+                <div class="article-item" data-article-id="${a.id}">
+                    <div class="d-flex justify-content-between">
+                        <span class="article-title">${a.testata || 'N/D'}</span>
+                        <span class="article-meta">${formatDate(a.data)}</span>
+                    </div>
+                    <div class="fw-semibold">${a.titolo || 'Senza titolo'}</div>
+                    <div class="article-meta">${a.giornalista || 'Anonimo'}</div>
+                </div>
+            `;
+        });
+        listDiv.innerHTML = html;
+
+        document.querySelectorAll('.article-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const articleId = this.dataset.articleId;
+                loadArticleDetail(articleId);
+            });
+        });
+    }
+
+    async function loadArticleDetail(articleId) {
+        try {
+            const res = await fetch(`/api/article/${articleId}`);
+            const article = await res.json();
+            if (article.error) {
+                alert(article.error);
                 return;
             }
-
-            listContainer.innerHTML = '';
-            mentions.forEach(c => {
-                listContainer.innerHTML += `
-                    <div class="client-item shadow-sm">
-                        <div>
-                            <div class="fw-bold text-dark">${c.name}</div>
-                            <div class="small text-muted">Menzioni oggi: <span class="badge bg-light text-dark border">${c.today}</span></div>
-                        </div>
-                        <button class="btn btn-outline-primary btn-sm btn-report" onclick="runReport('${c.name}')">Report AI</button>
-                    </div>
-                `;
-            });
+            currentArticleId = articleId;
+            currentArticleData = article;
+            showArticleDetail(article);
         } catch (err) {
-            console.error("Errore caricamento dashboard:", err);
+            console.error(err);
+            alert('Errore nel caricamento dell\'articolo');
         }
     }
 
-    // Funzione invio messaggio Chat
-    async function sendMessage() {
-        const input = document.getElementById('user-input');
-        const chatBox = document.getElementById('chat-box');
-        const text = input.value.trim();
-        if(!text) return;
+    function showArticleDetail(article) {
+        const listDiv = document.getElementById('articles-list');
+        const detailDiv = document.getElementById('article-detail');
+        const detailContent = document.getElementById('detail-content');
+        const editFormContainer = document.getElementById('edit-form-container');
 
-        chatBox.innerHTML += `<div class='text-end mb-3'><span class='bg-primary text-white p-2 rounded d-inline-block'>${text}</span></div>`;
-        input.value = '';
-        chatBox.scrollTop = chatBox.scrollHeight;
+        editFormContainer.style.display = 'none';
+        document.getElementById('detail-content').style.display = 'block';
+        document.getElementById('edit-article-btn').style.display = 'inline-block';
+        document.getElementById('delete-article-btn').style.display = 'inline-block';
+
+        let html = `
+            <div style="margin-bottom: 1.5rem;">
+                <h4>${article.testata || 'N/D'}</h4>
+                <h3 class="fw-bold" style="color: #003366;">${article.titolo || 'Senza titolo'}</h3>
+        `;
+        if (article.occhiello) html += `<p class="fst-italic">${article.occhiello}</p>`;
+        if (article.sottotitolo) html += `<p>${article.sottotitolo}</p>`;
+        html += `
+                <p class="article-meta">di ${article.giornalista || article.autore || 'Anonimo'} | ${formatDate(article.data)}</p>
+                <hr>
+                <div class="detail-view">${article.testo_completo || 'Testo non disponibile'}</div>
+            </div>
+        `;
+
+        detailContent.innerHTML = html;
+        listDiv.style.display = 'none';
+        detailDiv.style.display = 'block';
+
+        document.getElementById('edit-article-btn').onclick = () => showEditForm(article);
+        document.getElementById('delete-article-btn').onclick = () => deleteArticle(article.id);
+    }
+
+    function showEditForm(article) {
+        document.getElementById('detail-content').style.display = 'none';
+        document.getElementById('edit-article-btn').style.display = 'none';
+        document.getElementById('delete-article-btn').style.display = 'none';
+        document.getElementById('edit-form-container').style.display = 'block';
+
+        document.getElementById('edit-titolo').value = article.titolo || '';
+        document.getElementById('edit-testata').value = article.testata || '';
+        document.getElementById('edit-data').value = article.data || '';
+        document.getElementById('edit-giornalista').value = article.giornalista || article.autore || '';
+        document.getElementById('edit-occhiello').value = article.occhiello || '';
+        document.getElementById('edit-sottotitolo').value = article.sottotitolo || '';
+        document.getElementById('edit-testo_completo').value = article.testo_completo || '';
+        document.getElementById('edit-tone').value = article.tone || '';
+        document.getElementById('edit-reputational_risk').value = article.reputational_risk || '';
+        document.getElementById('edit-political_risk').value = article.political_risk || '';
+        document.getElementById('edit-dominant_topic').value = article.dominant_topic || '';
+        document.getElementById('edit-macrosettori').value = article.macrosettori || '';
+        document.getElementById('edit-tipologia_articolo').value = article.tipologia_articolo || '';
+        document.getElementById('edit-ave').value = article.ave || '';
+        document.getElementById('edit-tipo_fonte').value = article.tipo_fonte || '';
+    }
+
+    document.getElementById('edit-article-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const updatedData = {};
+        const fields = [
+            'titolo', 'testata', 'data', 'giornalista', 'occhiello', 'sottotitolo',
+            'testo_completo', 'tone', 'reputational_risk', 'political_risk',
+            'dominant_topic', 'macrosettori', 'tipologia_articolo', 'tipo_fonte'
+        ];
+        fields.forEach(f => {
+            const val = document.getElementById(`edit-${f}`).value;
+            if (val !== '') updatedData[f] = val;
+        });
+        const aveVal = document.getElementById('edit-ave').value;
+        if (aveVal !== '') updatedData.ave = parseFloat(aveVal);
 
         try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: text })
+            const res = await fetch(`/api/article/${currentArticleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
             });
-            const data = await response.json();
-            chatBox.innerHTML += `
-                <div class='mb-3 border-start border-primary border-4 ps-3 py-1'>
-                    <strong>SPIZ:</strong><br>${data.response}
-                </div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
+            const result = await res.json();
+            if (result.error) {
+                alert('Errore: ' + result.error);
+            } else {
+                alert('Articolo aggiornato con successo');
+                currentArticleData = result;
+                showArticleDetail(result);
+                loadArticlesForClient();
+            }
         } catch (err) {
-            chatBox.innerHTML += `<div class='text-danger mb-3'>Errore di connessione al server.</div>`;
+            alert('Errore di connessione');
+        }
+    });
+
+    document.getElementById('cancel-edit').addEventListener('click', function() {
+        showArticleDetail(currentArticleData);
+    });
+
+    async function deleteArticle(articleId) {
+        if (!confirm('Sei sicuro di voler eliminare questo articolo? L\'operazione è irreversibile.')) return;
+
+        try {
+            const res = await fetch(`/api/article/${articleId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.error) {
+                alert('Errore: ' + result.error);
+            } else {
+                alert('Articolo eliminato');
+                document.getElementById('back-to-list').click();
+                loadArticlesForClient();
+                loadDashboard();
+            }
+        } catch (err) {
+            alert('Errore di connessione');
         }
     }
 
-    // Report veloce per il cliente
-    function runReport(name) {
-        const input = document.getElementById('user-input');
-        input.value = `Genera un report strategico per il cliente ${name}`;
-        sendMessage();
-    }
+    document.getElementById('period-select').addEventListener('change', function(e) {
+        currentPeriod = e.target.value;
+        if (currentClient) {
+            loadArticlesForClient();
+        }
+    });
 
-    // Gestione Upload Multiplo
+    document.getElementById('back-to-list').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('articles-list').style.display = 'block';
+        document.getElementById('article-detail').style.display = 'none';
+        document.getElementById('edit-form-container').style.display = 'none';
+    });
+
     async function handleUpload() {
-        const fileInput = document.getElementById('file-input');
-        if (fileInput.files.length === 0) return alert("Seleziona almeno un file.");
-
+        const input = document.getElementById('file-input');
+        if (!input.files.length) return alert('Seleziona almeno un file CSV.');
         const formData = new FormData();
-        for (let file of fileInput.files) {
-            formData.append('files', file);
-        }
-
+        for (let f of input.files) formData.append('files', f);
         const btn = event.target;
-        btn.innerText = "Caricamento...";
-        btn.disabled = true;
-
+        btn.disabled = true; btn.innerText = '⏳ Caricamento...';
         try {
             const res = await fetch('/upload', { method: 'POST', body: formData });
             const data = await res.json();
-            alert("Caricamento completato!");
-            loadDashboard(); // Ricarica la dashboard per vedere i nuovi numeri
+            alert('Caricamento completato!');
+            loadDashboard();
         } catch (err) {
-            alert("Errore durante l'upload.");
+            alert('Errore durante l\'upload.');
         } finally {
-            btn.innerText = "CARICA FILE";
-            btn.disabled = false;
+            btn.disabled = false; btn.innerText = '📥 CARICA';
         }
     }
 
-    // Avvio automatico
     window.onload = loadDashboard;
 </script>
 </body>

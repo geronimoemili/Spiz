@@ -1,49 +1,63 @@
 import pandas as pd
+import hashlib
 from services.database import supabase
 import datetime
 
+def clean_text(s):
+    return ' '.join(str(s).strip().lower().split())
+
+def generate_content_hash(row):
+    key_fields = [
+        clean_text(row.get('titolo', '')),
+        clean_text(row.get('data', '')),
+        clean_text(row.get('testata', '')),
+        clean_text(row.get('autore', '')),
+        clean_text(row.get('testo_completo', row.get('testo', '')))[:500]
+    ]
+    key_string = '|'.join(key_fields)
+    return hashlib.sha256(key_string.encode('utf-8')).hexdigest()
+
 def process_csv(file_path):
     try:
-        # Caricamento flessibile del CSV
+        # Carica CSV
         try:
             df = pd.read_csv(file_path, sep=None, engine='python')
         except:
             df = pd.read_csv(file_path)
-        
-        # Pulizia nomi colonne CSV (togliamo spazi e minuscole)
+
         df.columns = [c.strip().lower() for c in df.columns]
-        
         print(f"--- DEBUG: Colonne CSV rilevate: {df.columns.tolist()} ---")
 
         records = []
         for _, row in df.iterrows():
-            # Estraiamo l'autore dal CSV (colonna 'autore')
-            # Se la colonna non esiste, mettiamo 'N.D.'
-            valore_autore = row.get('autore') if 'autore' in df.columns else "Autore non indicato"
-            
-            # Prepariamo il record per Supabase usando i nomi COLONNA del DB
+            autore = row.get('autore') if 'autore' in df.columns else "Autore non indicato"
+            testo = str(row.get('testo_completo', row.get('testo', "")))
+            content_hash = generate_content_hash(row)
+
             record = {
                 "titolo": str(row.get('titolo', "Senza Titolo")),
                 "testata": str(row.get('testata', "N.D.")),
                 "data": str(row.get('data', datetime.date.today().isoformat())),
-                
-                # QUI IL FIX: Mappiamo 'autore' (CSV) su 'giornalista' (DB)
-                "giornalista": str(valore_autore) if pd.notna(valore_autore) else "N.D.",
-                
-                "testo_completo": str(row.get('testo_completo', row.get('testo', ""))),
+                "giornalista": str(autore) if pd.notna(autore) else "N.D.",
+                "testo_completo": testo,
                 "occhiello": str(row.get('occhiello', "")),
                 "sottotitolo": str(row.get('sottotitolo', "")),
                 "ave": float(row.get('ave', 0)) if pd.notna(row.get('ave')) else 0,
                 "tone": "Neutral",
-                "reputational_risk": "None"
+                "reputational_risk": "None",
+                "content_hash": content_hash
             }
             records.append(record)
 
         if records:
-            # Inserimento nel database
-            supabase.table("articles").insert(records).execute()
-            return {"status": "success", "message": f"Caricati {len(records)} articoli. Giornalisti mappati correttamente!"}
-        
+            # UPSERT: sfrutta il vincolo UNIQUE su content_hash
+            result = supabase.table("articles").upsert(records, on_conflict="content_hash").execute()
+            inserted = len(result.data) if result.data else 0
+            return {
+                "status": "success",
+                "message": f"Elaborati {len(records)} articoli. Inseriti: {inserted}. Duplicati ignorati: {len(records)-inserted}."
+            }
+
         return {"status": "error", "message": "CSV vuoto."}
 
     except Exception as e:

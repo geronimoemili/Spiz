@@ -2,66 +2,271 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Gestione Clienti - SPIZ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIZ · Gestione Clienti</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: system-ui; background: #1a1a1a; color: white; padding: 2rem; }
-        .container { max-width: 700px; margin: 0 auto; }
-        .card { background: #2a2a2a; padding: 1.5rem; border-radius: 10px; border: 1px solid #444; }
-        input, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #333; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; }
-        button { background: #00d1b2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #444; }
-        .del { background: #ff3860; padding: 5px; font-size: 0.7rem; border-radius: 3px; border: none; color: white; cursor: pointer; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background-color: #f8fafd; }
+        .card-custom {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 51, 102, 0.04);
+            border: 1px solid rgba(0, 51, 102, 0.04);
+            height: 100%;
+        }
+        .client-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .client-item {
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .client-item:hover {
+            background: #eef3fa;
+        }
+        .client-item.active {
+            background: #e0e9f5;
+            border-left-color: #003366;
+            font-weight: 600;
+        }
+        .client-name {
+            font-weight: 600;
+            color: #003366;
+        }
+        .client-keywords {
+            font-size: 0.85rem;
+            color: #5e6f88;
+        }
+        .btn-outline-primary {
+            border-color: #003366;
+            color: #003366;
+        }
+        .btn-outline-primary:hover {
+            background: #003366;
+            color: white;
+        }
+        .btn-primary {
+            background: #003366;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #002244;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #003366;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="/" style="color: #00d1b2; text-decoration: none;">← Torna Indietro</a>
-        <h1>Clienti in Vigore 👥</h1>
-        <div class="card">
-            <input type="text" id="name" placeholder="Nome Cliente">
-            <input type="text" id="kw" placeholder="Keywords (es: Eni, Descalzi)">
-            <textarea id="topic" placeholder="Descrizione semantica del tema"></textarea>
-            <button onclick="add()">Salva Cliente</button>
-        </div>
-        <table id="table">
-            <thead><tr><th>Cliente</th><th>Argomento</th><th>Azione</th></tr></thead>
-            <tbody id="list"></tbody>
-        </table>
+
+<div class="container-fluid px-4 py-4">
+    <!-- Header con navigazione -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-6 fw-bold" style="color: #003366;">👥 Gestione Clienti</h1>
+        <a href="/" class="btn btn-outline-primary px-4 py-2">
+            ← Torna alla Dashboard
+        </a>
     </div>
+
+    <!-- Due colonne: sinistra lista clienti, destra form -->
+    <div class="row g-4">
+        <!-- Colonna sinistra: elenco clienti -->
+        <div class="col-md-4">
+            <div class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">📋 Elenco Clienti</h5>
+                    <span class="badge bg-primary" id="client-count">0</span>
+                </div>
+                <div id="client-list-container" class="client-list">
+                    <div class="text-soft text-center p-4">Caricamento...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonna destra: form di inserimento/modifica -->
+        <div class="col-md-8">
+            <div class="card-custom">
+                <h5 class="fw-bold mb-3" id="form-title">➕ Nuovo Cliente</h5>
+                <form id="client-form">
+                    <input type="hidden" id="client-id">
+                    <div class="mb-3">
+                        <label class="form-label">Nome Cliente</label>
+                        <input type="text" class="form-control" id="client-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Keywords (separate da virgola)</label>
+                        <input type="text" class="form-control" id="client-keywords" placeholder="es. Mediobanca, MPS, banca">
+                        <div class="form-text">Parole chiave per identificare citazioni negli articoli.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Settore Tematico</label>
+                        <input type="text" class="form-control" id="client-topic" placeholder="es. Finanza, Energia">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4" id="save-btn">💾 Salva</button>
+                        <button type="button" class="btn btn-outline-secondary px-4" id="new-btn">➕ Nuovo</button>
+                        <button type="button" class="btn btn-outline-danger px-4" id="delete-btn" style="display: none;">🗑️ Elimina</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    async function load() {
-        const res = await fetch('/api/get-clients');
-        const data = await res.json();
-        const list = document.getElementById('list');
-        list.innerHTML = data.map(c => `
-            <tr>
-                <td><strong>${c.name}</strong><br><small>${c.keywords || ''}</small></td>
-                <td>${c.semantic_topic || ''}</td>
-                <td><button class="del" onclick="del('${c.id}')">Elimina</button></td>
-            </tr>
-        `).join('');
-    }
-    async function add() {
-        const payload = { 
-            name: document.getElementById('name').value, 
-            keywords: document.getElementById('kw').value, 
-            semantic_topic: document.getElementById('topic').value 
-        };
-        await fetch('/api/add-client', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        location.reload();
-    }
-    async function del(id) {
-        if(confirm('Elimino?')) {
-            await fetch(`/api/delete-client/${id}`, { method: 'DELETE' });
-            load();
+    let currentClientId = null;
+
+    // Carica la lista clienti
+    async function loadClients() {
+        try {
+            const res = await fetch('/api/clients');
+            let clients = await res.json();
+            // Ordine alfabetico per nome
+            clients.sort((a, b) => a.name.localeCompare(b.name));
+            renderClientList(clients);
+            document.getElementById('client-count').innerText = clients.length;
+        } catch (err) {
+            console.error('Errore caricamento clienti:', err);
         }
     }
-    load();
+
+    function renderClientList(clients) {
+        const container = document.getElementById('client-list-container');
+        if (!clients.length) {
+            container.innerHTML = '<div class="text-soft text-center p-4">Nessun cliente presente.</div>';
+            return;
+        }
+
+        let html = '';
+        clients.forEach(c => {
+            const activeClass = (currentClientId === c.id) ? 'active' : '';
+            html += `
+                <div class="client-item ${activeClass}" data-id="${c.id}">
+                    <div class="client-name">${c.name}</div>
+                    <div class="client-keywords">${c.keywords ? c.keywords.substring(0, 50) + (c.keywords.length > 50 ? '…' : '') : '—'}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+
+        // Aggiungi event listener a ogni cliente
+        document.querySelectorAll('.client-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const id = this.dataset.id;
+                loadClientDetail(id);
+            });
+        });
+    }
+
+    // Carica dettaglio di un cliente per modifica
+    async function loadClientDetail(id) {
+        try {
+            const res = await fetch('/api/clients');
+            let clients = await res.json();
+            clients.sort((a, b) => a.name.localeCompare(b.name));
+            const client = clients.find(c => c.id === id);
+            if (!client) return;
+
+            currentClientId = client.id;
+            document.getElementById('client-id').value = client.id;
+            document.getElementById('client-name').value = client.name || '';
+            document.getElementById('client-keywords').value = client.keywords || '';
+            document.getElementById('client-topic').value = client.semantic_topic || '';
+            document.getElementById('form-title').innerText = '✏️ Modifica Cliente';
+            document.getElementById('delete-btn').style.display = 'inline-block';
+
+            // Evidenzia nella lista
+            document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.client-item[data-id="${id}"]`).classList.add('active');
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Resetta il form per nuovo cliente
+    function resetForm() {
+        currentClientId = null;
+        document.getElementById('client-id').value = '';
+        document.getElementById('client-name').value = '';
+        document.getElementById('client-keywords').value = '';
+        document.getElementById('client-topic').value = '';
+        document.getElementById('form-title').innerText = '➕ Nuovo Cliente';
+        document.getElementById('delete-btn').style.display = 'none';
+
+        // Rimuove evidenziazione
+        document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+    }
+
+    // Salva (inserimento o modifica)
+    document.getElementById('client-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const clientData = {
+            name: document.getElementById('client-name').value.trim(),
+            keywords: document.getElementById('client-keywords').value.trim(),
+            semantic_topic: document.getElementById('client-topic').value.trim()
+        };
+
+        if (!clientData.name) {
+            alert('Il nome cliente è obbligatorio.');
+            return;
+        }
+
+        const url = currentClientId ? `/api/clients/${currentClientId}` : '/api/clients';
+        const method = currentClientId ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientData)
+            });
+            const result = await res.json();
+            if (result.error) {
+                alert('Errore: ' + result.error);
+            } else {
+                alert(currentClientId ? 'Cliente aggiornato!' : 'Cliente creato!');
+                resetForm();
+                loadClients();
+            }
+        } catch (err) {
+            alert('Errore di connessione');
+        }
+    });
+
+    // Pulsante Nuovo
+    document.getElementById('new-btn').addEventListener('click', resetForm);
+
+    // Pulsante Elimina
+    document.getElementById('delete-btn').addEventListener('click', async function() {
+        if (!currentClientId) return;
+        if (!confirm('Sei sicuro di voler eliminare questo cliente? L\'operazione è irreversibile.')) return;
+
+        try {
+            const res = await fetch(`/api/clients/${currentClientId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.error) {
+                alert('Errore: ' + result.error);
+            } else {
+                alert('Cliente eliminato');
+                resetForm();
+                loadClients();
+            }
+        } catch (err) {
+            alert('Errore di connessione');
+        }
+    });
+
+    // Carica iniziale
+    window.onload = loadClients;
 </script>
 </body>
 </html>
