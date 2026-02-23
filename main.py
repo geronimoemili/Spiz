@@ -69,7 +69,7 @@ async def chat_endpoint(req: ChatRequest):
         return {"response": f"Errore AI: {str(e)}"}
 
 # ── ENDPOINT LISTA CLIENTI (per il frontend) ──────────────────────────────────
-@app.get("/api/clients")
+@app.get("/api/get-clients")
 async def get_clients():
     """Restituisce la lista clienti — utile per il selettore nel frontend."""
     try:
@@ -77,6 +77,22 @@ async def get_clients():
         return res.data or []
     except Exception as e:
         return []
+
+@app.post("/api/add-client")
+async def add_client(client: dict):
+    try:
+        res = supabase.table("clients").insert(client).execute()
+        return res.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete-client/{client_id}")
+async def delete_client(client_id: str):
+    try:
+        res = supabase.table("clients").delete().eq("id", client_id).execute()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- API DASHBOARD DINAMICA ---
 @app.get("/api/dashboard-stats")
