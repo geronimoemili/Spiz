@@ -2,133 +2,185 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>SPIZ Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIZ Intelligence Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 2rem; box-sizing: border-box; }
-        .card { background: #2a2a2a; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; width: 600px; max-width: 100%; }
-        .drop-zone { border: 2px dashed #4a4a4a; padding: 1.5rem; margin: 1rem 0; cursor: pointer; border-radius: 10px; transition: 0.3s; }
-        .drop-zone:hover { border-color: #00d1b2; background: #333; }
-        #status { margin-top: 1rem; font-weight: bold; padding: 10px; border-radius: 5px; font-size: 0.9rem; }
-        .success { color: #00d1b2; background: rgba(0, 209, 178, 0.1); }
-        .error { color: #ff3860; background: rgba(255, 56, 96, 0.1); }
-        #mentions-summary { background: #333; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 0.85rem; border-left: 4px solid #00d1b2; display: none; text-align: left; }
-        .nav-link { color: #00d1b2; text-decoration: none; font-size: 0.9rem; display: block; margin-bottom: 1rem; }
-        
-        /* STILI CHAT */
-        #chat-container { margin-top: 2rem; text-align: left; border-top: 1px solid #444; padding-top: 1.5rem; }
-        #chat-output { 
-            background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 0.9rem; 
-            height: 350px; overflow-y: auto; border: 1px solid #444; 
-            display: flex; flex-direction: column; gap: 12px; margin-bottom: 10px;
-        }
-        .msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
-        .user-msg { background: #00d1b2; color: #000; align-self: flex-end; font-weight: 500; }
-        .ai-msg { background: #333; color: #fff; align-self: flex-start; border: 1px solid #444; white-space: pre-wrap; }
-        .chat-input-area { display: flex; gap: 8px; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: white; }
-        .btn-send { background: #00d1b2; color: #000; border: none; padding: 0 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        :root { --snam-blue: #003366; --spiz-bg: #f4f7f6; }
+        body { background-color: var(--spiz-bg); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
+        .main-row { height: 100vh; }
+        .chat-section { height: 100vh; display: flex; flex-direction: column; padding: 25px; border-right: 1px solid #e0e0e0; background: #fff; }
+        .dashboard-section { height: 100vh; overflow-y: auto; background: #fdfdfd; padding: 25px; }
+        .chat-box { flex-grow: 1; overflow-y: auto; background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid #efefef; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        .card-stats { background: var(--snam-blue); color: white; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,51,102,0.2); }
+        .client-item { background: white; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .client-item:hover { border-color: var(--snam-blue); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .btn-report { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .upload-area { border: 2px dashed #ccc; border-radius: 10px; padding: 15px; text-align: center; background: #fafafa; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <a href="/clienti" class="nav-link">⚙️ Gestisci Clienti in Vigore</a>
-        <h1>SPIZ 🚀</h1>
-        
-        <div id="mentions-summary"></div>
 
-        <div class="drop-zone" onclick="document.getElementById('file-input').click()">
-            Trascina il CSV qui o clicca per caricare la rassegna
-            <input type="file" id="file-input" hidden accept=".csv">
-        </div>
-        
-        <div id="status"></div>
-
-        <div id="chat-container">
-            <h3 style="color: #00d1b2; margin-top: 0;">SPIZ Intelligence 🧠</h3>
-            <div id="chat-output">
-                <div class="msg ai-msg">Ciao! Sono SPIZ. Carica una rassegna o chiedimi un'analisi dei dati, dell'AVE o dei rischi reputazionali.</div>
+<div class="container-fluid">
+    <div class="row main-row">
+        <div class="col-md-7 chat-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="m-0">🕵️ SPIZ <small class="text-muted" style="font-size: 0.9rem;">| Strategic Intelligence</small></h4>
+                <span class="badge bg-success">Live Analysis</span>
             </div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Scrivi qui e premi Invio..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button class="btn-send" onclick="sendChat()">Invia</button>
+
+            <div id="chat-box" class="chat-box">
+                <div class="mb-3"><strong>SPIZ:</strong> Geronimo, i dati della tabella <code>clients</code> sono stati caricati. La dashboard è aggiornata. Come posso aiutarti nell'analisi?</div>
+            </div>
+
+            <div class="input-group shadow-sm">
+                <input type="text" id="user-input" class="form-control" placeholder="Chiedi analisi sui dati o sui rischi..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button class="btn btn-primary px-4" onclick="sendMessage()">Invia</button>
+            </div>
+        </div>
+
+        <div class="col-md-5 dashboard-section">
+            <div class="mb-4">
+                <h6 class="text-uppercase fw-bold text-muted small mb-2">📥 Ingestion Dati (Multi-CSV)</h6>
+                <div class="upload-area">
+                    <input type="file" id="file-input" class="form-control form-control-sm" multiple>
+                    <button class="btn btn-dark btn-sm w-100 mt-2 fw-bold" onclick="handleUpload()">CARICA FILE</button>
+                </div>
+            </div>
+
+            <div class="card-stats">
+                <h6 class="text-uppercase opacity-75 small fw-bold">Totale articoli in archivio</h6>
+                <div class="row text-center mt-3">
+                    <div class="col">
+                        <h3 id="stat-total" class="m-0 fw-bold">0</h3>
+                        <small class="opacity-75">Articoli</small>
+                    </div>
+                    <div class="col">
+                        <h3 id="stat-firmati" class="m-0 fw-bold">0</h3>
+                        <small class="opacity-75">Firmati</small>
+                    </div>
+                    <div class="col">
+                        <h3 id="stat-anonimi" class="m-0 fw-bold">0</h3>
+                        <small class="opacity-75">Redazionali</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-uppercase fw-bold text-muted small m-0">📁 Monitoraggio Clienti</h6>
+                <a href="/clients" class="btn btn-sm btn-link text-decoration-none p-0">⚙️ Gestisci</a>
+            </div>
+
+            <div id="client-list">
+                <div class="text-center text-muted p-4">Caricamento clienti in corso...</div>
             </div>
         </div>
     </div>
+</div>
 
 <script>
-    // Controllo citazioni clienti
-    async function checkMentions() {
+    // Caricamento dati Dashboard all'avvio
+    async function loadDashboard() {
         try {
-            const res = await fetch('/api/today-mentions');
-            const data = await res.json();
-            const div = document.getElementById('mentions-summary');
-            if (data.client_mentions && data.client_mentions.length > 0) {
-                div.style.display = 'block';
-                div.innerHTML = "<strong>🎯 Citazioni oggi:</strong> " + 
-                    data.client_mentions.map(m => `${m.name} (${m.mentions})`).join(", ");
-            } else {
-                div.style.display = 'none';
+            // 1. Carica Statistiche (Totali, Firmati, Anonimi) - ora sono totali complessivi
+            const resStats = await fetch('/api/dashboard-stats');
+            const stats = await resStats.json();
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-firmati').innerText = stats.firmati;
+            document.getElementById('stat-anonimi').innerText = stats.anonimi;
+
+            // 2. Carica Menzioni Clienti (sempre riferite a oggi)
+            const resMentions = await fetch('/api/today-mentions');
+            const mentions = await resMentions.json();
+            const listContainer = document.getElementById('client-list');
+
+            if (mentions.length === 0) {
+                listContainer.innerHTML = '<div class="alert alert-light text-center small">Nessun cliente trovato in tabella.</div>';
+                return;
             }
-        } catch (e) { console.error(e); }
+
+            listContainer.innerHTML = '';
+            mentions.forEach(c => {
+                listContainer.innerHTML += `
+                    <div class="client-item shadow-sm">
+                        <div>
+                            <div class="fw-bold text-dark">${c.name}</div>
+                            <div class="small text-muted">Menzioni oggi: <span class="badge bg-light text-dark border">${c.today}</span></div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm btn-report" onclick="runReport('${c.name}')">Report AI</button>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            console.error("Errore caricamento dashboard:", err);
+        }
     }
 
-    // Caricamento File
-    document.getElementById('file-input').onchange = async (e) => {
-        const file = e.target.files[0];
-        const status = document.getElementById('status');
-        if (!file) return;
-
-        status.innerText = "⏳ Elaborazione file e analisi AI...";
-        status.className = "";
-        
-        const fd = new FormData(); 
-        fd.append('file', file);
-
-        try {
-            const res = await fetch('/upload', { method: 'POST', body: fd });
-            const data = await res.json();
-            status.className = data.status === "success" ? "success" : "error";
-            status.innerText = (data.status === "success" ? "✅ " : "❌ ") + data.message;
-            checkMentions();
-        } catch (err) { 
-            status.className = "error";
-            status.innerText = "❌ Errore di connessione."; 
-        }
-    };
-
-    // Chat
-    async function sendChat() {
-        const input = document.getElementById('chat-input');
-        const output = document.getElementById('chat-output');
+    // Funzione invio messaggio Chat
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const chatBox = document.getElementById('chat-box');
         const text = input.value.trim();
-        
-        if (!text) return;
+        if(!text) return;
 
-        // Aggiungi domanda utente
-        output.innerHTML += `<div class="msg user-msg">${text}</div>`;
-        input.value = "";
-        output.scrollTop = output.scrollHeight;
-
-        // Placeholder attesa
-        const tempId = "loading-" + Date.now();
-        output.innerHTML += `<div class="msg ai-msg" id="${tempId}">SPIZ sta scrivendo...</div>`;
-        output.scrollTop = output.scrollHeight;
+        chatBox.innerHTML += `<div class='text-end mb-3'><span class='bg-primary text-white p-2 rounded d-inline-block'>${text}</span></div>`;
+        input.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
 
         try {
-            const res = await fetch('/api/chat', {
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ question: text })
+                body: JSON.stringify({ message: text })
             });
-            const data = await res.json();
-            document.getElementById(tempId).innerText = data.answer;
+            const data = await response.json();
+            chatBox.innerHTML += `
+                <div class='mb-3 border-start border-primary border-4 ps-3 py-1'>
+                    <strong>SPIZ:</strong><br>${data.response}
+                </div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
         } catch (err) {
-            document.getElementById(tempId).innerText = "Errore nella comunicazione con l'AI.";
+            chatBox.innerHTML += `<div class='text-danger mb-3'>Errore di connessione al server.</div>`;
         }
-        output.scrollTop = output.scrollHeight;
     }
 
-    checkMentions();
+    // Report veloce per il cliente
+    function runReport(name) {
+        const input = document.getElementById('user-input');
+        input.value = `Genera un report strategico per il cliente ${name}`;
+        sendMessage();
+    }
+
+    // Gestione Upload Multiplo
+    async function handleUpload() {
+        const fileInput = document.getElementById('file-input');
+        if (fileInput.files.length === 0) return alert("Seleziona almeno un file.");
+
+        const formData = new FormData();
+        for (let file of fileInput.files) {
+            formData.append('files', file);
+        }
+
+        const btn = event.target;
+        btn.innerText = "Caricamento...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert("Caricamento completato!");
+            loadDashboard(); // Ricarica la dashboard per vedere i nuovi numeri
+        } catch (err) {
+            alert("Errore durante l'upload.");
+        } finally {
+            btn.innerText = "CARICA FILE";
+            btn.disabled = false;
+        }
+    }
+
+    // Avvio automatico
+    window.onload = loadDashboard;
 </script>
 </body>
 </html>

@@ -5,7 +5,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+from datetime import date
 
 # Import moduli interni
 try:
@@ -14,117 +15,113 @@ try:
     from api.chat import ask_spiz
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE: {e}")
-    print("Assicurati che le cartelle api/ e services/ contengano i file .py")
 
 app = FastAPI(title="SPIZ Intelligence Dashboard")
 
-# --- CONFIGURAZIONE AMBIENTE ---
-# Crea le cartelle necessarie se non esistono
+# Configurazione cartelle
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
 
-# Monta la cartella static se hai file CSS/JS esterni (opzionale)
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-
+# ── MODELLO CHAT AGGIORNATO ───────────────────────────────────────────────────
 class ChatRequest(BaseModel):
-    question: str
+    message:    str
+    session_id: str           = "default"   # il frontend può passare un ID univoco per utente/sessione
+    client_id:  Optional[str] = None        # UUID o nome cliente — opzionale
 
 # --- ROTTE NAVIGAZIONE ---
-
 @app.get("/")
 async def index():
-    """Pagina principale della Dashboard"""
     return FileResponse('web/index.html')
 
-@app.get("/clienti")
-async def clienti_page():
-    """Pagina gestione keywords clienti"""
+@app.get("/clients")
+async def clients_page():
     return FileResponse('web/clienti.html')
 
 # --- API CORE ---
-
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
-    """Gestisce il caricamento del CSV e l'ingestion su Supabase"""
-    try:
-        print(f"📂 Ricevuto file: {file.filename}")
-        path = f"data/raw/{file.filename}"
-        
-        with open(path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        
-        # Elaborazione tramite il modulo dedicato
-        result = process_csv(path)
-        
-        # Pulizia file temporaneo
-        if os.path.exists(path):
-            os.remove(path)
-            
-        return result
-    except Exception as e:
-        print(f"❌ Errore in Upload: {e}")
-        return {"status": "error", "message": str(e)}
+async def upload_multiple(files: List[UploadFile] = File(...)):
+    """Gestisce il caricamento di uno o più CSV"""
+    results = []
+    for file in files:
+        try:
+            path = f"data/raw/{file.filename}"
+            with open(path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+            res = process_csv(path)
+            results.append({"file": file.filename, "status": "success"})
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            results.append({"file": file.filename, "status": "error", "message": str(e)})
+    return {"results": results}
 
+# ── ENDPOINT CHAT AGGIORNATO ──────────────────────────────────────────────────
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
-    """Interfaccia con l'AI (ask_spiz)"""
     try:
-        print(f"💬 Domanda ricevuta: {req.question}")
-        answer = ask_spiz(req.question)
-        return {"answer": answer}
+        answer = ask_spiz(
+            question   = req.message,
+            session_id = req.session_id,
+            client_id  = req.client_id,   # None se non passato → nessun filtro cliente
+        )
+        return {"response": answer}
     except Exception as e:
-        print(f"❌ Errore AI: {e}")
-        return {"answer": f"Sistemi in sovraccarico. Dettaglio: {str(e)}"}
+        return {"response": f"Errore AI: {str(e)}"}
 
-# --- API GESTIONE CLIENTI & MENTION ---
-
-@app.get("/api/get-clients")
+# ── ENDPOINT LISTA CLIENTI (per il frontend) ──────────────────────────────────
+@app.get("/api/clients")
 async def get_clients():
-    res = supabase.table("clients").select("*").order("name").execute()
-    return res.data
+    """Restituisce la lista clienti — utile per il selettore nel frontend."""
+    try:
+        res = supabase.table("clients").select("id, name, keywords, semantic_topic").execute()
+        return res.data or []
+    except Exception as e:
+        return []
 
-@app.post("/api/add-client")
-async def add_client(data: dict):
-    # Esempio data: {"name": "Snam", "keywords": "idrogeno, metano, rete"}
-    res = supabase.table("clients").insert(data).execute()
-    return {"status": "success"}
+# --- API DASHBOARD DINAMICA ---
+@app.get("/api/dashboard-stats")
+async def get_dashboard_stats():
+    """Restituisce il totale complessivo degli articoli (non solo oggi)"""
+    try:
+        # Totale complessivo articoli
+        res_total = supabase.table("articles").select("giornalista", count="exact").execute()
+        total_all = res_total.count or 0
+        articles_all = res_total.data or []
+        firmati_all = len([
+            a for a in articles_all
+            if a.get('giornalista') and a.get('giornalista').strip() not in ["", "Redazione", "N.D."]
+        ])
+        anonimi_all = total_all - firmati_all
 
-@app.delete("/api/delete-client/{client_id}")
-async def delete_client(client_id: str):
-    supabase.table("clients").delete().eq("id", client_id).execute()
-    return {"status": "success"}
+        return {
+            "total": total_all,
+            "firmati": firmati_all,
+            "anonimi": anonimi_all
+        }
+    except Exception as e:
+        print(f"Errore in dashboard-stats: {e}")
+        return {"total": 0, "firmati": 0, "anonimi": 0}
 
 @app.get("/api/today-mentions")
 async def get_today_mentions():
-    """Calcola le menzioni basate sulle keyword dei clienti caricate"""
     try:
-        from datetime import date
-        today = date.today().isoformat()
-        
-        # Recupero dati da Supabase
-        clients = supabase.table("clients").select("*").execute().data
-        articles = supabase.table("articles").eq("data", today).execute().data
-        
-        results = []
-        if clients and articles:
-            for client in clients:
-                keywords = [k.strip().lower() for k in (client.get('keywords') or "").split(',')]
-                count = 0
-                for art in articles:
-                    # Cerca nel titolo e nel testo
-                    text_to_scan = f"{art.get('titolo', '')} {art.get('testo_completo', '')}".lower()
-                    if any(kw in text_to_scan for kw in keywords if kw):
-                        count += 1
-                if count > 0:
-                    results.append({"name": client['name'], "mentions": count})
-        
-        return {"client_mentions": results}
-    except Exception as e:
-        print(f"⚠️ Errore menzioni: {e}")
-        return {"client_mentions": []}
-
-# --- AVVIO ---
+        today    = date.today().isoformat()
+        clients  = supabase.table("clients").select("*").execute().data or []
+        articles = supabase.table("articles").select("titolo, testo_completo").eq("data", today).execute().data or []
+        results  = []
+        for client in clients:
+            keywords = [k.strip().lower() for k in (client.get('keywords') or "").split(',')]
+            count    = sum(
+                1 for art in articles
+                if any(
+                    kw in f"{art.get('titolo','')} {art.get('testo_completo','')}".lower()
+                    for kw in keywords if kw
+                )
+            )
+            results.append({"name": client['name'], "today": count, "id": client.get('id')})
+        return results
+    except Exception:
+        return []
 
 if __name__ == "__main__":
-    # Uvicorn è il server che Replit preferisce per FastAPI
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)

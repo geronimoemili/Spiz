@@ -6,3 +6,5 @@ openpyxl
 supabase
 openai
 python-dotenv
+pydantic
+tiktoken
