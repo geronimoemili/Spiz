@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIZ · Monitor Clienti</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background-color: #f8fafd; }
+        .card-custom {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0, 51, 102, 0.04);
+            border: 1px solid rgba(0, 51, 102, 0.04);
+            height: 100%;
+        }
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #003366;
+            line-height: 1.1;
+        }
+        .stat-label {
+            color: #5e6f88;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .upload-area {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            border: 2px dashed #b8c9e0;
+            transition: all 0.2s;
+        }
+        .upload-area:hover {
+            border-color: #003366;
+            background: #f5f9ff;
+        }
+        .client-list {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .client-item {
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .client-item:hover { background: #eef3fa; }
+        .client-item.active {
+            background: #e0e9f5;
+            border-left-color: #003366;
+            font-weight: 600;
+        }
+        .client-name { font-weight: 500; }
+        .client-count {
+            background: #003366;
+            color: white;
+            border-radius: 30px;
+            padding: 2px 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .article-item {
+            padding: 16px;
+            border-radius: 12px;
+            background: #f9fbfe;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .article-item:hover { background: #eef3fa; }
+        .article-title { font-weight: 600; color: #003366; }
+        .article-meta { font-size: 0.9rem; color: #5e6f88; }
+        .back-button {
+            cursor: pointer;
+            color: #003366;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .back-button:hover { text-decoration: underline; }
+        .detail-view {
+            white-space: pre-wrap;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+        .action-buttons { display: flex; gap: 10px; margin: 20px 0; }
+        .edit-form input, .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .edit-form label { font-weight: 600; margin-top: 10px; }
+
+        .giornalista-item {
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .giornalista-item:hover { background: #eef3fa; border-left-color: #003366; }
+        .giornalista-item.active { background: #e0e9f5; border-left-color: #003366; font-weight: 600; }
+        .giornalista-name { font-weight: 500; font-size: 0.9rem; color: #003366; }
+        .giornalista-count {
+            background: #5e6f88;
+            color: white;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h1 class="display-6 fw-bold" style="color: #003366;">📊 SPIZ · Monitor Clienti</h1>
+        <div>
+            <a href="/chat" class="btn btn-outline-primary px-4 py-2 me-2">🧠 Vai all'analisi qualitativa</a>
+            <a href="/monitor" class="btn btn-outline-success px-4 py-2 me-2">🌐 Web Monitor</a>
+            <a href="/pitch" class="btn btn-outline-warning px-4 py-2 me-2">🎯 Pitch Advisor</a>
+            <span class="badge bg-light text-dark p-3" id="last-upload-label">
+                📅 Ultimo caricamento: <span id="last-upload-date">--</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Upload CSV -->
+    <div class="upload-area mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-7">
+                <label class="fw-semibold mb-2">📁 Carica agenzie (CSV multipli)</label>
+                <input type="file" id="file-input" class="form-control" multiple>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100 py-2" onclick="handleUpload()">
+                    📥 CARICA
+                </button>
+            </div>
+            <div class="col-md-2 text-end">
+                <small class="text-soft">Supporto CSV, max 10 file</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche rapide -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">📚 TOTALE ARCHIVIO</span>
+                <span class="stat-number" id="stat-total">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">📰 ARTICOLI OGGI</span>
+                <span class="stat-number" id="stat-today">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">✍️ GIORNALISTI OGGI</span>
+                <span class="stat-number" id="stat-giornalisti-oggi">0</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column">
+                <span class="stat-label">🏷️ TESTATE OGGI</span>
+                <span class="stat-number" id="stat-testate-oggi">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Due colonne: sinistra clienti, destra articoli -->
+    <div class="row g-4">
+        <!-- Colonna sinistra: clienti (1/4) -->
+        <div class="col-md-3">
+            <div class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">📁 Citazioni odierne clienti</h5>
+                    <a href="/clients" class="text-decoration-none small">Gestisci</a>
+                </div>
+                <div id="client-list-container" class="client-list">
+                    <div class="text-soft">Caricamento clienti...</div>
+                </div>
+            </div>
+
+            <!-- Sezione top giornalisti -->
+            <div class="card-custom mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0">✍️ Top Giornalisti</h5>
+                    <select id="giornalisti-period" class="form-select form-select-sm w-auto" onchange="loadTopGiornalisti()">
+                        <option value="7days">7 giorni</option>
+                        <option value="30days" selected>30 giorni</option>
+                        <option value="6months">6 mesi</option>
+                    </select>
+                </div>
+                <div id="giornalisti-list" class="client-list">
+                    <div class="text-soft">Caricamento...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonna destra: articoli del cliente selezionato (3/4) -->
+        <div class="col-md-9">
+            <div class="card-custom" id="articles-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0" id="panel-title">📰 Seleziona un cliente</h5>
+                    <div id="period-selector" style="display: none;">
+                        <select id="period-select" class="form-select form-select-sm w-auto d-inline-block">
+                            <option value="today">Oggi</option>
+                            <option value="7days">Ultimi 7 giorni</option>
+                            <option value="30days">Ultimi 30 giorni</option>
+                            <option value="3months">Ultimi 3 mesi</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="articles-list">
+                    <p class="text-soft">Clicca su un cliente a sinistra per vedere gli articoli.</p>
+                </div>
+                <div id="article-detail" style="display: none;">
+                    <a class="back-button" id="back-to-list">← Torna alla lista</a>
+                    <div class="action-buttons">
+                        <button class="btn btn-outline-primary btn-sm" id="edit-article-btn">✏️ Modifica</button>
+                        <button class="btn btn-outline-danger btn-sm" id="delete-article-btn">🗑️ Elimina</button>
+                    </div>
+                    <div id="detail-content"></div>
+                    <div id="edit-form-container" style="display: none;">
+                        <h6 class="fw-bold mt-3">Modifica articolo</h6>
+                        <form id="edit-article-form" class="edit-form">
+                            <label>Titolo</label>
+                            <input type="text" id="edit-titolo" class="form-control">
+                            <label>Testata</label>
+                            <input type="text" id="edit-testata" class="form-control">
+                            <label>Data</label>
+                            <input type="date" id="edit-data" class="form-control">
+                            <label>Giornalista</label>
+                            <input type="text" id="edit-giornalista" class="form-control">
+                            <label>Occhiello</label>
+                            <input type="text" id="edit-occhiello" class="form-control">
+                            <label>Sottotitolo</label>
+                            <input type="text" id="edit-sottotitolo" class="form-control">
+                            <label>Testo completo</label>
+                            <textarea id="edit-testo_completo" rows="6" class="form-control"></textarea>
+                            <label>Tono (tone)</label>
+                            <input type="text" id="edit-tone" class="form-control">
+                            <label>Rischio reputazionale</label>
+                            <input type="text" id="edit-reputational_risk" class="form-control">
+                            <label>Rischio politico</label>
+                            <input type="text" id="edit-political_risk" class="form-control">
+                            <label>Topic dominante</label>
+                            <input type="text" id="edit-dominant_topic" class="form-control">
+                            <label>Macrosettori</label>
+                            <input type="text" id="edit-macrosettori" class="form-control">
+                            <label>Tipologia articolo</label>
+                            <input type="text" id="edit-tipologia_articolo" class="form-control">
+                            <label>AVE (€)</label>
+                            <input type="number" step="0.01" id="edit-ave" class="form-control">
+                            <label>Tipo fonte</label>
+                            <input type="text" id="edit-tipo_fonte" class="form-control">
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-edit">Annulla</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentClient = null;
+    let currentPeriod = 'today';
+    let allClients = [];
+    let todayStats = null;
+    let currentArticleId = null;
+    let currentArticleData = null;
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '--';
+        const d = new Date(dateStr + 'T12:00:00');
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function getDateRange(period) {
+        const today = new Date();
+        const end = today.toISOString().split('T')[0];
+        let start;
+        switch(period) {
+            case 'today':   start = end; break;
+            case '7days':   start = new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0]; break;
+            case '30days':  start = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]; break;
+            case '3months': start = new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0]; break;
+            default:        start = end;
+        }
+        return { start, end };
+    }
+
+    async function loadDashboard() {
+        try {
+            const resStats = await fetch('/api/dashboard-stats');
+            const stats = await resStats.json();
+            document.getElementById('stat-total').innerText = stats.total;
+
+            const resLast = await fetch('/api/last-upload');
+            const last = await resLast.json();
+            document.getElementById('last-upload-date').innerText = last.last_upload ? formatDate(last.last_upload) : 'nessuno';
+
+            const resToday = await fetch('/api/today-stats');
+            todayStats = await resToday.json();
+            document.getElementById('stat-today').innerText = todayStats.total_today;
+            document.getElementById('stat-giornalisti-oggi').innerText = todayStats.giornalisti.length;
+            document.getElementById('stat-testate-oggi').innerText = todayStats.testate.length;
+
+            // ✅ ENDPOINT CORRETTO
+            const resMentions = await fetch('/api/today-mentions');
+            let clients = await resMentions.json();
+            clients.sort((a, b) => a.name.localeCompare(b.name));
+            allClients = clients;
+            renderClientList();
+            loadTopGiornalisti();
+        } catch (err) {
+            console.error('Errore caricamento dashboard:', err);
+        }
+    }
+
+    function renderClientList() {
+        const container = document.getElementById('client-list-container');
+        if (!allClients.length) {
+            container.innerHTML = '<div class="text-soft">Nessun cliente presente.</div>';
+            return;
+        }
+        let html = '';
+        allClients.forEach(c => {
+            const activeClass = (currentClient && currentClient.id === c.id) ? 'active' : '';
+            html += `
+                <div class="client-item ${activeClass}" data-client-id="${c.id}" data-client-name="${c.name}" data-client-keywords="${c.keywords || ''}">
+                    <span class="client-name">${c.name}</span>
+                    <span class="client-count">${c.today !== undefined ? c.today : 0}</span>
+                </div>`;
+        });
+        container.innerHTML = html;
+        document.querySelectorAll('.client-item').forEach(item => {
+            item.addEventListener('click', function() {
+                selectClient({ id: this.dataset.clientId, name: this.dataset.clientName, keywords: this.dataset.clientKeywords });
+            });
+        });
+    }
+
+    function selectClient(client) {
+        document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.querySelector(`.client-item[data-client-id="${client.id}"]`);
+        if (activeItem) activeItem.classList.add('active');
+        currentClient = client;
+        document.getElementById('period-selector').style.display = 'block';
+        document.getElementById('panel-title').innerText = `📰 Articoli per ${client.name}`;
+        loadArticlesForClient();
+    }
+
+    async function loadArticlesForClient() {
+        if (!currentClient) return;
+        const { start, end } = getDateRange(currentPeriod);
+        try {
+            const res = await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
+            const articles = await res.json();
+            renderArticlesList(articles);
+        } catch (err) {
+            document.getElementById('articles-list').innerHTML = '<p class="text-danger">Errore nel caricamento articoli.</p>';
+        }
+    }
+
+    function renderArticlesList(articles) {
+        const listDiv = document.getElementById('articles-list');
+        const detailDiv = document.getElementById('article-detail');
+        listDiv.style.display = 'block';
+        detailDiv.style.display = 'none';
+        if (!articles || articles.length === 0) {
+            listDiv.innerHTML = '<p class="text-soft">Nessun articolo trovato per questo periodo.</p>';
+            return;
+        }
+        let html = '';
+        articles.forEach(a => {
+            html += `
+                <div class="article-item" data-article-id="${a.id}">
+                    <div class="d-flex justify-content-between">
+                        <span class="article-title">${a.testata || 'N/D'}</span>
+                        <span class="article-meta">${formatDate(a.data)}</span>
+                    </div>
+                    <div class="fw-semibold">${a.titolo || 'Senza titolo'}</div>
+                    <div class="article-meta">${a.giornalista || 'Anonimo'}</div>
+                </div>`;
+        });
+        listDiv.innerHTML = html;
+        document.querySelectorAll('.article-item').forEach(item => {
+            item.addEventListener('click', function() { loadArticleDetail(this.dataset.articleId); });
+        });
+    }
+
+    async function loadArticleDetail(articleId) {
+        try {
+            const res = await fetch(`/api/article/${articleId}`);
+            const article = await res.json();
+            if (article.error) { alert(article.error); return; }
+            currentArticleId = articleId;
+            currentArticleData = article;
+            showArticleDetail(article);
+        } catch (err) {
+            alert('Errore nel caricamento dell\'articolo');
+        }
+    }
+
+    function showArticleDetail(article) {
+        document.getElementById('edit-form-container').style.display = 'none';
+        document.getElementById('detail-content').style.display = 'block';
+        document.getElementById('edit-article-btn').style.display = 'inline-block';
+        document.getElementById('delete-article-btn').style.display = 'inline-block';
+
+        let html = `<div style="margin-bottom:1.5rem;">
+            <h4>${article.testata || 'N/D'}</h4>
+            <h3 class="fw-bold" style="color:#003366;">${article.titolo || 'Senza titolo'}</h3>`;
+        if (article.occhiello) html += `<p class="fst-italic">${article.occhiello}</p>`;
+        if (article.sottotitolo) html += `<p>${article.sottotitolo}</p>`;
+        html += `<p class="article-meta">di ${article.giornalista || 'Anonimo'} | ${formatDate(article.data)}</p>
+            <hr><div class="detail-view">${article.testo_completo || 'Testo non disponibile'}</div></div>`;
+
+        document.getElementById('detail-content').innerHTML = html;
+        document.getElementById('articles-list').style.display = 'none';
+        document.getElementById('article-detail').style.display = 'block';
+        document.getElementById('edit-article-btn').onclick = () => showEditForm(article);
+        document.getElementById('delete-article-btn').onclick = () => deleteArticle(article.id);
+    }
+
+    function showEditForm(article) {
+        document.getElementById('detail-content').style.display = 'none';
+        document.getElementById('edit-article-btn').style.display = 'none';
+        document.getElementById('delete-article-btn').style.display = 'none';
+        document.getElementById('edit-form-container').style.display = 'block';
+        const fields = ['titolo','testata','data','giornalista','occhiello','sottotitolo',
+            'testo_completo','tone','reputational_risk','political_risk',
+            'dominant_topic','macrosettori','tipologia_articolo','tipo_fonte'];
+        fields.forEach(f => {
+            document.getElementById(`edit-${f}`).value = article[f] || '';
+        });
+        document.getElementById('edit-ave').value = article.ave || '';
+    }
+
+    document.getElementById('edit-article-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const updatedData = {};
+        const fields = ['titolo','testata','data','giornalista','occhiello','sottotitolo',
+            'testo_completo','tone','reputational_risk','political_risk',
+            'dominant_topic','macrosettori','tipologia_articolo','tipo_fonte'];
+        fields.forEach(f => {
+            const val = document.getElementById(`edit-${f}`).value;
+            if (val !== '') updatedData[f] = val;
+        });
+        const aveVal = document.getElementById('edit-ave').value;
+        if (aveVal !== '') updatedData.ave = parseFloat(aveVal);
+        try {
+            const res = await fetch(`/api/article/${currentArticleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+            const result = await res.json();
+            if (result.error) { alert('Errore: ' + result.error); }
+            else {
+                alert('Articolo aggiornato con successo');
+                currentArticleData = result;
+                showArticleDetail(result);
+                loadArticlesForClient();
+            }
+        } catch (err) { alert('Errore di connessione'); }
+    });
+
+    document.getElementById('cancel-edit').addEventListener('click', function() {
+        showArticleDetail(currentArticleData);
+    });
+
+    async function deleteArticle(articleId) {
+        if (!confirm('Sei sicuro di voler eliminare questo articolo?')) return;
+        try {
+            const res = await fetch(`/api/article/${articleId}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.error) { alert('Errore: ' + result.error); }
+            else {
+                alert('Articolo eliminato');
+                document.getElementById('back-to-list').click();
+                loadArticlesForClient();
+                loadDashboard();
+            }
+        } catch (err) { alert('Errore di connessione'); }
+    }
+
+    document.getElementById('period-select').addEventListener('change', function(e) {
+        currentPeriod = e.target.value;
+        if (currentClient) loadArticlesForClient();
+    });
+
+    document.getElementById('back-to-list').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('articles-list').style.display = 'block';
+        document.getElementById('article-detail').style.display = 'none';
+        document.getElementById('edit-form-container').style.display = 'none';
+    });
+
+    async function handleUpload() {
+        const input = document.getElementById('file-input');
+        if (!input.files.length) return alert('Seleziona almeno un file CSV.');
+        const formData = new FormData();
+        for (let f of input.files) formData.append('files', f);
+        const btn = event.target;
+        btn.disabled = true; btn.innerText = '⏳ Caricamento...';
+        try {
+            const res = await fetch('/upload', { method: 'POST', body: formData });
+            await res.json();
+            alert('Caricamento completato!');
+            loadDashboard();
+        } catch (err) {
+            alert('Errore durante l\'upload.');
+        } finally {
+            btn.disabled = false; btn.innerText = '📥 CARICA';
+        }
+    }
+
+    window.onload = loadDashboard;
+
+    // ── TOP GIORNALISTI ───────────────────────────────────────
+    let currentGiornalista = null;
+
+    async function loadTopGiornalisti() {
+        const period = document.getElementById('giornalisti-period').value;
+        try {
+            const res = await fetch(`/api/top-giornalisti?period=${period}&limit=20`);
+            const data = await res.json();
+            renderGiornalisti(data, period);
+        } catch(e) {
+            document.getElementById('giornalisti-list').innerHTML = '<p class="text-danger small">Errore caricamento.</p>';
+        }
+    }
+
+    function renderGiornalisti(list, period) {
+        const container = document.getElementById('giornalisti-list');
+        if (!list || !list.length) {
+            container.innerHTML = '<div class="text-soft small">Nessun giornalista trovato.</div>';
+            return;
+        }
+        let html = '';
+        list.forEach(g => {
+            const activeClass = (currentGiornalista && currentGiornalista.nome === g.nome) ? 'active' : '';
+            html += `
+                <div class="giornalista-item ${activeClass}" 
+                     data-nome="${g.nome.replace(/"/g,'&quot;')}" 
+                     data-period="${period}"
+                     onclick="selectGiornalista(this)">
+                    <span class="giornalista-name">${g.nome}</span>
+                    <span class="giornalista-count">${g.articoli}</span>
+                </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    async function selectGiornalista(el) {
+        document.querySelectorAll('.giornalista-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+
+        const nome = el.dataset.nome;
+        const period = el.dataset.period;
+        currentGiornalista = { nome, period };
+
+        // Deseleziona cliente attivo
+        document.querySelectorAll('.client-item').forEach(i => i.classList.remove('active'));
+        currentClient = null;
+
+        document.getElementById('period-selector').style.display = 'none';
+        document.getElementById('panel-title').innerText = `✍️ Articoli di ${nome}`;
+
+        try {
+            const res = await fetch(`/api/giornalista-articoli?nome=${encodeURIComponent(nome)}&period=${period}`);
+            const articles = await res.json();
+            renderArticlesList(articles);
+        } catch(e) {
+            document.getElementById('articles-list').innerHTML = '<p class="text-danger">Errore caricamento articoli.</p>';
+        }
+    }
+</script>
+</body>
+</html>
