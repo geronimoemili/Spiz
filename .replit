@@ -1,20 +1,22 @@
 run = "python main.py"
-modules = ["python-3.12", "web"]
+modules = ["python-3.11"]
+
+[agent]
+expertMode = true
 
 [nix]
-channel = "stable-25_05"
-packages = ["cargo", "glibcLocales", "libiconv", "libxcrypt", "rustc"]
+packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 8000
 externalPort = 80
 
-[agent]
-expertMode = true
-
 [deployment]
-deploymentTarget = "autoscale"
-run = ["python", "main.py"]
+deploymentTarget = "cloudrun"
 
 [workflows]
 runButton = "Project"
@@ -37,5 +39,5 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
-waitForPort = 8000   # <-- cambiato da 5000 a 8000
+args = "python3.11 main.py"
+waitForPort = 5000

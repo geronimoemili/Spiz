@@ -1,5 +1,12 @@
 # replit.md
 
+## Recent Changes
+
+- **2026-02-24**: Fixed port configuration to 5000 for Replit compatibility.
+- **2026-02-24**: Added missing client management API endpoints (`/api/get-clients`, `/api/add-client`, `/api/delete-client`).
+- **2026-02-24**: Configured autoscale deployment.
+- **2026-02-24**: Updated Python to 3.11 to fix `ImportError: cannot import name 'Literal' from 'typing'` in uvicorn.
+
 ## Overview
 
 SPIZ (Strategic Intelligence) is an Italian-language media intelligence dashboard. It ingests CSV files containing press articles, stores them in Supabase, enriches them with AI-powered analysis (tone, topic, reputational risk) and OpenAI embeddings, and provides a conversational chat interface for querying and generating reports from the article data. The application serves a web-based dashboard with a chat panel and a client management system.

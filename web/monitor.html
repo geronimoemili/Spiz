@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIZ · Web Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background-color: #f8fafd; }
+
+        .card-custom {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0,51,102,0.04);
+            border: 1px solid rgba(0,51,102,0.04);
+            height: 100%;
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #003366;
+            line-height: 1.1;
+        }
+        .stat-label {
+            color: #5e6f88;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* TABS */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e8eef5;
+            padding-bottom: 0;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            color: #5e6f88;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab-btn:hover { color: #003366; background: #f0f5ff; }
+        .tab-btn.active { color: #003366; border-bottom-color: #003366; }
+
+        /* MENTIONS */
+        .mention-item {
+            padding: 16px;
+            border-radius: 12px;
+            background: #f9fbfe;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .mention-item:hover { background: #eef3fa; border-left-color: #003366; }
+        .mention-title { font-weight: 600; color: #003366; }
+        .mention-meta { font-size: 0.85rem; color: #5e6f88; }
+        .badge-client {
+            background: #e0e9f5;
+            color: #003366;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .badge-kw {
+            background: #f0f5e8;
+            color: #3a6a00;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        /* SOURCES */
+        .source-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: #f9fbfe;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .source-item:hover { background: #eef3fa; }
+        .source-name { font-weight: 600; color: #003366; }
+        .source-url { font-size: 0.8rem; color: #5e6f88; }
+        .badge-type {
+            background: #003366;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* SCAN BUTTON */
+        .scan-btn {
+            background: linear-gradient(135deg, #003366, #0055aa);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .scan-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,51,102,0.3); }
+        .scan-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* ADD SOURCE FORM */
+        .add-form {
+            background: #f0f5ff;
+            border-radius: 16px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px dashed #b8c9e0;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #5e6f88;
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+        /* FILTER BAR */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .filter-bar select, .filter-bar input {
+            border-radius: 10px;
+            border: 1px solid #d0dce8;
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            color: #003366;
+        }
+
+        /* SCAN LOG */
+        .scan-log {
+            background: #0d1117;
+            color: #7ee787;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-height: 120px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        /* DETAIL MODAL */
+        .detail-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .detail-overlay.open { display: flex; }
+        .detail-modal {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 720px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+        }
+        .detail-modal h3 { color: #003366; font-weight: 700; }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h1 class="display-6 fw-bold mb-0" style="color:#003366;">🌐 SPIZ · Web Monitor</h1>
+            <p class="text-muted mb-0 mt-1" style="font-size:0.9rem;">Monitoraggio automatico notizie online</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="scan-btn" id="scan-btn" onclick="runScan()">
+                🔍 Scansiona ora
+            </button>
+            <a href="/" class="btn btn-outline-secondary px-4">← Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Log scansione -->
+    <div class="scan-log mb-3" id="scan-log"></div>
+
+    <!-- Statistiche rapide -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card-custom">
+                <span class="stat-label">📡 Sorgenti attive</span>
+                <span class="stat-number" id="stat-sources">--</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card-custom">
+                <span class="stat-label">📰 Mention totali</span>
+                <span class="stat-number" id="stat-mentions">--</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card-custom">
+                <span class="stat-label">📅 Oggi</span>
+                <span class="stat-number" id="stat-today">--</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card-custom">
+                <span class="stat-label">👥 Clienti coperti</span>
+                <span class="stat-number" id="stat-clients-covered">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('mentions', this)">📰 Web Mentions</button>
+        <button class="tab-btn" onclick="switchTab('sources', this)">📡 Sorgenti RSS</button>
+    </div>
+
+    <!-- TAB: MENTIONS -->
+    <div id="tab-mentions">
+        <div class="filter-bar">
+            <select id="filter-client" onchange="loadMentions()">
+                <option value="">Tutti i clienti</option>
+            </select>
+            <select id="filter-limit" onchange="loadMentions()">
+                <option value="50">Ultime 50</option>
+                <option value="100">Ultime 100</option>
+                <option value="200">Ultime 200</option>
+            </select>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadMentions()">🔄 Aggiorna</button>
+        </div>
+        <div id="mentions-container">
+            <div class="empty-state">
+                <div class="icon">🌐</div>
+                <p>Caricamento mentions...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SOURCES -->
+    <div id="tab-sources" style="display:none;">
+        <!-- Form aggiungi sorgente -->
+        <div class="add-form">
+            <h6 class="fw-bold mb-3">➕ Aggiungi sorgente RSS</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Nome testata</label>
+                    <input type="text" id="new-source-name" class="form-control" placeholder="es. ANSA Economia">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold">URL feed RSS</label>
+                    <input type="url" id="new-source-url" class="form-control" placeholder="https://...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Tipo</label>
+                    <select id="new-source-type" class="form-select">
+                        <option value="rss">RSS</option>
+                        <option value="scrape">Scraping</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-primary w-100" onclick="addSource()">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sources-container">
+            <div class="empty-state">
+                <div class="icon">📡</div>
+                <p>Caricamento sorgenti...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+    <div class="detail-modal">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h3 id="modal-title">Titolo</h3>
+            <button onclick="closeDetail()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#5e6f88;">×</button>
+        </div>
+        <div id="modal-meta" class="mention-meta mb-3"></div>
+        <hr>
+        <div id="modal-summary" style="line-height:1.7;color:#2d3748;"></div>
+        <div class="mt-3">
+            <a id="modal-link" href="#" target="_blank" class="btn btn-outline-primary btn-sm">🔗 Leggi articolo originale</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allClients = [];
+    let allMentions = [];
+    let allSources = [];
+
+    // ── TABS ──────────────────────────────────────────────────
+    function switchTab(tab, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-mentions').style.display = tab === 'mentions' ? 'block' : 'none';
+        document.getElementById('tab-sources').style.display  = tab === 'sources'  ? 'block' : 'none';
+    }
+
+    // ── UTILS ─────────────────────────────────────────────────
+    function formatDate(d) {
+        if (!d) return '--';
+        return new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    }
+
+    function todayISO() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function log(msg) {
+        const el = document.getElementById('scan-log');
+        el.style.display = 'block';
+        el.innerHTML += `<div>> ${msg}</div>`;
+        el.scrollTop = el.scrollHeight;
+    }
+
+    // ── LOAD ALL ──────────────────────────────────────────────
+    async function loadAll() {
+        await Promise.all([loadClients(), loadMentions(), loadSources()]);
+        updateStats();
+    }
+
+    async function loadClients() {
+        try {
+            const res = await fetch('/api/clients');
+            allClients = await res.json();
+            const sel = document.getElementById('filter-client');
+            sel.innerHTML = '<option value="">Tutti i clienti</option>';
+            allClients.forEach(c => {
+                sel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadMentions() {
+        const client = document.getElementById('filter-client').value;
+        const limit  = document.getElementById('filter-limit').value;
+        const url    = `/api/web-mentions?limit=${limit}${client ? '&client=' + encodeURIComponent(client) : ''}`;
+        try {
+            const res = await fetch(url);
+            allMentions = await res.json();
+            renderMentions(allMentions);
+            updateStats();
+        } catch(e) {
+            document.getElementById('mentions-container').innerHTML = '<p class="text-danger">Errore caricamento mentions.</p>';
+        }
+    }
+
+    async function loadSources() {
+        try {
+            const res = await fetch('/api/sources');
+            allSources = await res.json();
+            renderSources(allSources);
+            updateStats();
+        } catch(e) {
+            document.getElementById('sources-container').innerHTML = '<p class="text-danger">Errore caricamento sorgenti.</p>';
+        }
+    }
+
+    // ── STATS ─────────────────────────────────────────────────
+    function updateStats() {
+        document.getElementById('stat-sources').innerText  = allSources.filter(s => s.active).length || 0;
+        document.getElementById('stat-mentions').innerText = allMentions.length || 0;
+
+        const today = todayISO();
+        const todayCount = allMentions.filter(m => m.published_at === today).length;
+        document.getElementById('stat-today').innerText = todayCount;
+
+        const clients = new Set(allMentions.map(m => m.matched_client).filter(Boolean));
+        document.getElementById('stat-clients-covered').innerText = clients.size;
+    }
+
+    // ── RENDER MENTIONS ───────────────────────────────────────
+    function renderMentions(mentions) {
+        const container = document.getElementById('mentions-container');
+        if (!mentions || !mentions.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">🔍</div>
+                    <p>Nessuna mention trovata.<br>Aggiungi sorgenti RSS e lancia una scansione.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        mentions.forEach(m => {
+            const kws = (m.matched_keywords || '').split(',').map(k => k.trim()).filter(Boolean);
+            const kwBadges = kws.map(k => `<span class="badge-kw">${k}</span>`).join(' ');
+            html += `
+                <div class="mention-item" onclick="openDetail(${JSON.stringify(m).replace(/"/g, '&quot;')})">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                        <span class="mention-title">${m.title || 'Senza titolo'}</span>
+                        <span class="mention-meta text-nowrap">${formatDate(m.published_at)}</span>
+                    </div>
+                    <div class="mention-meta mb-2">📡 ${m.source_name || 'N/D'}</div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        ${m.matched_client ? `<span class="badge-client">👤 ${m.matched_client}</span>` : ''}
+                        ${kwBadges}
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // ── RENDER SOURCES ────────────────────────────────────────
+    function renderSources(sources) {
+        const container = document.getElementById('sources-container');
+        if (!sources || !sources.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📡</div>
+                    <p>Nessuna sorgente configurata.<br>Aggiungi un feed RSS qui sopra.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        sources.forEach(s => {
+            html += `
+                <div class="source-item">
+                    <div>
+                        <div class="source-name">${s.name}</div>
+                        <div class="source-url">${s.url}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge-type">${s.type || 'rss'}</span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteSource('${s.id}')">🗑️</button>
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // ── ADD SOURCE ────────────────────────────────────────────
+    async function addSource() {
+        const name = document.getElementById('new-source-name').value.trim();
+        const url  = document.getElementById('new-source-url').value.trim();
+        const type = document.getElementById('new-source-type').value;
+
+        if (!name || !url) return alert('Inserisci nome e URL.');
+
+        try {
+            const res = await fetch('/api/sources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, url, type })
+            });
+            const data = await res.json();
+            if (data.error) return alert('Errore: ' + data.error);
+            document.getElementById('new-source-name').value = '';
+            document.getElementById('new-source-url').value  = '';
+            loadSources();
+        } catch(e) { alert('Errore di connessione.'); }
+    }
+
+    // ── DELETE SOURCE ─────────────────────────────────────────
+    async function deleteSource(id) {
+        if (!confirm('Eliminare questa sorgente?')) return;
+        try {
+            await fetch(`/api/sources/${id}`, { method: 'DELETE' });
+            loadSources();
+        } catch(e) { alert('Errore.'); }
+    }
+
+    // ── RUN SCAN ──────────────────────────────────────────────
+    async function runScan() {
+        const btn = document.getElementById('scan-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Scansione in corso...';
+        const logEl = document.getElementById('scan-log');
+        logEl.innerHTML = '';
+        log('Avvio scansione...');
+
+        try {
+            const res  = await fetch('/api/monitor/run', { method: 'POST' });
+            const data = await res.json();
+            if (data.error) {
+                log('❌ Errore: ' + data.error);
+            } else {
+                log(`✅ Scansione completata — ${data.found} nuovi articoli trovati`);
+                await loadMentions();
+            }
+        } catch(e) {
+            log('❌ Errore di connessione');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🔍 Scansiona ora';
+        }
+    }
+
+    // ── DETAIL MODAL ──────────────────────────────────────────
+    function openDetail(m) {
+        document.getElementById('modal-title').innerText   = m.title || 'Senza titolo';
+        document.getElementById('modal-meta').innerHTML    = `📡 <strong>${m.source_name || 'N/D'}</strong> &nbsp;|&nbsp; 📅 ${formatDate(m.published_at)} &nbsp;|&nbsp; 👤 ${m.matched_client || '—'} &nbsp;|&nbsp; 🔑 ${m.matched_keywords || '—'}`;
+        document.getElementById('modal-summary').innerText = m.summary || 'Nessun sommario disponibile.';
+        document.getElementById('modal-link').href         = m.url || '#';
+        document.getElementById('detail-overlay').classList.add('open');
+    }
+
+    function closeDetail(e) {
+        if (!e || e.target === document.getElementById('detail-overlay') || !e.target) {
+            document.getElementById('detail-overlay').classList.remove('open');
+        }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+    // ── INIT ──────────────────────────────────────────────────
+    window.onload = loadAll;
+</script>
+</body>
+</html>
