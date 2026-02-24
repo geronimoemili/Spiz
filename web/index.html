@@ -332,7 +332,7 @@
             document.getElementById('stat-testate-oggi').innerText = todayStats.testate.length;
 
             // Carica clienti e menzioni di oggi
-            const resMentions = await fetch('/api/today-mentions');
+            const resMentions = await fetch('/api/get-clients');
             let clients = await resMentions.json();
             // Ordine alfabetico per nome
             clients.sort((a, b) => a.name.localeCompare(b.name));

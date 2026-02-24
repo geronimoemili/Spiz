@@ -102,13 +102,29 @@ async def chat_endpoint(req: ChatRequest):
     except Exception as e:
         return {"response": f"Errore AI: {str(e)}"}
 
-@app.get("/api/clients")
-async def get_clients():
+@app.get("/api/get-clients")
+async def get_clients_api():
     try:
         res = supabase.table("clients").select("id, name, keywords, semantic_topic").execute()
         return res.data or []
     except Exception as e:
         return []
+
+@app.post("/api/add-client")
+async def add_client_api(client: dict):
+    try:
+        res = supabase.table("clients").insert(client).execute()
+        return res.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete-client/{client_id}")
+async def delete_client_api(client_id: str):
+    try:
+        res = supabase.table("clients").delete().eq("id", client_id).execute()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- DASHBOARD QUANTITATIVA ---
 

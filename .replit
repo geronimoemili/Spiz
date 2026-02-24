@@ -11,12 +11,10 @@ packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "pyt
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 8000
-externalPort = 80
-
 [deployment]
-deploymentTarget = "cloudrun"
+deploymentTarget = "autoscale"
+run = ["python3.11", "main.py"]
+build = ["pip3.11 install -r requirements.txt"]
 
 [workflows]
 runButton = "Project"
