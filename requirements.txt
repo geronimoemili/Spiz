@@ -1,10 +1,13 @@
 fastapi
 uvicorn
 python-multipart
-pandas
-openpyxl
 supabase
 openai
-python-dotenv
-pydantic
 tiktoken
+pandas
+python-dotenv
+apscheduler
+feedparser
+beautifulsoup4
+requests
+openpyxl

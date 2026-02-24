@@ -12,6 +12,7 @@ try:
     from api.ingestion import process_csv
     from services.database import supabase
     from api.chat import ask_spiz
+    from api.pitch import pitch_advisor
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
@@ -73,6 +74,10 @@ async def clients_page():
 async def monitor_page():
     return FileResponse('web/monitor.html')
 
+@app.get("/pitch")
+async def pitch_page():
+    return FileResponse('web/pitch.html')
+
 # --- API CORE ---
 @app.post("/upload")
 async def upload_multiple(files: List[UploadFile] = File(...)):
@@ -102,29 +107,13 @@ async def chat_endpoint(req: ChatRequest):
     except Exception as e:
         return {"response": f"Errore AI: {str(e)}"}
 
-@app.get("/api/get-clients")
-async def get_clients_api():
+@app.get("/api/clients")
+async def get_clients():
     try:
         res = supabase.table("clients").select("id, name, keywords, semantic_topic").execute()
         return res.data or []
     except Exception as e:
         return []
-
-@app.post("/api/add-client")
-async def add_client_api(client: dict):
-    try:
-        res = supabase.table("clients").insert(client).execute()
-        return res.data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/delete-client/{client_id}")
-async def delete_client_api(client_id: str):
-    try:
-        res = supabase.table("clients").delete().eq("id", client_id).execute()
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 # --- DASHBOARD QUANTITATIVA ---
 
@@ -335,5 +324,71 @@ async def get_web_mentions(client: str = None, limit: int = 50):
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/api/pitch")
+async def api_pitch(req: dict):
+    """Analizza comunicato e suggerisce giornalisti"""
+    try:
+        testo = req.get("testo", "")
+        top_n = req.get("top_n", 10)
+        result = pitch_advisor(testo, top_n=top_n)
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/top-giornalisti")
+async def get_top_giornalisti(period: str = "30days", limit: int = 20):
+    """Giornalisti più prolifici in un periodo"""
+    try:
+        today = date.today()
+        if period == "7days":
+            from_date = (today - __import__('datetime').timedelta(days=7)).isoformat()
+        elif period == "6months":
+            from_date = (today - __import__('datetime').timedelta(days=180)).isoformat()
+        else:  # 30days default
+            from_date = (today - __import__('datetime').timedelta(days=30)).isoformat()
+
+        to_date = today.isoformat()
+
+        res = supabase.table("articles").select("id, giornalista, testata, titolo, data") \
+            .gte("data", from_date).lte("data", to_date).execute()
+        articles = res.data or []
+
+        counts = {}
+        for a in articles:
+            g = (a.get('giornalista') or '').strip()
+            if not g or g in ('N.D.', 'N/D', 'Redazione', 'Autore non indicato', ''):
+                continue
+            if g not in counts:
+                counts[g] = 0
+            counts[g] += 1
+
+        top = sorted(counts.items(), key=lambda x: -x[1])[:limit]
+        return [{"nome": k, "articoli": v} for k, v in top]
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/giornalista-articoli")
+async def get_giornalista_articoli(nome: str, period: str = "30days"):
+    """Articoli di un giornalista specifico in un periodo"""
+    try:
+        today = date.today()
+        if period == "7days":
+            from_date = (today - __import__('datetime').timedelta(days=7)).isoformat()
+        elif period == "6months":
+            from_date = (today - __import__('datetime').timedelta(days=180)).isoformat()
+        else:
+            from_date = (today - __import__('datetime').timedelta(days=30)).isoformat()
+
+        res = supabase.table("articles") \
+            .select("id, titolo, testata, data, occhiello") \
+            .eq("giornalista", nome) \
+            .gte("data", from_date) \
+            .lte("data", today.isoformat()) \
+            .order("data", desc=True) \
+            .execute()
+        return res.data or []
+    except Exception as e:
+        return {"error": str(e)}
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

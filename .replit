@@ -1,4 +1,4 @@
-run = "python main.py"
+run = "python3.11 main.py"
 modules = ["python-3.11"]
 
 [agent]
@@ -8,13 +8,17 @@ expertMode = true
 packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip"]
 
 [[ports]]
-localPort = 5000
+localPort = 8000
 externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 8000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["python3.11 main.py"]
-build = ["python3.11 -m pip install -r requirements.txt"]
+run = ["python3.11", "main.py"]
+build = ["python3.11", "-m", "pip", "install", "--break-system-packages", "-r", "requirements.txt"]
 
 [workflows]
 runButton = "Project"

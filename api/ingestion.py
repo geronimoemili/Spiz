@@ -4,6 +4,8 @@ import datetime
 from services.database import supabase
 
 
+# ─── UTILITY ──────────────────────────────────────────────────────────────────
+
 def clean_text(s):
     return ' '.join(str(s).strip().lower().split())
 
@@ -37,7 +39,9 @@ def parse_ave(value) -> float:
         return 0.0
 
 
+
 def normalize_macrosettori(value) -> str:
+    """Split per virgola/punto e virgola, deduplica, mantiene tag originali del CSV."""
     if pd.isna(value) or str(value).strip() == '':
         return ''
     tags = [t.strip() for t in str(value).replace(';', ',').split(',') if t.strip()]
@@ -48,6 +52,8 @@ def normalize_macrosettori(value) -> str:
             unique.append(t)
     return ', '.join(unique)
 
+
+# ─── MAPPING CSV → DB ─────────────────────────────────────────────────────────
 
 COLUMN_MAPPING = {
     'testata':               'testata',
@@ -66,6 +72,8 @@ COLUMN_MAPPING = {
     'tipo_fonte':            'tipo_fonte',
 }
 
+
+# ─── FUNZIONE PRINCIPALE ──────────────────────────────────────────────────────
 
 def process_csv(file_path: str) -> dict:
     try:
@@ -135,7 +143,7 @@ def process_csv(file_path: str) -> dict:
         records_deduped = list(seen_hashes.values())
         dup_csv = len(records) - len(records_deduped)
         if dup_csv:
-            print(f"INFO: {dup_csv} righe duplicate nel CSV rimosse prima dell'upload.")
+            print(f"INFO: {dup_csv} righe duplicate nel CSV rimosse.")
 
         result = supabase.table('articles').upsert(
             records_deduped,
@@ -147,10 +155,9 @@ def process_csv(file_path: str) -> dict:
         return {
             'status':  'success',
             'message': (
-                f"Elaborati {len(records)} articoli nel CSV "
+                f"Elaborati {len(records)} articoli "
                 f"({dup_csv} duplicati interni rimossi). "
-                f"Inseriti nel DB: {inserted}. "
-                f"Gia presenti ignorati: {skipped}."
+                f"Inseriti: {inserted}. Già presenti: {skipped}."
             ),
         }
 

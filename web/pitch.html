@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIZ · Pitch Advisor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8fafd; }
+
+        .card-custom {
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 24px rgba(0,51,102,0.04);
+            border: 1px solid rgba(0,51,102,0.04);
+        }
+
+        .textarea-comunicato {
+            width: 100%;
+            min-height: 220px;
+            border: 2px solid #d0dce8;
+            border-radius: 16px;
+            padding: 1rem 1.2rem;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            resize: vertical;
+            transition: border-color 0.2s;
+            line-height: 1.6;
+        }
+        .textarea-comunicato:focus {
+            outline: none;
+            border-color: #003366;
+            box-shadow: 0 0 0 3px rgba(0,51,102,0.08);
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, #003366, #0055aa);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 12px 32px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,51,102,0.25); }
+        .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* ANALISI CARD */
+        .analisi-card {
+            background: linear-gradient(135deg, #003366 0%, #0055aa 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .analisi-card h5 { font-weight: 700; margin-bottom: 0.8rem; }
+        .tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.8rem;
+            margin: 3px;
+            font-weight: 500;
+        }
+        .tag-kw {
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+
+        /* GIORNALISTA CARD */
+        .giornalista-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.4rem;
+            margin-bottom: 12px;
+            border: 1.5px solid #e8eef5;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .giornalista-card:hover {
+            border-color: #003366;
+            box-shadow: 0 4px 20px rgba(0,51,102,0.08);
+            transform: translateY(-1px);
+        }
+        .rank-badge {
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #003366;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .rank-badge.gold   { background: #c9920a; }
+        .rank-badge.silver { background: #7a8a9a; }
+        .rank-badge.bronze { background: #8b5a2b; }
+
+        .giornalista-nome {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #003366;
+        }
+        .giornalista-testata {
+            font-size: 0.9rem;
+            color: #5e6f88;
+            font-weight: 500;
+        }
+        .score-bar-wrap {
+            background: #f0f4fa;
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+            margin: 8px 0 4px;
+        }
+        .score-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #003366, #0077cc);
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+        .spiegazione {
+            font-size: 0.9rem;
+            color: #3a4a5a;
+            font-style: italic;
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #f5f9ff;
+            border-radius: 10px;
+            border-left: 3px solid #003366;
+        }
+        .macro-tag {
+            display: inline-block;
+            background: #e8f0fa;
+            color: #003366;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            margin: 2px;
+            font-weight: 500;
+        }
+        .articolo-recente {
+            font-size: 0.82rem;
+            color: #5e6f88;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f4fa;
+        }
+        .articolo-recente:last-child { border-bottom: none; }
+        .articolo-data {
+            font-size: 0.75rem;
+            color: #9aabb8;
+            margin-right: 6px;
+        }
+
+        /* LOADING */
+        .loading-overlay {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+        .loading-overlay.show { display: block; }
+        .spinner-large {
+            width: 48px; height: 48px;
+            border: 4px solid #e0e9f5;
+            border-top-color: #003366;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-steps { color: #5e6f88; font-size: 0.9rem; }
+        .loading-steps .step { opacity: 0.3; transition: opacity 0.4s; margin: 6px 0; }
+        .loading-steps .step.active { opacity: 1; font-weight: 600; color: #003366; }
+        .loading-steps .step.done { opacity: 0.7; }
+        .loading-steps .step.done::before { content: "✅ "; }
+        .loading-steps .step.active::before { content: "⏳ "; }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 4rem 2rem; color: #5e6f88; }
+        .empty-state .icon { font-size: 4rem; margin-bottom: 1rem; }
+
+        .stat-chip {
+            display: inline-block;
+            background: #f0f4fa;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.82rem;
+            color: #003366;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h1 class="display-6 fw-bold mb-0" style="color:#003366;">🎯 SPIZ · Pitch Advisor</h1>
+            <p class="text-muted mb-0 mt-1" style="font-size:0.9rem;">Analizza il tuo comunicato e trova i giornalisti più adatti</p>
+        </div>
+        <a href="/" class="btn btn-outline-secondary px-4">← Dashboard</a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- SINISTRA: input comunicato -->
+        <div class="col-md-5">
+            <div class="card-custom">
+                <h5 class="fw-bold mb-3">📄 Incolla il comunicato stampa</h5>
+                <textarea
+                    id="comunicato-text"
+                    class="textarea-comunicato"
+                    placeholder="Incolla qui il testo del comunicato stampa...
+
+Il sistema analizzerà il tema, i settori e le parole chiave per identificare i giornalisti più adatti nel tuo database."></textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span id="char-count" class="text-muted small">0 caratteri</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearComunicato()">🗑️ Svuota</button>
+                        <button class="btn-analyze" id="analyze-btn" onclick="analizzaComunicato()">
+                            🎯 Analizza e trova giornalisti
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Suggerimento -->
+                <div class="mt-3 p-3" style="background:#f5f9ff;border-radius:12px;font-size:0.85rem;color:#5e6f88;">
+                    💡 <strong>Come funziona:</strong> L'AI analizza il tema e i settori del comunicato, poi incrocia con la storia editoriale di ogni giornalista nel database per calcolare l'affinità.
+                </div>
+            </div>
+        </div>
+
+        <!-- DESTRA: risultati -->
+        <div class="col-md-7">
+
+            <!-- Stato iniziale -->
+            <div id="empty-state" class="empty-state">
+                <div class="icon">🎯</div>
+                <h5 class="fw-bold" style="color:#003366;">Inserisci un comunicato</h5>
+                <p>Incolla il testo a sinistra e clicca "Analizza" per scoprire a quali giornalisti inviarlo.</p>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading-state" class="loading-overlay card-custom">
+                <div class="spinner-large"></div>
+                <h5 class="fw-bold mb-3" style="color:#003366;">Analisi in corso...</h5>
+                <div class="loading-steps" id="loading-steps">
+                    <div class="step" id="step-1">Lettura del comunicato</div>
+                    <div class="step" id="step-2">Estrazione tema e parole chiave</div>
+                    <div class="step" id="step-3">Ricerca giornalisti nel database</div>
+                    <div class="step" id="step-4">Calcolo affinità</div>
+                    <div class="step" id="step-5">Generazione spiegazioni</div>
+                </div>
+            </div>
+
+            <!-- Risultati -->
+            <div id="results-state" style="display:none;">
+
+                <!-- Card analisi comunicato -->
+                <div class="analisi-card" id="analisi-card">
+                    <h5>📋 Analisi del comunicato</h5>
+                    <div id="analisi-tema" class="mb-2" style="font-size:1rem;"></div>
+                    <div id="analisi-sintesi" class="mb-3" style="font-size:0.88rem;opacity:0.85;"></div>
+                    <div id="analisi-settori" class="mb-2"></div>
+                    <div id="analisi-keywords"></div>
+                </div>
+
+                <!-- Lista giornalisti -->
+                <div id="giornalisti-results"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Contatore caratteri
+    document.getElementById('comunicato-text').addEventListener('input', function() {
+        document.getElementById('char-count').innerText = this.value.length + ' caratteri';
+    });
+
+    function clearComunicato() {
+        document.getElementById('comunicato-text').value = '';
+        document.getElementById('char-count').innerText = '0 caratteri';
+        showState('empty');
+    }
+
+    function showState(state) {
+        document.getElementById('empty-state').style.display   = state === 'empty'   ? 'block' : 'none';
+        document.getElementById('loading-state').classList.toggle('show', state === 'loading');
+        document.getElementById('results-state').style.display = state === 'results' ? 'block' : 'none';
+    }
+
+    // Animazione step loading
+    let stepInterval = null;
+    function animateSteps() {
+        const steps = ['step-1','step-2','step-3','step-4','step-5'];
+        let i = 0;
+        steps.forEach(s => {
+            document.getElementById(s).className = 'step';
+        });
+        document.getElementById(steps[0]).className = 'step active';
+        stepInterval = setInterval(() => {
+            if (i < steps.length - 1) {
+                document.getElementById(steps[i]).className = 'step done';
+                i++;
+                document.getElementById(steps[i]).className = 'step active';
+            }
+        }, 1800);
+    }
+
+    function stopSteps() {
+        if (stepInterval) clearInterval(stepInterval);
+        ['step-1','step-2','step-3','step-4','step-5'].forEach(s => {
+            document.getElementById(s).className = 'step done';
+        });
+    }
+
+    function formatDate(d) {
+        if (!d) return '';
+        return new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    }
+
+    async function analizzaComunicato() {
+        const testo = document.getElementById('comunicato-text').value.trim();
+        if (testo.length < 50) {
+            alert('Il comunicato è troppo corto. Inserisci almeno 50 caratteri.');
+            return;
+        }
+
+        const btn = document.getElementById('analyze-btn');
+        btn.disabled = true;
+        btn.innerText = '⏳ Analisi in corso...';
+        showState('loading');
+        animateSteps();
+
+        try {
+            const res = await fetch('/api/pitch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ testo, top_n: 10 })
+            });
+            const data = await res.json();
+
+            stopSteps();
+
+            if (data.error) {
+                alert('Errore: ' + data.error);
+                showState('empty');
+                return;
+            }
+
+            renderRisultati(data);
+            showState('results');
+
+        } catch(e) {
+            stopSteps();
+            alert('Errore di connessione.');
+            showState('empty');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '🎯 Analizza e trova giornalisti';
+        }
+    }
+
+    function renderRisultati(data) {
+        const analisi = data.analisi;
+
+        // Card analisi
+        document.getElementById('analisi-tema').innerHTML =
+            `<strong>Tema:</strong> ${analisi.tema} &nbsp;<span class="stat-chip">${analisi.tono}</span>`;
+        document.getElementById('analisi-sintesi').innerText = analisi.sintesi;
+
+        const settoriHtml = (analisi.settori || []).map(s => `<span class="tag">${s}</span>`).join('');
+        document.getElementById('analisi-settori').innerHTML = `<strong style="opacity:0.7;font-size:0.8rem;">SETTORI</strong><br>${settoriHtml}`;
+
+        const kwHtml = (analisi.keywords || []).map(k => `<span class="tag-kw">${k}</span>`).join('');
+        document.getElementById('analisi-keywords').innerHTML = `<span style="opacity:0.7;font-size:0.8rem;">KEYWORDS: </span>${kwHtml}`;
+
+        // Lista giornalisti
+        const container = document.getElementById('giornalisti-results');
+        if (!data.risultati || !data.risultati.length) {
+            container.innerHTML = '<div class="text-center p-4 text-muted">Nessun giornalista affine trovato.</div>';
+            return;
+        }
+
+        const maxScore = data.risultati[0].score || 1;
+        let html = '';
+
+        data.risultati.forEach((g, i) => {
+            const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+            const rankLabel = i === 0 ? '🥇 #1' : i === 1 ? '🥈 #2' : i === 2 ? '🥉 #3' : `#${i+1}`;
+            const pct = Math.round((g.score / maxScore) * 100);
+
+            const macroTags = (g.macrosettori || []).map(m => `<span class="macro-tag">${m}</span>`).join('');
+
+            const articoliHtml = (g.articoli_recenti || []).map(a =>
+                `<div class="articolo-recente">
+                    <span class="articolo-data">${formatDate(a.data)}</span>${a.titolo}
+                </div>`
+            ).join('');
+
+            html += `
+            <div class="giornalista-card">
+                <span class="rank-badge ${rankClass}">${rankLabel}</span>
+                <div class="d-flex justify-content-between align-items-start mt-2">
+                    <div>
+                        <div class="giornalista-nome">${g.nome}</div>
+                        <div class="giornalista-testata">📰 ${g.testata}</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="stat-chip">📝 ${g.n_articoli} art.</span>
+                    </div>
+                </div>
+
+                <div class="score-bar-wrap">
+                    <div class="score-bar" style="width:${pct}%"></div>
+                </div>
+                <div style="font-size:0.75rem;color:#9aabb8;margin-bottom:8px;">Affinità: ${pct}%</div>
+
+                <div class="spiegazione">${g.spiegazione}</div>
+
+                <div class="mb-2">${macroTags}</div>
+
+                ${articoliHtml ? `
+                <details>
+                    <summary style="cursor:pointer;font-size:0.82rem;color:#003366;font-weight:600;margin-top:8px;">
+                        📰 Ultimi articoli pertinenti
+                    </summary>
+                    <div class="mt-2">${articoliHtml}</div>
+                </details>` : ''}
+            </div>`;
+        });
+
+        container.innerHTML = html;
+
+        // Anima le barre con delay
+        setTimeout(() => {
+            document.querySelectorAll('.score-bar').forEach(bar => {
+                const w = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => { bar.style.width = w; }, 100);
+            });
+        }, 100);
+    }
+</script>
+</body>
+</html>
