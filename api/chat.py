@@ -60,110 +60,72 @@ def fetch_articles_base(from_date, to_date, limit=800):
 
 def detect_intent(message):
     """
-    Riconosce il tipo di domanda e estrae entità rilevanti.
-    Ritorna: (intent, entities)
-    intent: 'journalist' | 'client' | 'topic' | 'stats' | 'report' | 'general'
+    Riconosce il tipo di domanda e estrae entita' rilevanti.
+    intent: journalist | client | stats | report | general
     """
-    msg = message.lower()
+    msg = message.lower().strip()
 
-    # Report strutturato
+    REPORT_KEYWORDS = [
+        "report", "analisi completa", "sentiment", "profilo mediatico",
+        "criticita", "sintesi strategica", "long running", "governance",
+        "territoriale", "istituzional", "reputazion", "media narrative",
+        "temi longevi", "temi ricorrenti", "comunicazione istituzionale",
+        "focus territoriale", "analisi sentiment", "presenza dei vertici",
+        "redigi", "elabora", "fai un report", "fai un analisi",
+        "analizza la copertura", "analizza il periodo", "analisi reputazionale",
+        "documento giornalistico", "documento su", "articolo su",
+    ]
     if any(kw in msg for kw in REPORT_KEYWORDS):
+        entity_match = re.search(
+            r"(?:report|analisi|documento|articolo|copertura)\s+(?:su|di|per|riguardante)\s+"
+            r"([a-z0-9\u00e0-\u00f9\s]+?)(?:\s+(?:sulla|usando|degli|dell|negli|nell|base|articol|ultima|dei)|$)",
+            msg
+        )
+        if entity_match:
+            entity = entity_match.group(1).strip()
+            if len(entity) > 2:
+                return "report", {"name": entity}
         return "report", {}
 
-    # Domanda su giornalista specifico
-    journalist_patterns = [
-        r"articoli di ([a-z]+ [a-z]+)",
-        r"scritti da ([a-z]+ [a-z]+)",
-        r"firma di ([a-z]+ [a-z]+)",
-        r"([a-z]+ [a-z]+) ha scritto",
-        r"giornalista ([a-z]+ [a-z]+)",
-        r"ultimi articoli.*?([a-z]+ [a-z]+)",
-        r"([a-z]+ [a-z]+).*?articoli",
+    # Giornalista — pattern restrittivi con trigger espliciti
+    journalist_triggers = [
+        r"articoli\s+(?:di|scritti da|firmati da)\s+([a-z]+\s+[a-z]+)",
+        r"(?:scritti|firmati)\s+da\s+([a-z]+\s+[a-z]+)",
+        r"(?:ultimi|recenti)\s+articoli\s+.*?([a-z]+\s+[a-z]+)\s*$",
+        r"cosa\s+ha\s+scritto\s+([a-z]+\s+[a-z]+)",
+        r"cerca\s+articoli\s+(?:di|da)\s+([a-z]+\s+[a-z]+)",
     ]
-    for pat in journalist_patterns:
+    BAD_WORDS = ["ultima", "ultimi", "articol", "settiman", "giorni", "mese", "anno", "report",
+                 "realizza", "fammi", "dammi", "fai", "crea", "scrivi", "produci"]
+    for pat in journalist_triggers:
         m = re.search(pat, msg)
         if m:
             name = m.group(1).strip()
-            if len(name) > 4:
+            if len(name) > 4 and not any(bw in name for bw in BAD_WORDS):
                 return "journalist", {"name": name}
 
-    # Domanda su cliente/azienda specifica
+    # Cliente/azienda
     client_patterns = [
-        r"report su ([a-z0-9 ]+)",
-        r"analisi su ([a-z0-9 ]+)",
-        r"copertura di ([a-z0-9 ]+)",
-        r"articoli su ([a-z0-9 ]+)",
-        r"notizie su ([a-z0-9 ]+)",
-        r"cosa (dicono|ha detto|dice) .* su ([a-z0-9 ]+)",
-        r"su ([a-z0-9]+) .* articol",
+        r"(?:report|analisi|notizie|copertura|articoli|cosa[^?]+)\s+su\s+"
+        r"([a-z0-9\u00e0-\u00f9\s&\.]+?)(?:\s+(?:nell|negli|degli|dell|sulla|usando|base)|[?!]|$)",
+        r"(?:cosa.*?dicono|cosa.*?dice|ha detto la stampa)\s+.*?su\s+([a-z0-9\u00e0-\u00f9\s]+?)(?:\s|$)",
     ]
+    BAD_ENTITIES = ["ultima settimana", "ultimo mese", "oggi", "ieri", "articoli", "notizie"]
     for pat in client_patterns:
         m = re.search(pat, msg)
         if m:
-            entity = m.group(m.lastindex).strip()
-            if len(entity) > 2:
+            entity = m.group(1).strip().rstrip("?!.,")
+            if len(entity) > 2 and not any(b in entity for b in BAD_ENTITIES):
                 return "client", {"name": entity}
 
-    # Statistiche semplici
-    stats_kws = ["quanti", "quali testate", "top giornalist", "copertura oggi",
-                 "articoli oggi", "pubblicato di piu", "più articoli"]
+    # Statistiche
+    stats_kws = ["quanti articoli", "quali testate", "top giornalist", "copertura oggi",
+                 "pubblicato di piu", "piu articoli", "classifica", "chi ha scritto",
+                 "chi ha pubblicato", "quante notizie"]
     if any(kw in msg for kw in stats_kws):
         return "stats", {}
 
     return "general", {}
-
-
-def fetch_for_journalist(name, from_date, to_date):
-    """Cerca articoli per giornalista con matching flessibile."""
-    try:
-        # Prova match esatto prima
-        res = (supabase.table("articles")
-               .select("*")
-               .gte("data", from_date)
-               .lte("data", to_date)
-               .ilike("giornalista", "%" + name + "%")
-               .order("data", desc=True)
-               .limit(50)
-               .execute())
-        return res.data or []
-    except Exception as e:
-        print("fetch_for_journalist error: " + str(e))
-        return []
-
-
-def fetch_for_entity(name, from_date, to_date):
-    """Cerca articoli per cliente/azienda: prima in matched_client, poi nel testo."""
-    results = []
-    try:
-        # 1. matched_client
-        res = (supabase.table("articles")
-               .select("*")
-               .gte("data", from_date)
-               .lte("data", to_date)
-               .ilike("matched_client", "%" + name + "%")
-               .order("data", desc=True)
-               .limit(200)
-               .execute())
-        results = res.data or []
-
-        # 2. Se pochi risultati, cerca nel titolo
-        if len(results) < 5:
-            res2 = (supabase.table("articles")
-                    .select("*")
-                    .gte("data", from_date)
-                    .lte("data", to_date)
-                    .ilike("titolo", "%" + name + "%")
-                    .order("data", desc=True)
-                    .limit(200)
-                    .execute())
-            seen = {r["id"] for r in results}
-            for a in (res2.data or []):
-                if a["id"] not in seen:
-                    results.append(a)
-
-    except Exception as e:
-        print("fetch_for_entity error: " + str(e))
-    return results
 
 
 # ── FORMATTAZIONE ARTICOLI PER IL PROMPT ─────────────────────────────────────
