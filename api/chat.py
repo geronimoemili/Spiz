@@ -38,13 +38,11 @@ def get_context_articles(context="general"):
         else:
             from_date = (date.today() - timedelta(days=90)).isoformat()
 
-        res = supabase.table("articles").select(
-            "id, titolo, testata, giornalista, data, testo_completo, "
-            "macrosettori, tone, dominant_topic, tipologia_articolo, pagina, "
-            "occhiello, matched_client"
-        ).gte("data", from_date).order("data", desc=True).limit(800).execute()
+        res = supabase.table("articles").select("*").gte("data", from_date).order("data", desc=True).limit(800).execute()
 
-        return res.data or []
+        data = res.data or []
+        print("chat.py articoli caricati:", len(data), "context:", context, "from:", from_date)
+        return data
     except Exception as e:
         print("Errore caricamento contesto: " + str(e))
         return []
