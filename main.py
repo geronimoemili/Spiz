@@ -96,16 +96,15 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
     return {"results": results}
 
 @app.post("/api/chat")
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: dict):
     try:
-        answer = ask_spiz(
-            question   = req.message,
-            session_id = req.session_id,
-            client_id  = req.client_id,
-        )
-        return {"response": answer}
+        message = req.get("message", "")
+        history = req.get("history", [])
+        context = req.get("context", "general")
+        result  = ask_spiz(message=message, history=history, context=context)
+        return result
     except Exception as e:
-        return {"response": f"Errore AI: {str(e)}"}
+        return {"response": "Errore AI: " + str(e)}
 
 @app.get("/api/clients")
 async def get_clients():
