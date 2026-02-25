@@ -1,9 +1,13 @@
 """
-api/chat.py - SPIZ AI Analysis (Enhanced)
-Risponde a domande sugli articoli nel database usando OpenAI.
+api/chat.py - SPIZ AI Analysis (Enhanced & Backward Compatible)
+
 Modalità:
 - Chat normale
 - Report strategico Direzione Comunicazione
+
+Compatibile con chiamate:
+- ask_spiz(question=...)
+- ask_spiz(message=...)
 """
 
 import os
@@ -55,17 +59,16 @@ def get_context_articles(context: str = "general", limit: int = 200) -> list:
 
 
 # ==========================================================
-# COSTRUZIONE PROMPT
+# PROMPT CHAT NORMALE
 # ==========================================================
 
-def build_chat_prompt(articles: list, context: str) -> str:
-    """Prompt modalità chat normale."""
+def build_chat_prompt(articles: list) -> str:
 
     if not articles:
         return (
-            "Sei SPIZ, l'assistente AI di MAIM Public Diplomacy & Media Relations. "
+            "Sei SPIZ, assistente AI di MAIM Public Diplomacy & Media Relations. "
             "Al momento non ci sono articoli nel database. "
-            "Suggerisci all'utente di caricare dei CSV dalla Dashboard."
+            "Suggerisci all'utente di caricare nuovi dati."
         )
 
     testate = list(set(a.get("testata", "") for a in articles if a.get("testata")))
@@ -102,8 +105,11 @@ ISTRUZIONI:
 """
 
 
+# ==========================================================
+# PROMPT REPORT AVANZATO
+# ==========================================================
+
 def build_report_prompt(report_data: dict) -> str:
-    """Prompt modalità report strategico."""
 
     return f"""
 Agisci come analista senior di comunicazione istituzionale, reputazione e media intelligence.
@@ -113,9 +119,9 @@ DATABASE ANALIZZATO:
 - Distribuzione tone (%): {report_data['tone_distribution']}
 - Top topic: {report_data['top_topics']}
 - Top testate: {report_data['top_testate']}
-- Articoli critici (negativi o con rischio reputazionale): {report_data['critical_count']}
+- Articoli critici: {report_data['critical_count']}
 
-CAMPIONE QUALITATIVO ARTICOLI:
+CAMPIONE QUALITATIVO:
 {report_data['sample_text']}
 
 Redigi un report strutturato per Direzione Comunicazione.
@@ -142,10 +148,17 @@ REQUISITI:
 
 
 # ==========================================================
-# FUNZIONE PRINCIPALE
+# FUNZIONE PRINCIPALE (RETRO-COMPATIBILE)
 # ==========================================================
 
-def ask_spiz(message: str, history: list = None, context: str = "general") -> dict:
+def ask_spiz(question: str = None,
+             message: str = None,
+             history: list = None,
+             context: str = "general") -> dict:
+
+    # Compatibilità con chiamate precedenti
+    if question and not message:
+        message = question
 
     if not message or len(message.strip()) < 2:
         return {"error": "Messaggio troppo corto."}
@@ -189,7 +202,6 @@ def ask_spiz(message: str, history: list = None, context: str = "general") -> di
             or a.get("reputational_risk") not in (None, "None")
         ]
 
-        # Campione qualitativo limitato per evitare overflow token
         sample_articles = articles[:30]
 
         sample_text = "\n\n".join([
@@ -215,7 +227,6 @@ TESTO:
         }
 
         system_prompt = build_report_prompt(report_data)
-
         messages = [{"role": "system", "content": system_prompt}]
         messages.append({"role": "user", "content": message})
 
@@ -224,7 +235,7 @@ TESTO:
     # ======================================================
     else:
 
-        system_prompt = build_chat_prompt(articles, context)
+        system_prompt = build_chat_prompt(articles)
         messages = [{"role": "system", "content": system_prompt}]
 
         if history:
