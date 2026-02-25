@@ -30,6 +30,7 @@
 
         /* TOPNAV */
         .topnav {
+            position:relative;
             background:var(--bg2);
             border-bottom:2px solid var(--border);
             padding:0 20px;
@@ -172,7 +173,6 @@
         @media (max-width: 768px) {
             .topnav { height:auto; padding:10px 16px; flex-wrap:wrap; gap:8px; }
             .nav-links { display:none; }
-            .nav-mobile-menu { display:flex !important; }
             .logo-sub { display:none; }
             .stat-bar { grid-template-columns:1fr 1fr; }
             .stat-cell { padding:10px 14px; }
@@ -204,10 +204,10 @@
             border:1px solid var(--border);
             border-radius:4px;
             padding:8px;
-            position:absolute;
-            top:56px;
+            position:fixed;
+            top:64px;
             right:16px;
-            z-index:200;
+            z-index:9999;
             min-width:160px;
             box-shadow:0 4px 20px rgba(0,0,0,0.1);
         }
@@ -234,10 +234,8 @@
         <a href="/clients" class="nav-link">Clienti</a>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
-            <div class="nav-time" id="nav-time">--:--:--</div>
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:#c8d0e0;letter-spacing:0.8px;">Geronimo Emili</div>
-        </div>        <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+        <div class="nav-time" id="nav-time">--:--:--</div>
+        <button class="hamburger" onclick="toggleMobileMenu(event)">☰</button>
     </div>
     <div class="nav-mobile-menu" id="mobile-menu">
         <a href="/">Dashboard</a>
@@ -374,12 +372,13 @@
     let currentArticleData      = null;
     let mobileMenuOpen          = false;
 
-    function toggleMobileMenu() {
+    function toggleMobileMenu(e) {
+        e.stopPropagation();
         mobileMenuOpen = !mobileMenuOpen;
         document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
     }
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.hamburger') && !e.target.closest('#mobile-menu')) {
+    document.addEventListener('click', function(e) {
+        if (mobileMenuOpen && !e.target.closest('#mobile-menu')) {
             document.getElementById('mobile-menu').style.display = 'none';
             mobileMenuOpen = false;
         }
@@ -390,6 +389,17 @@
             new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     }
     setInterval(updateClock,1000); updateClock();
+
+    function formatArticleText(text) {
+        if (!text) return 'Testo non disponibile';
+        // Va a capo dopo punto/!/? seguito da maiuscola (evita abbreviazioni)
+        text = text.replace(/([.!?])[ \t]+([A-Z\xC0-\xDE])/g, function(m, punct, cap) {
+            return punct + '<br><br>' + cap;
+        });
+        // Preserva eventuali a capo già presenti
+        text = text.replace(/\n/g, '<br>');
+        return text;
+    }
 
     function formatDate(d) {
         if (!d) return '--';
@@ -548,7 +558,7 @@
             <div class="detail-title">${a.titolo||'Senza titolo'}</div>
             ${a.sottotitolo?`<div class="detail-sottotitolo">${a.sottotitolo}</div>`:''}
             <hr class="detail-divider">
-            <div class="detail-body">${a.testo_completo||'Testo non disponibile'}</div>`;
+            <div class="detail-body">${formatArticleText(a.testo_completo)}</div>`;
         document.getElementById('edit-article-btn').onclick  =()=>showEditForm(a);
         document.getElementById('delete-article-btn').onclick=()=>deleteArticle(a.id);
     }

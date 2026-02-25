@@ -17,7 +17,7 @@
         body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;}
 
         /* NAV */
-        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;flex-shrink:0;z-index:100;gap:12px;}
+        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;flex-shrink:0;z-index:100;gap:12px;position:relative;}
         .logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
         .logo-img{height:36px;width:auto;}
         .logo-divider{width:1px;height:28px;background:var(--border2);}
@@ -27,7 +27,7 @@
         .nav-link:hover{color:var(--teal);border-bottom-color:var(--teal);}
         .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta);}
         .hamburger{display:none;background:none;border:1px solid var(--border2);padding:6px 10px;border-radius:3px;cursor:pointer;font-size:14px;color:var(--text2);}
-        .nav-mobile-menu{display:none;flex-direction:column;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px;position:absolute;top:64px;right:16px;z-index:200;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+        .nav-mobile-menu{display:none;flex-direction:column;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px;position:fixed;top:64px;right:16px;z-index:9999;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
         .nav-mobile-menu a{padding:8px 12px;color:var(--text2);text-decoration:none;font-size:12px;font-weight:600;border-radius:3px;}
         .nav-mobile-menu a:hover{background:var(--bg3);color:var(--teal);}
         @media(max-width:768px){.hamburger{display:block;}.nav-links{display:none;}.logo-sub{display:none;}}
@@ -135,7 +135,7 @@
         <a href="/monitor" class="nav-link">Web Monitor</a>
         <a href="/clients" class="nav-link">Clienti</a>
     </div>
-    <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+    <button class="hamburger" onclick="toggleMobileMenu(event)">☰</button>
     <div class="nav-mobile-menu" id="mobile-menu">
         <a href="/">Dashboard</a>
         <a href="/chat">AI Analysis</a>
@@ -211,12 +211,13 @@
     let mobileMenuOpen = false;
     let currentContext = 'general';
 
-    function toggleMobileMenu() {
+    function toggleMobileMenu(e) {
+        e.stopPropagation();
         mobileMenuOpen = !mobileMenuOpen;
         document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
     }
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.hamburger') && !e.target.closest('#mobile-menu')) {
+    document.addEventListener('click', function(e) {
+        if (mobileMenuOpen && !e.target.closest('#mobile-menu')) {
             document.getElementById('mobile-menu').style.display = 'none';
             mobileMenuOpen = false;
         }
@@ -252,13 +253,9 @@
     }
 
     function formatMessage(text) {
-        // Code blocks
-        text = text.replace(//g, '<pre></pre>');
-        // Bold
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong></strong>');
-        // Italic
-        text = text.replace(/\*(.*?)\*/g, '<em></em>');
-        // Line breaks
+        text = text.replace(/```([\s\S]*?)```/g, function(m, c){ return '<pre>' + c + '</pre>'; });
+        text = text.replace(/\*\*(.*?)\*\*/g, function(m, c){ return '<strong>' + c + '</strong>'; });
+        text = text.replace(/\*(.*?)\*/g, function(m, c){ return '<em>' + c + '</em>'; });
         text = text.replace(/\n/g, '<br>');
         return text;
     }
