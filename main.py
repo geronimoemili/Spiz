@@ -259,7 +259,7 @@ async def create_client(client: dict):
 @app.put("/api/clients/{client_id}")
 async def update_client(client_id: str, client: dict):
     try:
-        data = {k: client[k] for k in ("name", "keywords", "semantic_topic") if k in client}
+        data = {k: client[k] for k in ("name", "keywords", "semantic_topic", "web_keywords", "sector", "description", "website", "contact") if k in client}
         if not data:
             return {"error": "Nessun campo da aggiornare"}
         res = supabase.table("clients").update(data).eq("id", client_id).execute()

@@ -165,6 +165,14 @@
         .state-empty p { font-family:var(--mono); font-size:10px; letter-spacing:1px; text-align:center; }
 
         /* ANIM */
+        mark.kw-highlight {
+            background: linear-gradient(120deg, rgba(14,165,201,0.25) 0%, rgba(212,54,122,0.2) 100%);
+            color: inherit;
+            border-radius: 3px;
+            padding: 1px 2px;
+            font-weight: 600;
+        }
+
         @keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
         .fade-in { animation:fadeIn 0.15s ease; }
         ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
@@ -390,7 +398,7 @@
     }
     setInterval(updateClock,1000); updateClock();
 
-    function formatArticleText(text) {
+    function formatArticleText(text, keywords) {
         if (!text) return 'Testo non disponibile';
         // Va a capo dopo punto/!/? seguito da maiuscola (evita abbreviazioni)
         text = text.replace(/([.!?])[ \t]+([A-Z\xC0-\xDE])/g, function(m, punct, cap) {
@@ -398,6 +406,15 @@
         });
         // Preserva eventuali a capo già presenti
         text = text.replace(/\n/g, '<br>');
+        // Highlight keyword cliente
+        if (keywords && keywords.length) {
+            keywords.forEach(function(kw) {
+                if (!kw || kw.length < 2) return;
+                var escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var re = new RegExp('(' + escaped + ')', 'gi');
+                text = text.replace(re, '<mark class="kw-highlight">$1</mark>');
+            });
+        }
         return text;
     }
 
@@ -558,7 +575,7 @@
             <div class="detail-title">${a.titolo||'Senza titolo'}</div>
             ${a.sottotitolo?`<div class="detail-sottotitolo">${a.sottotitolo}</div>`:''}
             <hr class="detail-divider">
-            <div class="detail-body">${formatArticleText(a.testo_completo)}</div>`;
+            <div class="detail-body">${formatArticleText(a.testo_completo, currentClient ? (currentClient.keywords||"").split(",").map(k=>k.trim()).filter(Boolean) : [])}</div>`;
         document.getElementById('edit-article-btn').onclick  =()=>showEditForm(a);
         document.getElementById('delete-article-btn').onclick=()=>deleteArticle(a.id);
     }
