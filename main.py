@@ -106,6 +106,15 @@ async def chat_endpoint(req: dict):
     except Exception as e:
         return {"response": "Errore AI: " + str(e)}
 
+@app.get("/api/debug-articles")
+async def debug_articles():
+    try:
+        # Prendi i primi 3 articoli senza filtri
+        res = supabase.table("articles").select("id, titolo, data, matched_client").order("data", desc=True).limit(5).execute()
+        return {"count": len(res.data or []), "sample": res.data or [], "today": str(date.today())}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/api/clients")
 async def get_clients():
     try:
