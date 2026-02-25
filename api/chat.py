@@ -1,13 +1,6 @@
 """
-api/chat.py - SPIZ AI Analysis (Enhanced & Backward Compatible)
-
-Modalità:
-- Chat normale
-- Report strategico Direzione Comunicazione
-
-Compatibile con chiamate:
-- ask_spiz(question=...)
-- ask_spiz(message=...)
+api/chat.py - SPIZ AI Analysis
+Analista senior di comunicazione istituzionale e media monitoring.
 """
 
 import os
@@ -16,250 +9,302 @@ from collections import Counter
 from openai import OpenAI
 from services.database import supabase
 
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+REPORT_KEYWORDS = [
+    "report", "analisi completa", "sentiment", "profilo mediatico",
+    "criticita", "sintesi strategica", "long running", "governance",
+    "territoriale", "istituzional", "reputazion", "media narrative",
+    "rassegna", "monitoraggio", "temi ricorrenti", "interviste", "vertici",
+    "management", "finanzia", "corporate", "redigi", "elabora", "produci",
+    "dammi un report", "fai un report", "fai un analisi", "analizza la copertura",
+    "analisi reputazionale", "temi longevi", "criticita reputazionali",
+    "comunicazione istituzionale", "focus territoriale", "analisi sentiment",
+    "presenza dei vertici", "analizza il periodo",
+]
 
-# ==========================================================
-# CARICAMENTO ARTICOLI
-# ==========================================================
 
-def get_context_articles(context: str = "general", limit: int = 200) -> list:
-    """Carica articoli dal DB in base al contesto selezionato."""
+def get_context_articles(context="general"):
     try:
-        today = date.today()
-
+        today = date.today().isoformat()
         if context == "today":
             from_date = today
         elif context == "week":
-            from_date = today - timedelta(days=7)
+            from_date = (date.today() - timedelta(days=7)).isoformat()
         elif context == "month":
-            from_date = today - timedelta(days=30)
+            from_date = (date.today() - timedelta(days=30)).isoformat()
+        elif context == "year":
+            from_date = (date.today() - timedelta(days=365)).isoformat()
         else:
-            from_date = today - timedelta(days=90)
+            from_date = (date.today() - timedelta(days=90)).isoformat()
 
-        res = (
-            supabase
-            .table("articles")
-            .select(
-                "titolo, testata, giornalista, data, testo_completo, "
-                "macrosettori, tone, dominant_topic, reputational_risk, political_risk"
-            )
-            .gte("data", from_date.isoformat())
-            .order("data", desc=True)
-            .limit(limit)
-            .execute()
-        )
+        res = supabase.table("articles").select(
+            "id, titolo, testata, giornalista, data, testo_completo, "
+            "macrosettori, tone, dominant_topic, tipologia_articolo, pagina, "
+            "occhiello, matched_client"
+        ).gte("data", from_date).order("data", desc=True).limit(800).execute()
 
         return res.data or []
-
     except Exception as e:
-        print(f"Errore caricamento contesto: {e}")
+        print("Errore caricamento contesto: " + str(e))
         return []
 
 
-# ==========================================================
-# PROMPT CHAT NORMALE
-# ==========================================================
+def build_analytics(articles):
+    if not articles:
+        return {}
 
-def build_chat_prompt(articles: list) -> str:
+    testate     = [a.get("testata", "") for a in articles if a.get("testata")]
+    giornalisti = [a.get("giornalista", "") for a in articles if a.get("giornalista")]
+    tones       = [a.get("tone", "") for a in articles if a.get("tone")]
+    topics      = [a.get("dominant_topic", "") for a in articles if a.get("dominant_topic")]
+    clienti     = [a.get("matched_client", "") for a in articles if a.get("matched_client")]
+    tipologie   = [a.get("tipologia_articolo", "") for a in articles if a.get("tipologia_articolo")]
+    settori     = []
+    for a in articles:
+        ms = a.get("macrosettori", "")
+        if ms:
+            settori.extend([s.strip() for s in ms.split(",") if s.strip()])
+
+    tone_dist = Counter(tones)
+    monthly   = Counter()
+    for a in articles:
+        d = a.get("data", "")
+        if d and len(d) >= 7:
+            monthly[d[:7]] += 1
+
+    # Analisi per cliente
+    client_analysis = {}
+    for a in articles:
+        cl = a.get("matched_client", "")
+        if not cl:
+            continue
+        if cl not in client_analysis:
+            client_analysis[cl] = {"count": 0, "tones": [], "testate": [], "giornalisti": [], "titoli": []}
+        client_analysis[cl]["count"] += 1
+        if a.get("tone"):
+            client_analysis[cl]["tones"].append(a["tone"])
+        if a.get("testata"):
+            client_analysis[cl]["testate"].append(a["testata"])
+        if a.get("giornalista"):
+            client_analysis[cl]["giornalisti"].append(a["giornalista"])
+        if a.get("titolo"):
+            entry = "[" + a.get("data","") + "] " + a.get("testata","") + ": " + a["titolo"]
+            client_analysis[cl]["titoli"].append(entry)
+
+    with_text = [a for a in articles if a.get("testo_completo") and len(a.get("testo_completo", "")) > 80]
+    with_text_sorted = sorted(with_text, key=lambda x: len(x.get("testo_completo", "")), reverse=True)
+
+    text_sample = []
+    for a in with_text_sorted[:150]:
+        testo = (a.get("testo_completo", "") or "").strip()
+        testo_trunc = testo[:800] + ("..." if len(testo) > 800 else "")
+        line = (
+            "[" + a.get("data","") + "] " + a.get("testata","N/D") + " | "
+            "p." + str(a.get("pagina","?")) + " | " + str(a.get("tipologia_articolo","")) + " | "
+            "Firma: " + a.get("giornalista","Anonimo") + " | Cliente: " + a.get("matched_client","") + " | "
+            "Tone: " + a.get("tone","") + " | Topic: " + a.get("dominant_topic","") + "\n"
+            "TITOLO: " + a.get("titolo","") + "\n"
+            "TESTO: " + testo_trunc
+        )
+        text_sample.append(line)
+
+    titles_index = []
+    for a in articles:
+        if not a.get("testo_completo"):
+            line = (
+                "[" + a.get("data","") + "] " + a.get("testata","N/D") + " | "
+                + a.get("giornalista","Anonimo") + " | Cliente: " + a.get("matched_client","") + " | "
+                + "Tone: " + a.get("tone","") + " | " + a.get("titolo","")
+            )
+            titles_index.append(line)
+
+    return {
+        "totale":           len(articles),
+        "con_testo":        len(with_text),
+        "top_testate":      Counter(testate).most_common(30),
+        "top_giornalisti":  Counter(giornalisti).most_common(25),
+        "top_topics":       Counter(topics).most_common(15),
+        "top_clienti":      Counter(clienti).most_common(30),
+        "top_settori":      Counter(settori).most_common(15),
+        "top_tipologie":    Counter(tipologie).most_common(10),
+        "tone_dist":        dict(tone_dist),
+        "monthly":          dict(sorted(monthly.items())),
+        "text_sample":      text_sample,
+        "titles_index":     titles_index[:200],
+        "client_analysis":  client_analysis,
+        "date_min":         min((a.get("data","") for a in articles if a.get("data")), default=""),
+        "date_max":         max((a.get("data","") for a in articles if a.get("data")), default=""),
+    }
+
+
+def build_system_prompt(articles, context):
+    context_labels = {
+        "today":   "di oggi",
+        "week":    "dell'ultima settimana",
+        "month":   "dell'ultimo mese",
+        "year":    "dell'ultimo anno",
+        "general": "degli ultimi 3 mesi",
+    }
+    label = context_labels.get(context, "recenti")
 
     if not articles:
         return (
-            "Sei SPIZ, assistente AI di MAIM Public Diplomacy & Media Relations. "
-            "Al momento non ci sono articoli nel database. "
-            "Suggerisci all'utente di caricare nuovi dati."
+            "Sei SPIZ, l'assistente AI senior di MAIM Public Diplomacy & Media Relations. "
+            "Specializzato in analisi di comunicazione istituzionale, reputazione e media monitoring. "
+            "Al momento non ci sono articoli nel database per il periodo selezionato. "
+            "Suggerisci all'utente di caricare CSV dalla Dashboard o di cambiare il periodo."
         )
 
-    testate = list(set(a.get("testata", "") for a in articles if a.get("testata")))
-    giornalisti = list(set(a.get("giornalista", "") for a in articles if a.get("giornalista")))
-    topics = list(set(a.get("dominant_topic", "") for a in articles if a.get("dominant_topic")))
+    an = build_analytics(articles)
 
-    sample = articles[:50]
+    def fmt(c, n=20):
+        return ", ".join(k + " (" + str(v) + ")" for k, v in c[:n]) if c else "N/D"
 
-    articles_text = "\n".join([
-        f"- [{a.get('data','')}] {a.get('testata','N/D')} | "
-        f"{a.get('giornalista','Anonimo')} | {a.get('titolo','')}"
-        for a in sample
-    ])
+    tone_total = sum(an["tone_dist"].values()) or 1
+    tone_str   = ", ".join(
+        k + ": " + str(round(v / tone_total * 100)) + "%"
+        for k, v in sorted(an["tone_dist"].items(), key=lambda x: -x[1])
+    )
 
-    return f"""
-Sei SPIZ, assistente AI di MAIM Public Diplomacy & Media Relations.
-Hai accesso al database rassegna stampa.
+    monthly_str = "\n".join("  " + m + ": " + str(c) + " articoli" for m, c in an["monthly"].items())
 
-DATI DISPONIBILI:
-- Articoli: {len(articles)}
-- Testate principali: {', '.join(testate[:15])}
-- Giornalisti unici: {len(giornalisti)}
-- Topic principali: {', '.join(topics[:10])}
+    client_summary = ""
+    for cl, data in sorted(an["client_analysis"].items(), key=lambda x: -x[1]["count"])[:15]:
+        tone_c = Counter(data["tones"])
+        top_t  = Counter(data["testate"]).most_common(5)
+        top_j  = Counter(data["giornalisti"]).most_common(5)
+        last_5 = data["titoli"][-5:]
+        client_summary += (
+            "\n### " + cl + " (" + str(data["count"]) + " articoli)\n"
+            "Sentiment: " + ", ".join(k + ":" + str(v) for k, v in tone_c.most_common()) + "\n"
+            "Top testate: " + ", ".join(k + "(" + str(v) + ")" for k, v in top_t) + "\n"
+            "Top giornalisti: " + ", ".join(k + "(" + str(v) + ")" for k, v in top_j) + "\n"
+            "Ultimi titoli:\n" + "\n".join("  - " + t for t in last_5) + "\n"
+        )
 
-LISTA ARTICOLI RECENTI:
-{articles_text}
+    titles_str = "\n".join(an["titles_index"])
+    sample_str = "\n\n---\n\n".join(an["text_sample"])
 
-ISTRUZIONI:
-- Rispondi in italiano.
-- Linguaggio professionale e conciso.
-- Usa esclusivamente i dati forniti.
-- Puoi usare tabelle markdown.
-- Evita preamboli inutili.
-"""
+    prompt = (
+        "Sei SPIZ, analista senior di comunicazione istituzionale, reputazione e media monitoring "
+        "di MAIM Public Diplomacy & Media Relations.\n\n"
+        "Il tuo standard di output e' quello di un report professionale destinato alla Direzione "
+        "Comunicazione di un'azienda corporate quotata. Ragiona, sintetizza, interpreta. "
+        "Cita sempre testate, giornalisti, titoli e date specifici quando supportano l'analisi.\n\n"
+
+        "CORPUS: " + str(an["totale"]) + " articoli " + label + " | "
+        + an["date_min"] + " -> " + an["date_max"] + " | Con testo: " + str(an["con_testo"]) + "\n\n"
+
+        "DISTRIBUZIONE MENSILE:\n" + monthly_str + "\n\n"
+        "TESTATE: " + fmt(an["top_testate"], 30) + "\n\n"
+        "GIORNALISTI: " + fmt(an["top_giornalisti"], 25) + "\n\n"
+        "CLIENTI/SOGGETTI: " + fmt(an["top_clienti"], 30) + "\n\n"
+        "TOPIC: " + fmt(an["top_topics"], 15) + "\n\n"
+        "SETTORI: " + fmt(an["top_settori"], 15) + "\n\n"
+        "TIPOLOGIE: " + fmt(an["top_tipologie"], 10) + "\n\n"
+        "SENTIMENT: " + tone_str + "\n\n"
+        "ANALISI PER CLIENTE:\n" + client_summary + "\n\n"
+        "INDICE ARTICOLI SENZA TESTO:\n" + titles_str + "\n\n"
+        "ARTICOLI CON TESTO COMPLETO:\n" + sample_str + "\n\n"
+
+        "=== ISTRUZIONI ===\n\n"
+        "STILE: Linguaggio professionale corporate. Nessuna emoji. Tono da analista senior.\n\n"
+
+        "REPORT STRUTTURATO: Quando l'utente chiede un report o usa termini come 'profilo mediatico', "
+        "'sentiment', 'temi longevi', 'criticita', 'governance', 'territoriale', 'istituzionale', "
+        "segui ESATTAMENTE questa struttura con sezioni numerate:\n\n"
+
+        "1. PROFILO MEDIATICO (media narrative profile)\n"
+        "   - Ruolo attribuito alla societa'\n"
+        "   - Percezione generale (per tipo di stampa: economica / generalista / locale)\n"
+        "   - Temi associati piu' frequentemente con testate prevalenti\n"
+        "   - Evoluzione del racconto per fasi cronologiche con registro narrativo\n\n"
+
+        "2. INTERVISTE E PRESENZA DEI VERTICI\n"
+        "   Per ogni intervento: testata, data, firma, tema, tono, messaggio principale, "
+        "esposizione reputazionale (alta/media/bassa, positiva/negativa/rischiosa)\n\n"
+
+        "3. TEMI LONGEVI (long running issues) per macro-area\n"
+        "   Classificati: persistenti / emergenti / in diminuzione\n\n"
+
+        "4. NOTIZIE FINANZIARIE E CORPORATE\n"
+        "   Risultati, guidance, investimenti, operazioni straordinarie, titolo, analisti\n\n"
+
+        "5. CAMBI DI MANAGEMENT E GOVERNANCE\n"
+        "   Nomine, rinnovi, equilibri azionari\n\n"
+
+        "6. FOCUS TERRITORIALE E TEMI LOCALI SENSIBILI\n"
+        "   Tabella: territorio | attenzione mediatica | conflittualita' | trend\n"
+        "   Analisi per ogni territorio critico. Indice di sensibilita' territoriale.\n\n"
+
+        "7. CRITICITA' REPUTAZIONALI\n"
+        "   Per ogni caso: testata/territorio | tema | tono | impatto | propagazione\n\n"
+
+        "8. ANALISI DEL SENTIMENT\n"
+        "   % positivo/neutro/negativo con nota metodologica.\n"
+        "   Driver positivi, driver negativi, rischio reputazionale complessivo.\n\n"
+
+        "9. COMUNICAZIONE ISTITUZIONALE\n"
+        "   Rapporti Governo/UE, sicurezza strategica, posizionamento istituzionale, "
+        "effetto sul posizionamento.\n\n"
+
+        "10. SINTESI STRATEGICA FINALE\n"
+        "    Tabella territori da presidiare con priorita' e azione raccomandata.\n"
+        "    Priorita' comunicative, rischi emergenti, opportunita' narrative.\n\n"
+
+        "FORMATTAZIONE: ## sezioni, ### sottosezioni, **grassetto** per evidenze, "
+        "tabelle markdown per comparativi, citazioni tra virgolette con fonte e data.\n"
+        "Per report completi: profondita' e dettaglio sono prioritari rispetto alla brevita'.\n\n"
+
+        "DOMANDE SEMPLICI: Risposta diretta e concisa senza struttura da report.\n\n"
+
+        "REGOLA ASSOLUTA: Cita solo dati reali dal corpus. "
+        "Se un'informazione non e' presente, segnalalo esplicitamente."
+    )
+
+    return prompt
 
 
-# ==========================================================
-# PROMPT REPORT AVANZATO
-# ==========================================================
-
-def build_report_prompt(report_data: dict) -> str:
-
-    return f"""
-Agisci come analista senior di comunicazione istituzionale, reputazione e media intelligence.
-
-DATABASE ANALIZZATO:
-- Articoli totali: {report_data['total']}
-- Distribuzione tone (%): {report_data['tone_distribution']}
-- Top topic: {report_data['top_topics']}
-- Top testate: {report_data['top_testate']}
-- Articoli critici: {report_data['critical_count']}
-
-CAMPIONE QUALITATIVO:
-{report_data['sample_text']}
-
-Redigi un report strutturato per Direzione Comunicazione.
-
-SEZIONI OBBLIGATORIE:
-
-1. Profilo mediatico della società
-2. Interviste e presenza dei vertici
-3. Temi longevi
-4. Notizie finanziarie e corporate
-5. Cambi di management e governance
-6. Criticità reputazionali
-7. Analisi del sentiment
-8. Comunicazione istituzionale
-9. Sintesi strategica finale
-
-REQUISITI:
-- Linguaggio professionale
-- Approfondito ma non prolisso
-- Niente emoji
-- Struttura chiara con titoli numerati
-- Basati esclusivamente sui dati del database
-"""
-
-
-# ==========================================================
-# FUNZIONE PRINCIPALE (RETRO-COMPATIBILE)
-# ==========================================================
-
-def ask_spiz(question: str = None,
-             message: str = None,
-             history: list = None,
-             context: str = "general") -> dict:
-
-    # Compatibilità con chiamate precedenti
-    if question and not message:
-        message = question
-
+def ask_spiz(message, history=None, context="general"):
     if not message or len(message.strip()) < 2:
         return {"error": "Messaggio troppo corto."}
 
-    # Rilevamento modalità report
-    is_report = any(keyword in message.lower() for keyword in [
-        "report",
-        "analisi completa",
-        "direzione comunicazione",
-        "analisi strategica"
-    ])
+    articles      = get_context_articles(context)
+    system_prompt = build_system_prompt(articles, context)
+    messages      = [{"role": "system", "content": system_prompt}]
 
-    # Caricamento articoli
-    if is_report:
-        articles = get_context_articles(context, limit=800)
-    else:
-        articles = get_context_articles(context, limit=200)
+    if history:
+        for msg in history[-12:]:
+            if msg.get("role") in ("user", "assistant") and msg.get("content"):
+                messages.append({"role": msg["role"], "content": msg["content"]})
 
-    if not articles:
-        return {"response": "Non sono presenti articoli nel database per il periodo selezionato."}
+    messages.append({"role": "user", "content": message})
 
-    # ======================================================
-    # MODALITÀ REPORT
-    # ======================================================
-    if is_report:
-
-        total_articles = len(articles)
-
-        tone_counts = Counter(a.get("tone", "Neutral") for a in articles)
-        topic_counts = Counter(a.get("dominant_topic", "Altro") for a in articles)
-        testata_counts = Counter(a.get("testata", "N/D") for a in articles)
-
-        tone_distribution = {
-            k: round((v / total_articles) * 100, 1)
-            for k, v in tone_counts.items()
-        }
-
-        critical_articles = [
-            a for a in articles
-            if a.get("tone") == "Negative"
-            or a.get("reputational_risk") not in (None, "None")
-        ]
-
-        sample_articles = articles[:30]
-
-        sample_text = "\n\n".join([
-            f"""
-TESTATA: {a.get('testata')}
-DATA: {a.get('data')}
-TITOLO: {a.get('titolo')}
-TONE: {a.get('tone')}
-TOPIC: {a.get('dominant_topic')}
-TESTO:
-{(a.get('testo_completo') or '')[:1200]}
-"""
-            for a in sample_articles
-        ])
-
-        report_data = {
-            "total": total_articles,
-            "tone_distribution": tone_distribution,
-            "top_topics": topic_counts.most_common(10),
-            "top_testate": testata_counts.most_common(10),
-            "critical_count": len(critical_articles),
-            "sample_text": sample_text
-        }
-
-        system_prompt = build_report_prompt(report_data)
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.append({"role": "user", "content": message})
-
-    # ======================================================
-    # MODALITÀ CHAT NORMALE
-    # ======================================================
-    else:
-
-        system_prompt = build_chat_prompt(articles)
-        messages = [{"role": "system", "content": system_prompt}]
-
-        if history:
-            for msg in history[-10:]:
-                if msg.get("role") in ("user", "assistant") and msg.get("content"):
-                    messages.append({"role": msg["role"], "content": msg["content"]})
-
-        messages.append({"role": "user", "content": message})
-
-    # ======================================================
-    # CHIAMATA OPENAI
-    # ======================================================
+    msg_lower  = message.lower()
+    is_report  = any(kw in msg_lower for kw in REPORT_KEYWORDS)
+    max_tokens = 8000 if is_report else 2000
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
-            temperature=0.3,
-            max_tokens=1200
+            temperature=0.15,
+            max_tokens=max_tokens
         )
-
         reply = response.choices[0].message.content.strip()
-        return {"response": reply}
-
-    except Exception as e:
-        print(f"Errore OpenAI chat: {e}")
-        return {"error": f"Errore AI: {str(e)}"}
+        return {"response": reply, "is_report": is_report}
+    except Exception as e1:
+        print("gpt-4o fallback: " + str(e1))
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.15,
+                max_tokens=6000 if is_report else 1500
+            )
+            reply = response.choices[0].message.content.strip()
+            return {"response": reply, "is_report": is_report}
+        except Exception as e2:
+            print("Errore OpenAI: " + str(e2))
+            return {"error": "Errore AI: " + str(e2)}
