@@ -125,6 +125,24 @@
         .spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;}
         @keyframes spin{to{transform:rotate(360deg)}}
 
+        /* TOGGLE */
+        .toggle-wrap{display:flex;align-items:center;gap:8px;}
+        .toggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0;}
+        .toggle input{opacity:0;width:0;height:0;position:absolute;}
+        .toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background 0.2s;}
+        .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s;}
+        .toggle input:checked + .toggle-slider{background:var(--teal);}
+        .toggle input:checked + .toggle-slider::before{transform:translateX(16px);}
+        .source-row.disabled{opacity:0.45;}
+
+        /* SCAN STORICO */
+        .scan-section{padding:16px 24px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+        .scan-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+        .scan-date-input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:4px;}
+        .scan-date-input:focus{outline:none;border-color:var(--teal);}
+        .last-scan-info{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto;}
+        .last-scan-info span{color:var(--teal);}
+
         ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
         @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
         .fade-in{animation:fadeIn 0.15s ease;}
@@ -176,6 +194,21 @@
 
 <!-- SCAN LOG -->
 <div class="scan-log" id="scan-log"></div>
+
+<!-- SCAN STORICO -->
+<div class="scan-section">
+    <span class="scan-label">Scansione storica</span>
+    <input type="date" class="scan-date-input" id="scan-from" title="Da">
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">→</span>
+    <input type="date" class="scan-date-input" id="scan-to" title="A">
+    <button class="btn-scan" id="scan-historical-btn" onclick="runHistoricalScan()" style="padding:8px 16px;font-size:10px;">
+        📅 Scansione storica
+    </button>
+    <div class="last-scan-info">
+        Ultima scan giornaliera: <span id="last-daily-scan">--</span> &nbsp;|&nbsp;
+        Ultima scan storica: <span id="last-historical-scan">--</span>
+    </div>
+</div>
 
 <!-- STAT BAR -->
 <div class="stat-bar">
@@ -315,13 +348,15 @@
     async function loadMentions() {
         const client = document.getElementById('filter-client').value;
         const limit  = document.getElementById('filter-limit').value;
-        const url    = `/api/web-mentions?limit=${limit}${client?'&client='+encodeURIComponent(client):''}`;
+        const activeSources = allSources.filter(s => s.active !== false).map(s => s.id);
+        const sourceParam = activeSources.length ? '&sources='+activeSources.join(',') : '&sources=none';
+        const url = `/api/web-mentions?limit=${limit}${client?'&client='+encodeURIComponent(client):''}${sourceParam}`;
         try {
             allMentions = await (await fetch(url)).json();
             renderMentions();
             updateStats();
         } catch(e) {
-            document.getElementById('mentions-container').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>ERRORE CARICAMENTO</p></div>';
+            document.getElementById('mentions-container').innerHTML = '<div class="empty-state"><p>ERRORE CARICAMENTO MENTIONS</p></div>';
         }
     }
 
@@ -373,8 +408,13 @@
             c.innerHTML = '<div class="empty-state"><div class="icon">📡</div><p>NESSUNA SORGENTE CONFIGURATA<br>AGGIUNGINE UNA QUI SOPRA</p></div>';
             return;
         }
-        c.innerHTML = allSources.map(s => `
-            <div class="source-row">
+        c.innerHTML = allSources.map(s => {
+            const isOn = s.active !== false;
+            return `<div class="source-row ${isOn ? '' : 'disabled'}">
+                <label class="toggle" title="${isOn ? 'Clicca per disattivare' : 'Clicca per attivare'}">
+                    <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleSource('${s.id}', this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
                 <div class="source-info">
                     <div class="source-name">${s.name}</div>
                     <div class="source-url">${s.url}</div>
@@ -383,7 +423,8 @@
                     <span class="badge-type">${s.type||'rss'}</span>
                     <button class="btn-del" onclick="deleteSource('${s.id}')">🗑 Elimina</button>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     async function addSource() {
@@ -416,18 +457,20 @@
     async function runScan() {
         const btn = document.getElementById('scan-btn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Scansione...';
+        btn.innerHTML = '<div class="spinner"></div> Scansione...';
         document.getElementById('scan-log').innerHTML = '';
+        document.getElementById('scan-log').style.display = 'block';
         log('Avvio scansione sorgenti RSS...');
         try {
-            const data = await (await fetch('/api/monitor/run',{method:'POST'})).json();
-            if (data.error) { log('Errore: '+data.error, 'log-err'); }
+            const data = await (await fetch('/api/monitor/run', {method:'POST'})).json();
+            if (data.error) { log('Errore: '+data.error); }
             else {
-                log(`Completata — ${data.found||0} nuovi articoli trovati`, 'log-ok');
-                await loadMentions();
+                log(`Completata — ${data.found||0} nuovi articoli, ${data.duplicates||0} duplicati ignorati`);
+                loadScanInfo();
+                loadMentions();
             }
-        } catch(e) { log('Errore di connessione', 'log-err'); }
-        finally { btn.disabled=false; btn.innerHTML='🔍 Scansiona ora'; }
+        } catch(e) { log('Errore di connessione'); }
+        finally { btn.disabled=false; btn.innerHTML='<span>🔍</span> Scansiona ora'; }
     }
 
     function openModal(m) {
@@ -445,7 +488,68 @@
     }
     document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-    window.onload = loadAll;
+
+    async function toggleSource(id, active) {
+        try {
+            await fetch(`/api/sources/${id}/toggle`, {
+                method: 'PATCH',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({active})
+            });
+            const s = allSources.find(x => x.id==id || x.id==parseInt(id));
+            if (s) s.active = active;
+            renderSources();
+            loadMentions(); // ricarica notizie con sorgenti aggiornate
+        } catch(e) { alert('Errore toggle sorgente'); }
+    }
+
+    async function runHistoricalScan() {
+        const from = document.getElementById('scan-from').value;
+        const to   = document.getElementById('scan-to').value;
+        if (!from || !to) { alert('Seleziona data inizio e fine.'); return; }
+        if (from > to) { alert('La data inizio deve essere precedente alla fine.'); return; }
+        const btn = document.getElementById('scan-historical-btn');
+        btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Scansione storica...';
+        document.getElementById('scan-log').innerHTML = '';
+        document.getElementById('scan-log').style.display = 'block';
+        log(`Scansione storica dal ${from} al ${to}...`);
+        try {
+            const res  = await fetch('/api/monitor/run-historical', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({from_date: from, to_date: to})
+            });
+            const data = await res.json();
+            if (data.error) { log('Errore: '+data.error); }
+            else {
+                log(`Completata — ${data.found||0} nuovi articoli, ${data.duplicates||0} duplicati ignorati`);
+                loadScanInfo();
+                loadMentions();
+            }
+        } catch(e) { log('Errore di connessione'); }
+        finally { btn.disabled=false; btn.innerHTML='📅 Scansione storica'; }
+    }
+
+    async function loadScanInfo() {
+        try {
+            const data = await (await fetch('/api/monitor/scan-info')).json();
+            document.getElementById('last-daily-scan').innerText    = data.last_daily    ? formatDate(data.last_daily)    : 'mai';
+            document.getElementById('last-historical-scan').innerText = data.last_historical ? formatDate(data.last_historical) : 'mai';
+        } catch(e) {}
+    }
+
+    // Setta date default per scan storico (da 1 anno fa a oggi)
+    (function() {
+        const today = new Date().toISOString().split('T')[0];
+        const yearAgo = new Date(new Date().setFullYear(new Date().getFullYear()-1)).toISOString().split('T')[0];
+        document.getElementById('scan-from').value = yearAgo;
+        document.getElementById('scan-to').value   = today;
+    })();
+
+    window.onload = async function() {
+        await loadAll();
+        loadScanInfo();
+    };
 </script>
 </body>
 </html>

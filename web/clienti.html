@@ -262,11 +262,22 @@
             </div>
 
             <div class="section">
-                <div class="section-title">Parole chiave monitorate</div>
+                <div class="section-title">Parole chiave — Rassegna stampa</div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Usate per associare gli articoli caricati da CSV</div>
                 <div class="kw-list" id="kw-list"></div>
                 <div class="kw-add-wrap">
                     <input type="text" class="kw-add-input" id="kw-new-input" placeholder="Aggiungi keyword..." onkeydown="if(event.key==='Enter')addKeyword()">
                     <button class="btn-kw-add" onclick="addKeyword()">+ Aggiungi</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title" style="color:var(--magenta);">🌐 Parole chiave — Web Monitor</div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Usate esclusivamente per la scansione RSS/web. Se vuote, il Web Monitor non monitora questo cliente.</div>
+                <div class="kw-list" id="web-kw-list"></div>
+                <div class="kw-add-wrap">
+                    <input type="text" class="kw-add-input" id="web-kw-new-input" placeholder="Aggiungi keyword web..." onkeydown="if(event.key==='Enter')addWebKeyword()">
+                    <button class="btn-kw-add" style="background:var(--magenta);" onclick="addWebKeyword()">+ Aggiungi</button>
                 </div>
             </div>
 
@@ -311,6 +322,10 @@
                     <div class="form-field">
                         <label>Referente interno</label>
                         <input type="text" id="ef-contact" placeholder="es. Mario Rossi">
+                    </div>
+                    <div class="form-field full">
+                        <label style="color:var(--magenta);">🌐 Keyword Web Monitor (separate da virgola)</label>
+                        <input type="text" id="ef-web-keywords" placeholder="es. Enel, rinnovabili, energia pulita">
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;">
@@ -442,6 +457,7 @@
 
         // keywords
         renderKeywords();
+        renderWebKeywords();
 
         // extra info
         const extra = document.getElementById('extra-info');
@@ -480,6 +496,47 @@
         document.getElementById('kw-list').innerHTML = kws.length
             ? kws.map((k,i) => `<span class="kw-tag">${k}<button class="kw-del" onclick="removeKeyword(${i})" title="Rimuovi">×</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessuna keyword configurata</span>';
+    }
+
+    function renderWebKeywords() {
+        const kws = (currentClient.web_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+        document.getElementById('web-kw-list').innerHTML = kws.length
+            ? kws.map((k,i) => `<span class="kw-tag" style="background:rgba(212,54,122,0.08);color:var(--magenta);border-color:rgba(212,54,122,0.2);">${k}<button class="kw-del" onclick="removeWebKeyword(${i})" title="Rimuovi">×</button></span>`).join('')
+            : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessuna keyword web configurata</span>';
+    }
+
+    async function addWebKeyword() {
+        const input = document.getElementById('web-kw-new-input');
+        const kw = input.value.trim();
+        if (!kw || !currentClient) return;
+        const existing = (currentClient.web_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+        if (existing.includes(kw)) { alert('Keyword già presente.'); return; }
+        existing.push(kw);
+        await saveWebKeywords(existing.join(', '));
+        input.value = '';
+    }
+
+    async function removeWebKeyword(idx) {
+        if (!currentClient) return;
+        const kws = (currentClient.web_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+        kws.splice(idx,1);
+        await saveWebKeywords(kws.join(', '));
+    }
+
+    async function saveWebKeywords(keywordsStr) {
+        try {
+            const res = await fetch(`/api/clients/${currentClient.id}`,{
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({web_keywords:keywordsStr})
+            });
+            const d = await res.json();
+            if (d.error) { alert('Errore: '+d.error); return; }
+            currentClient.web_keywords = keywordsStr;
+            const idx = allClients.findIndex(c=>c.id===currentClient.id);
+            if (idx>=0) allClients[idx].web_keywords = keywordsStr;
+            renderWebKeywords();
+        } catch(e) { alert('Errore di connessione.'); }
     }
 
     function renderRecentArticles(articles) {
@@ -547,6 +604,7 @@
         document.getElementById('ef-description').value = currentClient.description||'';
         document.getElementById('ef-website').value     = currentClient.website||'';
         document.getElementById('ef-contact').value     = currentClient.contact||'';
+        document.getElementById('ef-web-keywords').value = currentClient.web_keywords||'';
         document.getElementById('client-detail').style.display = 'none';
         document.getElementById('edit-form').style.display     = 'block';
     }
@@ -556,10 +614,11 @@
         if (!name) { alert('Il nome è obbligatorio.'); return; }
         const payload = {
             name,
-            sector:      document.getElementById('ef-sector').value.trim()||undefined,
-            description: document.getElementById('ef-description').value.trim()||undefined,
-            website:     document.getElementById('ef-website').value.trim()||undefined,
-            contact:     document.getElementById('ef-contact').value.trim()||undefined,
+            sector:       document.getElementById('ef-sector').value.trim()||undefined,
+            description:  document.getElementById('ef-description').value.trim()||undefined,
+            website:      document.getElementById('ef-website').value.trim()||undefined,
+            contact:      document.getElementById('ef-contact').value.trim()||undefined,
+            web_keywords: document.getElementById('ef-web-keywords').value.trim()||undefined,
         };
         try {
             const res = await fetch(`/api/clients/${currentClient.id}`,{

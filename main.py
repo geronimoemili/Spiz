@@ -306,19 +306,77 @@ async def delete_source(source_id: str):
     except Exception as e:
         return {"error": str(e)}
 
+@app.patch("/api/sources/{source_id}/toggle")
+async def toggle_source(source_id: str, body: dict):
+    try:
+        active = body.get("active", True)
+        res = supabase.table("monitored_sources").update({"active": active}).eq("id", source_id).execute()
+        return res.data[0] if res.data else {"error": "Source non trovata"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/monitor/scan-info")
+async def get_scan_info():
+    """Restituisce le date dell'ultima scansione giornaliera e storica."""
+    try:
+        res = supabase.table("monitor_meta").select("*").execute()
+        meta = {m["key"]: m["value"] for m in (res.data or [])}
+        return {
+            "last_daily":      meta.get("last_daily_scan"),
+            "last_historical": meta.get("last_historical_scan")
+        }
+    except Exception as e:
+        return {"last_daily": None, "last_historical": None}
+
+@app.post("/api/monitor/run-historical")
+async def run_historical_scan(body: dict):
+    """Scansione storica RSS tra due date — evita duplicati."""
+    from_date = body.get("from_date")
+    to_date   = body.get("to_date")
+    if not from_date or not to_date:
+        return {"error": "Parametri from_date e to_date obbligatori"}
+    if run_monitoring is None:
+        return {"error": "Monitor non disponibile"}
+    try:
+        result = run_monitoring(from_date=from_date, to_date=to_date, historical=True)
+        # Salva data ultima scansione storica
+        try:
+            supabase.table("monitor_meta").upsert({
+                "key": "last_historical_scan",
+                "value": to_date
+            }).execute()
+        except: pass
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/api/monitor/run")
 async def trigger_monitor():
     if run_monitoring is None:
         return {"error": "Monitor non disponibile — controlla che services/monitor.py esista"}
     result = run_monitoring()
+    # Salva data ultima scansione giornaliera
+    try:
+        from datetime import date
+        supabase.table("monitor_meta").upsert({
+            "key": "last_daily_scan",
+            "value": date.today().isoformat()
+        }).execute()
+    except: pass
     return result
 
 @app.get("/api/web-mentions")
-async def get_web_mentions(client: str = None, limit: int = 50):
+async def get_web_mentions(client: str = None, limit: int = 50, sources: str = None):
     try:
         query = supabase.table("web_mentions").select("*").order("published_at", desc=True)
         if client:
             query = query.ilike("matched_client", f"%{client}%")
+        if sources == "none":
+            return []  # Nessuna sorgente attiva
+        if sources:
+            source_ids = [s.strip() for s in sources.split(",") if s.strip()]
+            if source_ids:
+                query = query.in_("source_id", source_ids)
         res = query.limit(limit).execute()
         return res.data or []
     except Exception as e:
