@@ -62,6 +62,10 @@ class ArticleUpdateSimple(BaseModel):
 async def index():
     return FileResponse('web/index.html')
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 @app.get("/chat")
 async def chat_page():
     return FileResponse('web/chat.html')
@@ -455,6 +459,10 @@ async def get_giornalista_articoli(nome: str, period: str = "30days"):
         return res.data or []
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)

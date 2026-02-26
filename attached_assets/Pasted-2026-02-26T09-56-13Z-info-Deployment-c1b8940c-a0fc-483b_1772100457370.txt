@@ -1,0 +1,153 @@
+2026-02-26T09:56:13Z info: Deployment: c1b8940c-a0fc-483b-af66-5dbb6c5ffffe
+2026-02-26T09:56:13Z info: Build: ea495cd9-9cc1-4623-b82d-309143223a50
+2026-02-26T09:56:13Z info: Running Security Scan
+2026-02-26T09:56:36Z info: Security Scan Complete
+2026-02-26T09:56:36Z info: Connecting to builder
+2026-02-26T09:56:36Z info: Builder connected
+2026-02-26T09:56:37Z info: Installing packages
+--> pip install -r requirements.txt
+
+Requirement already satisfied: fastapi in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 1)) (0.132.0)
+
+Requirement already satisfied: beautifulsoup4 in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 11)) (4.14.3)
+
+Requirement already satisfied: requests in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 12)) (2.32.5)
+
+  Using cached openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+
+Requirement already satisfied: starlette<1.0.0,>=0.40.0 in ./.pythonlibs/lib/python3.11/site-packages (from fastapi->-r requirements.txt (line 1)) (0.52.1)
+
+Requirement already satisfied: annotated-doc>=0.0.2 in ./.pythonlibs/lib/python3.11/site-packages (from fastapi->-r requirements.txt (line 1)) (0.0.4)
+
+Requirement already satisfied: click>=7.0 in ./.pythonlibs/lib/python3.11/site-packages (from uvicorn->-r requirements.txt (line 2)) (8.3.1)
+
+Requirement already satisfied: httpx<0.29,>=0.26 in ./.pythonlibs/lib/python3.11/site-packages (from supabase->-r requirements.txt (line 4)) (0.28.1)
+
+Requirement already satisfied: deprecation>=2.1.0 in ./.pythonlibs/lib/python3.11/site-packages (from postgrest==2.28.0->supabase->-r requirements.txt (line 4)) (2.1.0)
+
+Requirement already satisfied: websockets<16,>=11 in ./.pythonlibs/lib/python3.11/site-packages (from realtime==2.28.0->supabase->-r requirements.txt (line 4)) (15.0.1)
+
+Requirement already satisfied: tqdm>4 in ./.pythonlibs/lib/python3.11/site-packages (from openai->-r requirements.txt (line 5)) (4.67.3)
+
+Requirement already satisfied: regex>=2022.1.18 in ./.pythonlibs/lib/python3.11/site-packages (from tiktoken->-r requirements.txt (line 6)) (2026.2.19)
+
+Requirement already satisfied: numpy>=1.26.0 in ./.pythonlibs/lib/python3.11/site-packages (from pandas->-r requirements.txt (line 7)) (2.4.2)
+
+Requirement already satisfied: python-dateutil>=2.8.2 in ./.pythonlibs/lib/python3.11/site-packages (from pandas->-r requirements.txt (line 7)) (2.9.0.post0)
+
+Requirement already satisfied: soupsieve>=1.6.1 in ./.pythonlibs/lib/python3.11/site-packages (from beautifulsoup4->-r requirements.txt (line 11)) (2.8.3)
+
+Requirement already satisfied: charset_normalizer<4,>=2 in ./.pythonlibs/lib/python3.11/site-packages (from requests->-r requirements.txt (line 12)) (3.4.4)
+
+Requirement already satisfied: certifi>=2017.4.17 in ./.pythonlibs/lib/python3.11/site-packages (from requests->-r requirements.txt (line 12)) (2026.1.4)
+
+Collecting et-xmlfile (from openpyxl->-r requirements.txt (line 13))
+
+  Using cached et_xmlfile-2.0.0-py3-none-any.whl.metadata (2.7 kB)
+
+Requirement already satisfied: httpcore==1.* in ./.pythonlibs/lib/python3.11/site-packages (from httpx<0.29,>=0.26->supabase->-r requirements.txt (line 4)) (1.0.9)
+
+Requirement already satisfied: six>=1.5 in ./.pythonlibs/lib/python3.11/site-packages (from python-dateutil>=2.8.2->pandas->-r requirements.txt (line 7)) (1.17.0)
+
+Requirement already satisfied: multidict>=4.0 in ./.pythonlibs/lib/python3.11/site-packages (from yarl>=1.22.0->supabase->-r requirements.txt (line 4)) (6.7.1)
+
+Requirement already satisfied: propcache>=0.2.1 in ./.pythonlibs/lib/python3.11/site-packages (from yarl>=1.22.0->supabase->-r requirements.txt (line 4)) (0.4.1)
+
+Requirement already satisfied: packaging in ./.pythonlibs/lib/python3.11/site-packages (from deprecation>=2.1.0->postgrest==2.28.0->supabase->-r requirements.txt (line 4)) (26.0)
+
+Requirement already satisfied: h2<5,>=3 in ./.pythonlibs/lib/python3.11/site-packages (from httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase->-r requirements.txt (line 4)) (4.3.0)
+
+Requirement already satisfied: mmh3<6.0.0,>=4.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (5.2.0)
+
+Requirement already satisfied: strictyaml<2.0.0,>=1.7.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (1.7.3)
+
+Requirement already satisfied: fsspec>=2023.1.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (2026.2.0)
+
+Requirement already satisfied: zstandard<1.0.0,>=0.13.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (0.25.0)
+
+Requirement already satisfied: cryptography>=3.4.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase->-r requirements.txt (line 4)) (46.0.5)
+
+Requirement already satisfied: cffi>=2.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase->-r requirements.txt (line 4)) (2.0.0)
+
+Requirement already satisfied: hyperframe<7,>=6.1 in ./.pythonlibs/lib/python3.11/site-packages (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase->-r requirements.txt (line 4)) (6.1.0)
+
+Requirement already satisfied: hpack<5,>=4.1 in ./.pythonlibs/lib/python3.11/site-packages (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.28.0->supabase->-r requirements.txt (line 4)) (4.1.0)
+
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./.pythonlibs/lib/python3.11/site-packages (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./.pythonlibs/lib/python3.11/site-packages (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (2.19.2)
+
+Requirement already satisfied: pycparser in ./.pythonlibs/lib/python3.11/site-packages (from cffi>=2.0.0->cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->supabase-auth==2.28.0->supabase->-r requirements.txt (line 4)) (3.0)
+
+Requirement already satisfied: mdurl~=0.1 in ./.pythonlibs/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (0.1.2)
+
+Using cached openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+
+Using cached et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
+
+Installing collected packages: et-xmlfile, openpyxl
+
+Successfully installed et-xmlfile-2.0.0 openpyxl-3.1.5
+
+2026-02-26T09:56:42Z info: Starting Build
+Defaulting to user installation because normal site-packages is not writeable
+
+Requirement already satisfied: fastapi in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 1)) (0.132.0)
+
+Requirement already satisfied: uvicorn in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 2)) (0.41.0)
+
+Requirement already satisfied: tiktoken in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 6)) (0.12.0)
+
+Requirement already satisfied: apscheduler in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 9)) (3.11.2)
+
+Requirement already satisfied: requests in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 12)) (2.32.5)
+
+Requirement already satisfied: openpyxl in ./.pythonlibs/lib/python3.11/site-packages (from -r requirements.txt (line 13)) (3.1.5)
+
+Requirement already satisfied: pyparsing<4.0.0,>=3.1.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (3.3.2)
+
+Requirement already satisfied: pyroaring<2.0.0,>=1.0.0 in ./.pythonlibs/lib/python3.11/site-packages (from pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (1.0.3)
+
+Requirement already satisfied: mdurl~=0.1 in ./.pythonlibs/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.28.0->supabase->-r requirements.txt (line 4)) (0.1.2)
+
+2026-02-26T09:56:44Z info: Pushing pid1 binary layer...
+2026-02-26T09:56:45Z info: Pushing Repl layer...
+2026-02-26T09:56:45Z info: Pushing hosting layer...
+2026-02-26T09:56:45Z info: Retrieved cached nix layer
+2026-02-26T09:56:45Z info: Created hosting layer
+2026-02-26T09:56:46Z info: Created pid1 binary layer
+2026-02-26T09:57:16Z info: Created Repl layer
+2026-02-26T09:57:16Z info: Pushing Repl (cache) layer...
+2026-02-26T09:57:16Z info: Created Repl (cache) layer
+2026-02-26T09:57:18Z info: Pushed image manifest
+2026-02-26T09:57:20Z info: Pushed soci index manifest
+2026-02-26T09:57:23Z info: Creating Autoscale service
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+metasidecar: loaded enterprise status from environment is_enterprise=false
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+healthcheck failed error=healthcheck / returned status 500
+a port configuration was specified but the required port was never opened
+healthcheck failed error=healthcheck / returned status 500
+2026-02-26T09:59:52Z error: The deployment failed because the application failed to open a port in time. This can happen because the application takes to long to open a server, or doesn't open one at all on the expected port. Note that this doesn't mean that the application is crashing, only that it's not opening a port in time. The application must serve traffic on the first port specified as 'localPort' in the port configuration specified in the .replit file. Make sure that the application opens a port quickly and that there are no operations taking too long on startup. Check the logs for more information.
