@@ -11,7 +11,7 @@ from datetime import date
 try:
     from api.ingestion import process_csv
     from services.database import supabase
-    from api.chat import ask_spiz
+    from services.ai_logic import ask_spiz
     from api.pitch import pitch_advisor
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
