@@ -192,8 +192,13 @@ def ask_spiz(message, history=None, context="general"):
     all_articles = load_all(from_date, to_date)
     print("SPIZ loaded=" + str(len(all_articles)) + " from=" + from_date + " to=" + to_date)
 
+    # Arricchisci query corte per embedding migliori
+    search_query = message
+    if len(message.split()) < 5:
+        search_query = f"articoli notizie rassegna stampa {message}"
+
     # Ricerca semantica per trovare gli articoli più pertinenti
-    filtered = semantic_search(message, from_date, to_date, top_k=25)
+    filtered = semantic_search(search_query, from_date, to_date, top_k=25)
     print("Semantic search results: " + str(len(filtered)))
 
     # Se giornalista specifico, filtra ulteriormente
