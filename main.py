@@ -60,7 +60,9 @@ class ArticleUpdateSimple(BaseModel):
 # --- ROTTE NAVIGAZIONE ---
 @app.get("/")
 async def index():
-    return FileResponse('web/index.html')
+    if os.path.exists("web/index.html"):
+        return FileResponse("web/index.html")
+    return {"status": "ok"}
 
 @app.get("/health")
 async def health_check():
@@ -465,4 +467,4 @@ async def health_check():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

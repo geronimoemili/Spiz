@@ -1,24 +1,18 @@
 run = "python3.11 main.py"
 modules = ["python-3.11"]
 
-[agent]
-expertMode = true
-
 [nix]
-packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip"]
+packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip", "lsof"]
 
 [[ports]]
-localPort = 5000
-externalPort = 8000
-
-[[ports]]
-localPort = 8000
+localPort = 8080
 externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
 run = ["python3.11", "main.py"]
 build = ["python3.11", "-m", "pip", "install", "--break-system-packages", "-r", "requirements.txt"]
+healthcheckPath = "/health"
 
 [workflows]
 runButton = "Project"
@@ -42,4 +36,7 @@ outputType = "webview"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3.11 main.py"
-waitForPort = 5000
+waitForPort = 8080
+
+[agent]
+expertMode = true
