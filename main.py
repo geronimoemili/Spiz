@@ -1,7 +1,11 @@
 import os
 import shutil
 import uvicorn
-from fastapi import FastAPI, UploadFile, File
+import json
+import uuid
+import time
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -16,7 +20,7 @@ try:
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
-# Import monitor + scheduler (opzionale, non blocca l'avvio)
+# Import monitor + scheduler (opzionale)
 run_monitoring = None
 try:
     from services.monitor import run_monitoring
@@ -34,11 +38,20 @@ app = FastAPI(title="SPIZ Intelligence")
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
 
-# ── MODELLI ───────────────────────────────────────────────────
-class ChatRequest(BaseModel):
-    message:    str
-    session_id: str           = "default"
-    client_id:  Optional[str] = None
+# ── STORAGE TEMPORANEO DOCX ───────────────────────────────────────────
+
+_DOCX_STORE: dict = {}  # token → {path, expires}
+
+def _store_docx(path: Optional[str]) -> Optional[str]:
+    """Registra il file docx con un token temporaneo (1 ora)."""
+    if not path or not os.path.exists(path):
+        return None
+    token = str(uuid.uuid4())
+    _DOCX_STORE[token] = {"path": path, "expires": time.time() + 3600}
+    return token
+
+
+# ── MODELLI ────────────────────────────────────────────────────────────
 
 class ArticleUpdateSimple(BaseModel):
     titolo:             Optional[str]   = None
@@ -57,7 +70,9 @@ class ArticleUpdateSimple(BaseModel):
     ave:                Optional[float] = None
     tipo_fonte:         Optional[str]   = None
 
-# --- ROTTE NAVIGAZIONE ---
+
+# ── NAVIGAZIONE ────────────────────────────────────────────────────────
+
 @app.get("/")
 async def index():
     if os.path.exists("web/index.html"):
@@ -84,7 +99,9 @@ async def monitor_page():
 async def pitch_page():
     return FileResponse('web/pitch.html')
 
-# --- API CORE ---
+
+# ── UPLOAD CSV INGESTIONE ─────────────────────────────────────────────
+
 @app.post("/upload")
 async def upload_multiple(files: List[UploadFile] = File(...)):
     results = []
@@ -101,370 +118,95 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
             results.append({"file": file.filename, "status": "error", "message": str(e)})
     return {"results": results}
 
+
+# ══════════════════════════════════════════════════════════════════════
+# ENDPOINT CHAT — SUPPORTO CSV + DOCX
+# ══════════════════════════════════════════════════════════════════════
+
 @app.post("/api/chat")
-async def chat_endpoint(req: dict):
-    try:
-        message = req.get("message", "")
-        history = req.get("history", [])
-        context = req.get("context", "general")
-        result  = ask_spiz(message=message, history=history, context=context)
-        return result
-    except Exception as e:
-        return {"response": "Errore AI: " + str(e)}
+async def chat_endpoint(
+    message:  str = Form(...),
+    context:  str = Form("general"),
+    history:  str = Form("[]"),
+    csv_file: Optional[UploadFile] = File(None),
+):
+    """
+    Endpoint chat principale.
+    Accetta:
+      - message
+      - context
+      - history (JSON serializzato)
+      - csv_file opzionale
+    """
 
-@app.get("/api/debug-articles")
-async def debug_articles():
+    # Deserializza history
     try:
-        # Prendi i primi 3 articoli senza filtri
-        res = supabase.table("articles").select("id, titolo, data, matched_client").order("data", desc=True).limit(5).execute()
-        return {"count": len(res.data or []), "sample": res.data or [], "today": str(date.today())}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/api/clients")
-async def get_clients():
-    try:
-        res = supabase.table("clients").select("id, name, keywords, semantic_topic").execute()
-        return res.data or []
-    except Exception as e:
-        return []
-
-# --- DASHBOARD QUANTITATIVA ---
-
-@app.get("/api/dashboard-stats")
-async def get_dashboard_stats():
-    try:
-        res_total    = supabase.table("articles").select("giornalista", count="exact").execute()
-        total_all    = res_total.count or 0
-        articles_all = res_total.data or []
-        firmati_all  = len([
-            a for a in articles_all
-            if a.get('giornalista') and a.get('giornalista').strip() not in ["", "Redazione", "N.D."]
-        ])
-        return {"total": total_all, "firmati": firmati_all, "anonimi": total_all - firmati_all}
-    except Exception as e:
-        print(f"Errore in dashboard-stats: {e}")
-        return {"total": 0, "firmati": 0, "anonimi": 0}
-
-@app.get("/api/today-mentions")
-async def get_today_mentions():
-    try:
-        today    = date.today().isoformat()
-        clients  = supabase.table("clients").select("*").execute().data or []
-        articles = supabase.table("articles").select("titolo, testo_completo").eq("data", today).execute().data or []
-        results  = []
-        for client in clients:
-            keywords = [k.strip().lower() for k in (client.get('keywords') or "").split(',') if k.strip()]
-            count    = sum(
-                1 for art in articles
-                if any(kw in f"{art.get('titolo','')} {art.get('testo_completo','')}".lower() for kw in keywords)
-            )
-            results.append({"name": client['name'], "today": count, "id": client.get('id'), "keywords": client.get('keywords')})
-        return results
+        hist = json.loads(history) if history else []
     except Exception:
-        return []
+        hist = []
 
-@app.get("/api/today-stats")
-async def get_today_stats():
-    today = date.today().isoformat()
-    try:
-        res            = supabase.table("articles").select("id, giornalista, testata, titolo").eq("data", today).execute()
-        articles_today = res.data or []
-        total_today    = len(articles_today)
-
-        giornalisti_oggi = {}
-        for a in articles_today:
-            g = a.get('giornalista') or ''
-            if g and g.strip() not in ("", "N.D.", "Redazione", "Autore non indicato"):
-                giornalisti_oggi[g] = giornalisti_oggi.get(g, 0) + 1
-
-        testate_oggi = {}
-        for a in articles_today:
-            t = a.get('testata', 'N/D')
-            testate_oggi[t] = testate_oggi.get(t, 0) + 1
-
-        return {
-            "total_today":     total_today,
-            "giornalisti":     [{"nome": k, "articoli": v} for k, v in sorted(giornalisti_oggi.items(), key=lambda x: -x[1])],
-            "testate":         [{"nome": k, "articoli": v} for k, v in sorted(testate_oggi.items(), key=lambda x: -x[1])],
-            "ultimi_articoli": sorted(articles_today, key=lambda x: x.get('data', ''), reverse=True)[:5]
-        }
-    except Exception as e:
-        print(f"Errore today-stats: {e}")
-        return {"total_today": 0, "giornalisti": [], "testate": [], "ultimi_articoli": []}
-
-@app.get("/api/last-upload")
-async def get_last_upload():
-    try:
-        res = supabase.table("articles").select("data").order("data", desc=True).limit(1).execute()
-        return {"last_upload": res.data[0]['data'] if res.data else None}
-    except Exception:
-        return {"last_upload": None}
-
-# --- DASHBOARD CLIENTI ---
-
-@app.get("/api/client-articles")
-async def get_client_articles(client_id: str, from_date: str, to_date: str):
-    try:
-        client_res = supabase.table("clients").select("*").eq("id", client_id).execute()
-        if not client_res.data:
-            return {"error": "Cliente non trovato"}
-        client   = client_res.data[0]
-        keywords = [k.strip().lower() for k in (client.get('keywords') or "").split(',') if k.strip()]
-        if not keywords:
-            return []
-
-        articles = supabase.table("articles").select(
-            "id, testata, data, titolo, giornalista, occhiello, sottotitolo, testo_completo"
-        ).gte("data", from_date).lte("data", to_date).execute().data or []
-
-        results = []
-        for art in articles:
-            text = f"{art.get('titolo','')} {art.get('occhiello','')} {art.get('sottotitolo','')} {art.get('testo_completo','')}".lower()
-            if any(kw in text for kw in keywords):
-                art.pop('testo_completo', None)
-                results.append(art)
-        return results
-    except Exception as e:
-        print(f"Errore client-articles: {e}")
-        return {"error": str(e)}
-
-@app.get("/api/article/{article_id}")
-async def get_article(article_id: str):
-    try:
-        res = supabase.table("articles").select("*").eq("id", article_id).execute()
-        return res.data[0] if res.data else {"error": "Articolo non trovato"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.put("/api/article/{article_id}")
-async def update_article(article_id: str, updates: ArticleUpdateSimple):
-    try:
-        update_data = {k: v for k, v in updates.dict().items() if v is not None}
-        if not update_data:
-            return {"error": "Nessun campo da aggiornare"}
-        res = supabase.table("articles").update(update_data).eq("id", article_id).execute()
-        return res.data[0] if res.data else {"error": "Aggiornamento fallito"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.delete("/api/article/{article_id}")
-async def delete_article(article_id: str):
-    try:
-        res = supabase.table("articles").delete().eq("id", article_id).execute()
-        return {"success": True} if res.data else {"error": "Articolo non trovato"}
-    except Exception as e:
-        return {"error": str(e)}
-
-# --- GESTIONE CLIENTI (CRUD) ---
-
-@app.post("/api/clients")
-async def create_client(client: dict):
-    try:
-        res = supabase.table("clients").insert({
-            "name":           client.get("name"),
-            "keywords":       client.get("keywords", ""),
-            "semantic_topic": client.get("semantic_topic", "")
-        }).execute()
-        return res.data[0] if res.data else {"error": "Inserimento fallito"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.put("/api/clients/{client_id}")
-async def update_client(client_id: str, client: dict):
-    try:
-        data = {k: client[k] for k in ("name", "keywords", "semantic_topic", "web_keywords", "sector", "description", "website", "contact") if k in client}
-        if not data:
-            return {"error": "Nessun campo da aggiornare"}
-        res = supabase.table("clients").update(data).eq("id", client_id).execute()
-        return res.data[0] if res.data else {"error": "Aggiornamento fallito"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.delete("/api/clients/{client_id}")
-async def delete_client(client_id: str):
-    try:
-        res = supabase.table("clients").delete().eq("id", client_id).execute()
-        return {"success": True} if res.data else {"error": "Cliente non trovato"}
-    except Exception as e:
-        return {"error": str(e)}
-
-# --- MONITORAGGIO WEB ---
-
-@app.get("/api/sources")
-async def get_sources():
-    try:
-        res = supabase.table("monitored_sources").select("*").order("name").execute()
-        return res.data or []
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.post("/api/sources")
-async def add_source(source: dict):
-    try:
-        res = supabase.table("monitored_sources").insert({
-            "name":   source.get("name"),
-            "url":    source.get("url"),
-            "type":   source.get("type", "rss"),
-            "active": True
-        }).execute()
-        return res.data[0] if res.data else {"error": "Inserimento fallito"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.delete("/api/sources/{source_id}")
-async def delete_source(source_id: str):
-    try:
-        supabase.table("monitored_sources").delete().eq("id", source_id).execute()
-        return {"success": True}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.patch("/api/sources/{source_id}/toggle")
-async def toggle_source(source_id: str, body: dict):
-    try:
-        active = body.get("active", True)
-        res = supabase.table("monitored_sources").update({"active": active}).eq("id", source_id).execute()
-        return res.data[0] if res.data else {"error": "Source non trovata"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/api/monitor/scan-info")
-async def get_scan_info():
-    """Restituisce le date dell'ultima scansione giornaliera e storica."""
-    try:
-        res = supabase.table("monitor_meta").select("*").execute()
-        meta = {m["key"]: m["value"] for m in (res.data or [])}
-        return {
-            "last_daily":      meta.get("last_daily_scan"),
-            "last_historical": meta.get("last_historical_scan")
-        }
-    except Exception as e:
-        return {"last_daily": None, "last_historical": None}
-
-@app.post("/api/monitor/run-historical")
-async def run_historical_scan(body: dict):
-    """Scansione storica RSS tra due date — evita duplicati."""
-    from_date = body.get("from_date")
-    to_date   = body.get("to_date")
-    if not from_date or not to_date:
-        return {"error": "Parametri from_date e to_date obbligatori"}
-    if run_monitoring is None:
-        return {"error": "Monitor non disponibile"}
-    try:
-        result = run_monitoring(from_date=from_date, to_date=to_date, historical=True)
-        # Salva data ultima scansione storica
+    # Leggi CSV se allegato
+    csv_content = None
+    if csv_file and csv_file.filename:
+        raw = await csv_file.read()
         try:
-            supabase.table("monitor_meta").upsert({
-                "key": "last_historical_scan",
-                "value": to_date
-            }).execute()
-        except: pass
-        return result
-    except Exception as e:
-        return {"error": str(e)}
+            csv_content = raw.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            csv_content = raw.decode("latin-1", errors="replace")
 
-@app.post("/api/monitor/run")
-async def trigger_monitor():
-    if run_monitoring is None:
-        return {"error": "Monitor non disponibile — controlla che services/monitor.py esista"}
-    result = run_monitoring()
-    # Salva data ultima scansione giornaliera
     try:
-        from datetime import date
-        supabase.table("monitor_meta").upsert({
-            "key": "last_daily_scan",
-            "value": date.today().isoformat()
-        }).execute()
-    except: pass
-    return result
-
-@app.get("/api/web-mentions")
-async def get_web_mentions(client: str = None, limit: int = 50, sources: str = None):
-    try:
-        query = supabase.table("web_mentions").select("*").order("published_at", desc=True)
-        if client:
-            query = query.ilike("matched_client", f"%{client}%")
-        if sources == "none":
-            return []  # Nessuna sorgente attiva
-        if sources:
-            source_ids = [s.strip() for s in sources.split(",") if s.strip()]
-            if source_ids:
-                query = query.in_("source_id", source_ids)
-        res = query.limit(limit).execute()
-        return res.data or []
+        result = ask_spiz(
+            message     = message,
+            history     = hist,
+            context     = context,
+            csv_content = csv_content,
+        )
     except Exception as e:
-        return {"error": str(e)}
+        return {"success": False, "error": str(e)}
 
-@app.post("/api/pitch")
-async def api_pitch(req: dict):
-    """Analizza comunicato e suggerisce giornalisti"""
-    try:
-        testo = req.get("testo", "")
-        top_n = req.get("top_n", 10)
-        result = pitch_advisor(testo, top_n=top_n)
-        return result
-    except Exception as e:
-        return {"error": str(e)}
+    if "error" in result:
+        return {"success": False, "error": result["error"]}
 
-@app.get("/api/top-giornalisti")
-async def get_top_giornalisti(period: str = "30days", limit: int = 20):
-    """Giornalisti più prolifici in un periodo"""
-    try:
-        today = date.today()
-        if period == "7days":
-            from_date = (today - __import__('datetime').timedelta(days=7)).isoformat()
-        elif period == "6months":
-            from_date = (today - __import__('datetime').timedelta(days=180)).isoformat()
-        else:  # 30days default
-            from_date = (today - __import__('datetime').timedelta(days=30)).isoformat()
+    docx_token = _store_docx(result.get("docx_path"))
 
-        to_date = today.isoformat()
+    return {
+        "success":       True,
+        "response":      result.get("response", ""),
+        "is_report":     result.get("is_report", False),
+        "articles_used": result.get("articles_used", 0),
+        "total_period":  result.get("total_period", 0),
+        "source":        result.get("source", "db"),
+        "has_docx":      docx_token is not None,
+        "docx_token":    docx_token,
+    }
 
-        res = supabase.table("articles").select("id, giornalista, testata, titolo, data") \
-            .gte("data", from_date).lte("data", to_date).execute()
-        articles = res.data or []
 
-        counts = {}
-        for a in articles:
-            g = (a.get('giornalista') or '').strip()
-            if not g or g in ('N.D.', 'N/D', 'Redazione', 'Autore non indicato', ''):
-                continue
-            if g not in counts:
-                counts[g] = 0
-            counts[g] += 1
+@app.get("/api/download-report/{token}")
+async def download_report(token: str):
+    entry = _DOCX_STORE.get(token)
 
-        top = sorted(counts.items(), key=lambda x: -x[1])[:limit]
-        return [{"nome": k, "articoli": v} for k, v in top]
-    except Exception as e:
-        return {"error": str(e)}
+    if not entry:
+        raise HTTPException(status_code=404, detail="File non trovato o scaduto")
 
-@app.get("/api/giornalista-articoli")
-async def get_giornalista_articoli(nome: str, period: str = "30days"):
-    """Articoli di un giornalista specifico in un periodo"""
-    try:
-        today = date.today()
-        if period == "7days":
-            from_date = (today - __import__('datetime').timedelta(days=7)).isoformat()
-        elif period == "6months":
-            from_date = (today - __import__('datetime').timedelta(days=180)).isoformat()
-        else:
-            from_date = (today - __import__('datetime').timedelta(days=30)).isoformat()
+    if time.time() > entry["expires"]:
+        del _DOCX_STORE[token]
+        raise HTTPException(status_code=410, detail="File scaduto")
 
-        res = supabase.table("articles") \
-            .select("id, titolo, testata, data, occhiello") \
-            .eq("giornalista", nome) \
-            .gte("data", from_date) \
-            .lte("data", today.isoformat()) \
-            .order("data", desc=True) \
-            .execute()
-        return res.data or []
-    except Exception as e:
-        return {"error": str(e)}
+    path = entry["path"]
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File non trovato sul disco")
+
+    filename = os.path.basename(path)
+
+    return FileResponse(
+        path       = path,
+        filename   = filename,
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+
+# ── AVVIO SERVER ──────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

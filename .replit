@@ -1,5 +1,5 @@
 run = "python3.11 main.py"
-modules = ["python-3.11"]
+modules = ["nodejs-20", "python-3.11"]
 
 [nix]
 packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip", "lsof"]
