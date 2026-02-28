@@ -436,14 +436,14 @@
                 fetch('/api/today-stats'),fetch('/api/today-mentions')
             ]);
             const [stats,last,today,mentions] = await Promise.all([sR.json(),lR.json(),tR.json(),mR.json()]);
-            document.getElementById('stat-total').innerText      = stats.total??'--';
+            document.getElementById('stat-total').innerText      = stats.totale??'--';
             document.getElementById('stat-today').innerText      = today.total_today??'--';
             document.getElementById('stat-today-sub').innerText  = (stats.firmati??0)+' firmati · '+(stats.anonimi??0)+' anonimi';
             document.getElementById('stat-giornalisti').innerText= today.giornalisti?.length??'--';
             document.getElementById('stat-testate').innerText    = today.testate?.length??'--';
             const lu = last.last_upload ? formatDate(last.last_upload) : 'N/D';
             document.getElementById('last-upload-date').innerText = lu;
-            [['tk-total','tk-total2','ARCHIVIO: '+stats.total],
+            [['tk-total','tk-total2','ARCHIVIO: '+(stats.totale||0)],
              ['tk-today','tk-today2','OGGI: '+today.total_today],
              ['tk-giornalisti','tk-gior2','GIORNALISTI: '+(today.giornalisti?.length||0)],
              ['tk-testate','tk-test2','TESTATE: '+(today.testate?.length||0)]
