@@ -478,11 +478,11 @@
                 fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${d30}&to_date=${today}`).then(r=>r.json()),
                 fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=2000-01-01&to_date=${today}`).then(r=>r.json()),
             ]);
-            document.getElementById('mini-today').innerText = Array.isArray(todayData) ? todayData.length : '--';
-            document.getElementById('mini-30d').innerText   = Array.isArray(monthData)  ? monthData.length  : '--';
-            document.getElementById('mini-total').innerText = Array.isArray(allData)    ? allData.length    : '--';
+            document.getElementById('mini-today').innerText = todayData.total || 0;
+            document.getElementById('mini-30d').innerText   = monthData.total || 0;
+            document.getElementById('mini-total').innerText = allData.total || 0;
             // recent articles
-            const recent = Array.isArray(allData) ? allData.slice(0,5) : [];
+            const recent = Array.isArray(allData.articles) ? allData.articles.slice(0,5) : [];
             renderRecentArticles(recent);
         } catch(e) {
             document.getElementById('mini-today').innerText='--';

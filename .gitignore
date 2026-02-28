@@ -1,4 +1,7 @@
-.env
+..env
 __pycache__/
 *.pyc
 data/raw/*.csv
+data/raw/*.csv
+node_modules/
+.pytest_cache/
