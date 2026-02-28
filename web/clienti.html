@@ -406,7 +406,7 @@
         document.getElementById('stat-keywords').innerText = kwTotal;
         document.getElementById('client-count').innerText  = allClients.length;
         fetch('/api/dashboard-stats').then(r=>r.json()).then(d=>{
-            document.getElementById('stat-archive').innerText = d.total||'--';
+            document.getElementById('stat-archive').innerText = d.totale||'--';
         }).catch(()=>{});
     }
 
