@@ -4,6 +4,9 @@ import uvicorn
 import json
 import uuid
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse

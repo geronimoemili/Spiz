@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 import hashlib
 import datetime
@@ -51,7 +54,7 @@ def generate_embedding(text: str):
     try:
         if not text or len(text.strip()) == 0:
             text = "nessun contenuto"
-        resp = ai.embeddings.create(model="text-embedding-ada-002", input=text[:8000])
+        resp = ai.embeddings.create(model="text-embedding-3-small", input=text[:8000])
         return resp.data[0].embedding
     except Exception as e:
         print(f"Embedding error: {e}")
