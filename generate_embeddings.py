@@ -10,7 +10,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Configurazione
 BATCH_SIZE = 50
 SLEEP_BETWEEN_BATCHES = 2
-MODEL = "text-embedding-ada-002"
+MODEL = "text-embedding-3-small"
 
 def get_articles_without_embedding(limit=BATCH_SIZE):
     try:

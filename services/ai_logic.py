@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import re
 from datetime import date, timedelta
 from collections import Counter
@@ -86,7 +89,7 @@ def semantic_search(query, from_date=None, to_date=None, top_k=25):
     """Cerca articoli semanticamente simili alla query."""
     try:
         resp = ai.embeddings.create(
-            model="text-embedding-ada-002",
+            model="text-embedding-3-small",
             input=query[:8000]
         )
         query_embedding = resp.data[0].embedding

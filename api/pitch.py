@@ -5,6 +5,9 @@ FIXED: firma pitch_advisor compatibile con main.py (message, client_id, history)
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import re
 import json
 from openai import OpenAI
