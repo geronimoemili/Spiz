@@ -98,10 +98,7 @@ class SourceModel(BaseModel):
     active: Optional[bool] = True
 
 class ShareRequest(BaseModel):
-    from_date:       str
-    to_date:         str
-    client_id:       Optional[str]       = None
-    macro_group_ids: Optional[List[str]] = []
+    article_ids: List[str]
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -508,20 +505,15 @@ async def get_articles_filtered(
 @app.post("/api/share")
 async def create_share(req: ShareRequest):
     try:
+        if not req.article_ids:
+            return {"error": "Nessun articolo selezionato"}
         token      = str(uuid.uuid4())[:8]
         expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
-
         supabase.table("shared_reports").insert({
             "token": token,
-            "filters": {
-                "from_date":       req.from_date,
-                "to_date":         req.to_date,
-                "client_id":       req.client_id,
-                "macro_group_ids": req.macro_group_ids or [],
-            },
+            "filters": {"article_ids": req.article_ids},
             "expires_at": expires_at,
         }).execute()
-
         return {"token": token}
     except Exception as e:
         return {"error": str(e)}
@@ -531,70 +523,37 @@ async def create_share(req: ShareRequest):
 async def read_share(token: str):
     try:
         now = datetime.now(timezone.utc).isoformat()
-        row = supabase.table("shared_reports") \
-            .select("*") \
-            .eq("token", token) \
-            .gt("expires_at", now) \
-            .execute()
+        row = supabase.table("shared_reports")             .select("*")             .eq("token", token)             .gt("expires_at", now)             .execute()
 
         if not row.data:
-            return PlainTextResponse("❌ Link scaduto o non trovato.", status_code=404)
+            return PlainTextResponse("Link scaduto o non trovato.", status_code=404)
 
-        f               = row.data[0]["filters"]
-        from_date       = f["from_date"]
-        to_date         = f["to_date"]
-        client_id       = f.get("client_id")
-        macro_group_ids = f.get("macro_group_ids", [])
+        f           = row.data[0]["filters"]
+        article_ids = f.get("article_ids", [])
 
-        res = supabase.table("articles") \
-            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo") \
-            .gte("data", from_date) \
-            .lte("data", to_date) \
-            .order("data", desc=True) \
-            .limit(500) \
-            .execute()
-        articles = res.data or []
+        if not article_ids:
+            return PlainTextResponse("Nessun articolo salvato in questo link.", status_code=404)
 
-        if client_id:
-            cl = supabase.table("clients").select("*").eq("id", client_id).execute()
-            if cl.data:
-                kws = [k.strip().lower() for k in (cl.data[0].get("keywords") or "").split(",") if k.strip()]
-                if kws:
-                    articles = [a for a in articles if any(
-                        kw in (a.get("testo_completo") or "").lower() or
-                        kw in (a.get("titolo") or "").lower()
-                        for kw in kws
-                    )]
+        res = supabase.table("articles")             .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo")             .in_("id", article_ids)             .execute()
 
-        if macro_group_ids:
-            all_macro_names = []
-            for mg_id in macro_group_ids:
-                links = supabase.table("macro_group_links") \
-                    .select("official_macro_id") \
-                    .eq("macro_group_id", mg_id).execute()
-                ids = [l["official_macro_id"] for l in (links.data or [])]
-                if ids:
-                    macros = supabase.table("official_macrosectors") \
-                        .select("name").in_("id", ids).execute()
-                    all_macro_names += [m["name"] for m in (macros.data or [])]
-            if all_macro_names:
-                articles = [a for a in articles
-                    if a.get("macrosettori") and any(
-                        m.strip() in all_macro_names
-                        for m in a["macrosettori"].split(",")
-                    )]
-
-        lines = [f"ARCHIVIO SPIZ — {len(articles)} articoli — Periodo: {from_date} → {to_date}\n"]
+        id_order = {aid: i for i, aid in enumerate(article_ids)}
+        articles = sorted(res.data or [], key=lambda a: id_order.get(a["id"], 9999))
+        lines = []
+        lines.append("ARCHIVIO SPIZ - " + str(len(articles)) + " articoli")
+        lines.append("")
         for i, a in enumerate(articles, 1):
-            lines.append(f"---\n[{i}] {a.get('titolo','N/D')}")
-            lines.append(f"Testata: {a.get('testata','N/D')} | Data: {a.get('data','N/D')} | Giornalista: {a.get('giornalista','N/D')}")
-            lines.append(f"Settori: {a.get('macrosettori','N/D')}")
-            lines.append(f"\n{a.get('testo_completo','Testo non disponibile')}\n")
+            lines.append("---")
+            lines.append("[" + str(i) + "] " + (a.get("titolo") or "N/D"))
+            lines.append("Testata: " + (a.get("testata") or "N/D") + " | Data: " + (a.get("data") or "N/D") + " | Giornalista: " + (a.get("giornalista") or "N/D"))
+            lines.append("Settori: " + (a.get("macrosettori") or "N/D"))
+            lines.append("")
+            lines.append(a.get("testo_completo") or "Testo non disponibile")
+            lines.append("")
 
         return PlainTextResponse("\n".join(lines))
 
     except Exception as e:
-        return PlainTextResponse(f"Errore: {str(e)}", status_code=500)
+        return PlainTextResponse("Errore: " + str(e), status_code=500)
 
 
 # ══════════════════════════════════════════════════════════════════════
