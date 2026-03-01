@@ -86,7 +86,7 @@ class ArticleUpdateSimple(BaseModel):
     tipo_fonte:         Optional[str]   = None
 
 class ClientModel(BaseModel):
-    name:           str
+    name:           Optional[str] = None
     keywords:       Optional[str] = None
     keywords_web:   Optional[str] = None
     sector:         Optional[str] = None
@@ -293,7 +293,7 @@ async def today_mentions():
 
         result = []
         for cl in clients:
-            keywords = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+            keywords = [k.strip().lower() for k in (cl.get("keywords") or "").split(",") if k.strip()]
             if not keywords:
                 count = 0
             else:
@@ -610,7 +610,7 @@ async def get_client_articles(client_id: str, from_date: str, to_date: str):
         client_data = client_res.data[0]
         keywords    = [
             k.strip().lower()
-            for k in (client_data.get("keywords_press") or client_data.get("keywords") or "").split(",")
+            for k in (client_data.get("keywords") or "").split(",")
             if k.strip()
         ]
 
@@ -716,11 +716,22 @@ async def get_clients():
 @app.post("/api/clients")
 async def create_client(data: ClientModel):
     try:
+        if not data.name or not data.name.strip():
+            raise HTTPException(status_code=400, detail="Il nome è obbligatorio")
+        
         res = supabase.table("clients").insert({
-            "name":         data.name,
-            "keywords_web": data.keywords_web or data.keywords,
+            "name":           data.name.strip(),
+            "keywords":       data.keywords,
+            "keywords_web":   data.keywords_web,
+            "sector":         data.sector,
+            "description":    data.description,
+            "website":        data.website,
+            "contact":        data.contact,
+            "semantic_topic": data.semantic_topic,
         }).execute()
-        return {"success": True, "client": res.data}
+        return {"success": True, "id": res.data[0].get("id") if res.data else None, "client": res.data[0] if res.data else {}}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 
@@ -729,8 +740,10 @@ async def create_client(data: ClientModel):
 async def update_client(client_id: str, data: ClientModel):
     try:
         update_data = {k: v for k, v in data.dict().items() if v is not None}
+        if not update_data:
+            return {"success": True, "id": client_id, "client": {}}
         res = supabase.table("clients").update(update_data).eq("id", client_id).execute()
-        return {"success": True, "client": res.data}
+        return {"success": True, "id": client_id, "client": res.data[0] if res.data else {}}
     except Exception as e:
         return {"error": str(e)}
 
@@ -739,7 +752,7 @@ async def update_client(client_id: str, data: ClientModel):
 async def delete_client(client_id: str):
     try:
         supabase.table("clients").delete().eq("id", client_id).execute()
-        return {"success": True}
+        return {"success": True, "id": client_id}
     except Exception as e:
         return {"error": str(e)}
 
