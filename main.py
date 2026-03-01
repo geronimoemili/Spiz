@@ -6,10 +6,10 @@ import uuid
 import time
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from collections import Counter
 
 try:
@@ -96,6 +96,12 @@ class SourceModel(BaseModel):
     name:   str
     url:    str
     active: Optional[bool] = True
+
+class ShareRequest(BaseModel):
+    from_date:       str
+    to_date:         str
+    client_id:       Optional[str]       = None
+    macro_group_ids: Optional[List[str]] = []
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -241,7 +247,6 @@ async def last_upload():
 
 @app.get("/api/today-stats")
 async def today_stats():
-    """Restituisce statistiche articoli di oggi incluso lista giornalisti e testate."""
     try:
         today    = date.today().isoformat()
         res      = supabase.table("articles").select(
@@ -270,15 +275,12 @@ async def today_stats():
 
 @app.get("/api/today-mentions")
 async def today_mentions():
-    """Citazioni di oggi per cliente — restituisce lista clienti con conteggio."""
     try:
         today = date.today().isoformat()
 
-        # Carica tutti i clienti
         clients_res = supabase.table("clients").select("*").execute()
         clients     = clients_res.data or []
 
-        # Carica tutti gli articoli di oggi
         arts_res = supabase.table("articles").select(
             "id, titolo, testata, giornalista, tone, dominant_topic, testo_completo, occhiello"
         ).eq("data", today).execute()
@@ -312,7 +314,7 @@ async def today_mentions():
 
 
 # ══════════════════════════════════════════════════════════════════════
-# ENDPOINT MANCANTI — TOP GIORNALISTI + ARTICOLI PER GIORNALISTA
+# TOP GIORNALISTI
 # ══════════════════════════════════════════════════════════════════════
 
 @app.get("/api/top-giornalisti")
@@ -320,22 +322,12 @@ async def top_giornalisti(
     period: str = Query("30days"),
     limit:  int = Query(20),
 ):
-    """Restituisce i giornalisti più prolifici nel periodo. Usato dalla sidebar."""
     try:
         today = date.today()
-        days_map = {
-            "today":    0,
-            "7days":    7,
-            "30days":   30,
-            "6months":  180,
-            "year":     365,
-        }
+        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
         days = days_map.get(period, 30)
-        if days == 0:
-            from_date = today.isoformat()
-        else:
-            from_date = (today - timedelta(days=days)).isoformat()
-        to_date = today.isoformat()
+        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+        to_date   = today.isoformat()
 
         res = supabase.table("articles").select(
             "giornalista, testata, data"
@@ -348,10 +340,7 @@ async def top_giornalisti(
             if a.get("giornalista") and a["giornalista"] not in SKIP
         )
 
-        return [
-            {"nome": nome, "articoli": count}
-            for nome, count in counter.most_common(limit)
-        ]
+        return [{"nome": nome, "articoli": count} for nome, count in counter.most_common(limit)]
     except Exception as e:
         return []
 
@@ -362,16 +351,12 @@ async def giornalista_articoli(
     period: str = Query("30days"),
     limit:  int = Query(100),
 ):
-    """Restituisce gli articoli di un giornalista nel periodo."""
     try:
         today = date.today()
         days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
         days = days_map.get(period, 30)
-        if days == 0:
-            from_date = today.isoformat()
-        else:
-            from_date = (today - timedelta(days=days)).isoformat()
-        to_date = today.isoformat()
+        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+        to_date   = today.isoformat()
 
         res = (supabase.table("articles")
                .select("id, titolo, testata, data, giornalista, tone, dominant_topic")
@@ -382,10 +367,234 @@ async def giornalista_articoli(
                .limit(limit)
                .execute())
 
-        articles = res.data or []
-        return articles
+        return res.data or []
     except Exception as e:
         return []
+
+
+# ══════════════════════════════════════════════════════════════════════
+# MACRO GROUPS
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/api/macro-groups")
+async def get_macro_groups():
+    try:
+        res = supabase.table("macro_groups") \
+            .select("id, name") \
+            .eq("active", True) \
+            .order("name") \
+            .execute()
+        return {"groups": res.data or []}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/macro-group-articles")
+async def get_macro_group_articles(
+    macro_group_id: str,
+    from_date: str,
+    to_date: str,
+):
+    try:
+        links = supabase.table("macro_group_links") \
+            .select("official_macro_id") \
+            .eq("macro_group_id", macro_group_id) \
+            .execute()
+        official_ids = [l["official_macro_id"] for l in (links.data or [])]
+
+        if not official_ids:
+            return {"articles": []}
+
+        macros = supabase.table("official_macrosectors") \
+            .select("name") \
+            .in_("id", official_ids) \
+            .execute()
+        macro_names = [m["name"] for m in (macros.data or [])]
+
+        articles_res = supabase.table("articles") \
+            .select("id, titolo, testata, data, giornalista, macrosettori") \
+            .gte("data", from_date) \
+            .lte("data", to_date) \
+            .order("data", desc=True) \
+            .limit(300) \
+            .execute()
+        all_articles = articles_res.data or []
+
+        filtered = []
+        for a in all_articles:
+            if not a.get("macrosettori"):
+                continue
+            article_macros = [m.strip() for m in a["macrosettori"].split(",")]
+            if any(m in macro_names for m in article_macros):
+                filtered.append(a)
+
+        return {"articles": filtered}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# ARTICOLI FILTRATI
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/api/articles-filtered")
+async def get_articles_filtered(
+    from_date: str,
+    to_date: str,
+    client_id: str | None = None,
+    macro_group_id: str | None = None,
+):
+    try:
+        articles_res = supabase.table("articles") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello") \
+            .gte("data", from_date) \
+            .lte("data", to_date) \
+            .order("data", desc=True) \
+            .limit(500) \
+            .execute()
+
+        articles = articles_res.data or []
+
+        if client_id:
+            client_res = supabase.table("clients").select("*").eq("id", client_id).execute()
+            if client_res.data:
+                client = client_res.data[0]
+                keywords = [
+                    k.strip().lower()
+                    for k in (client.get("keywords") or "").split(",")
+                    if k.strip()
+                ]
+                if keywords:
+                    articles = [
+                        a for a in articles
+                        if any(
+                            kw in (a.get("testo_completo") or "").lower()
+                            or kw in (a.get("titolo") or "").lower()
+                            or kw in (a.get("occhiello") or "").lower()
+                            for kw in keywords
+                        )
+                    ]
+
+        if macro_group_id:
+            links = supabase.table("macro_group_links") \
+                .select("official_macro_id") \
+                .eq("macro_group_id", macro_group_id) \
+                .execute()
+            official_ids = [l["official_macro_id"] for l in (links.data or [])]
+            if official_ids:
+                macros = supabase.table("official_macrosectors") \
+                    .select("name") \
+                    .in_("id", official_ids) \
+                    .execute()
+                macro_names = [m["name"] for m in (macros.data or [])]
+                articles = [
+                    a for a in articles
+                    if a.get("macrosettori") and any(
+                        m.strip() in macro_names
+                        for m in a["macrosettori"].split(",")
+                    )
+                ]
+
+        return {"articles": articles}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# SHARE TOKEN (link temporaneo 10 minuti)
+# ══════════════════════════════════════════════════════════════════════
+
+@app.post("/api/share")
+async def create_share(req: ShareRequest):
+    try:
+        token      = str(uuid.uuid4())[:8]
+        expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+
+        supabase.table("shared_reports").insert({
+            "token": token,
+            "filters": {
+                "from_date":       req.from_date,
+                "to_date":         req.to_date,
+                "client_id":       req.client_id,
+                "macro_group_ids": req.macro_group_ids or [],
+            },
+            "expires_at": expires_at,
+        }).execute()
+
+        return {"token": token}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/share/{token}")
+async def read_share(token: str):
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        row = supabase.table("shared_reports") \
+            .select("*") \
+            .eq("token", token) \
+            .gt("expires_at", now) \
+            .execute()
+
+        if not row.data:
+            return PlainTextResponse("❌ Link scaduto o non trovato.", status_code=404)
+
+        f               = row.data[0]["filters"]
+        from_date       = f["from_date"]
+        to_date         = f["to_date"]
+        client_id       = f.get("client_id")
+        macro_group_ids = f.get("macro_group_ids", [])
+
+        res = supabase.table("articles") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo") \
+            .gte("data", from_date) \
+            .lte("data", to_date) \
+            .order("data", desc=True) \
+            .limit(500) \
+            .execute()
+        articles = res.data or []
+
+        if client_id:
+            cl = supabase.table("clients").select("*").eq("id", client_id).execute()
+            if cl.data:
+                kws = [k.strip().lower() for k in (cl.data[0].get("keywords") or "").split(",") if k.strip()]
+                if kws:
+                    articles = [a for a in articles if any(
+                        kw in (a.get("testo_completo") or "").lower() or
+                        kw in (a.get("titolo") or "").lower()
+                        for kw in kws
+                    )]
+
+        if macro_group_ids:
+            all_macro_names = []
+            for mg_id in macro_group_ids:
+                links = supabase.table("macro_group_links") \
+                    .select("official_macro_id") \
+                    .eq("macro_group_id", mg_id).execute()
+                ids = [l["official_macro_id"] for l in (links.data or [])]
+                if ids:
+                    macros = supabase.table("official_macrosectors") \
+                        .select("name").in_("id", ids).execute()
+                    all_macro_names += [m["name"] for m in (macros.data or [])]
+            if all_macro_names:
+                articles = [a for a in articles
+                    if a.get("macrosettori") and any(
+                        m.strip() in all_macro_names
+                        for m in a["macrosettori"].split(",")
+                    )]
+
+        lines = [f"ARCHIVIO SPIZ — {len(articles)} articoli — Periodo: {from_date} → {to_date}\n"]
+        for i, a in enumerate(articles, 1):
+            lines.append(f"---\n[{i}] {a.get('titolo','N/D')}")
+            lines.append(f"Testata: {a.get('testata','N/D')} | Data: {a.get('data','N/D')} | Giornalista: {a.get('giornalista','N/D')}")
+            lines.append(f"Settori: {a.get('macrosettori','N/D')}")
+            lines.append(f"\n{a.get('testo_completo','Testo non disponibile')}\n")
+
+        return PlainTextResponse("\n".join(lines))
+
+    except Exception as e:
+        return PlainTextResponse(f"Errore: {str(e)}", status_code=500)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -435,7 +644,6 @@ async def get_client_articles(client_id: str, from_date: str, to_date: str):
 
         all_articles = articles_res.data or []
 
-        # Filtra per keyword cliente se presenti
         if keywords:
             filtered = [
                 a for a in all_articles
@@ -449,11 +657,7 @@ async def get_client_articles(client_id: str, from_date: str, to_date: str):
         else:
             filtered = all_articles
 
-        return {
-            "client":   client_data,
-            "articles": filtered,
-            "total":    len(filtered),
-        }
+        return {"client": client_data, "articles": filtered, "total": len(filtered)}
     except HTTPException:
         raise
     except Exception as e:
@@ -535,13 +739,13 @@ async def get_clients():
 async def create_client(data: ClientModel):
     try:
         res = supabase.table("clients").insert({
-            "name": data.name,
-            "keywords": data.keywords,
-            "web_keywords": data.web_keywords,
-            "sector": data.sector,
-            "description": data.description,
-            "website": data.website,
-            "contact": data.contact,
+            "name":           data.name,
+            "keywords":       data.keywords,
+            "web_keywords":   data.web_keywords,
+            "sector":         data.sector,
+            "description":    data.description,
+            "website":        data.website,
+            "contact":        data.contact,
             "semantic_topic": data.semantic_topic,
         }).execute()
         return {"success": True, "client": res.data}
@@ -645,7 +849,7 @@ async def get_web_mentions(client_id: Optional[str] = None, limit: int = 50):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# GIORNALISTI (vecchio endpoint mantenuto per compatibilità)
+# GIORNALISTI
 # ══════════════════════════════════════════════════════════════════════
 
 @app.get("/api/journalists")
