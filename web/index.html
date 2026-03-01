@@ -1,233 +1,273 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAIM · SPIZ Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg:      #f5f7fa;
-            --bg2:     #ffffff;
-            --bg3:     #eef1f6;
-            --border:  #dde3ed;
-            --border2: #c8d0e0;
-            --text:    #1a2236;
-            --text2:   #5a6a84;
-            --text3:   #9aabc0;
-            --teal:    #0ea5c9;
-            --magenta: #d4367a;
-            --grad:    linear-gradient(135deg, #0ea5c9, #d4367a);
-            --accent:  #0ea5c9;
-            --green:   #059669;
-            --red:     #e03a5a;
-            --amber:   #d97706;
-            --mono:    'IBM Plex Mono', monospace;
-            --sans:    'IBM Plex Sans', sans-serif;
-        }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAIM · SPIZ Intelligence</title>
 
-        /* TOPNAV */
-        .topnav {
-            position:relative;
-            background:var(--bg2);
-            border-bottom:2px solid var(--border);
-            padding:0 20px;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            height:60px;
-            position:sticky;
-            top:0;
-            z-index:100;
-            gap:12px;
-        }
-        .logo-wrap { display:flex; align-items:center; gap:12px; flex-shrink:0; }
-        .logo-text { font-family:var(--mono); font-size:24px; font-weight:700; background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:-0.5px; }
-        .logo-divider { width:1px; height:28px; background:var(--border2); }
-        .logo-sub { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); }
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-        .nav-links { display:flex; gap:2px; flex-wrap:wrap; }
-        .nav-link  { color:var(--text2); text-decoration:none; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; padding:6px 12px; border-bottom:2px solid transparent; transition:all 0.15s; white-space:nowrap; }
-        .nav-link:hover  { color:var(--teal); border-bottom-color:var(--teal); }
-        .nav-link.active { color:var(--teal); border-bottom-color:var(--teal); }
-        .nav-time { font-family:var(--mono); font-size:11px; color:var(--text3); flex-shrink:0; }
+<style>
+:root {
+    --bg:#f5f7fa;
+    --bg2:#ffffff;
+    --bg3:#eef1f6;
+    --border:#dde3ed;
+    --border2:#c8d0e0;
+    --text:#1a2236;
+    --text2:#5a6a84;
+    --text3:#9aabc0;
+    --teal:#0ea5c9;
+    --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'IBM Plex Sans', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px}
 
-        /* STAT BAR */
-        .stat-bar { background:var(--bg2); border-bottom:1px solid var(--border); display:grid; grid-template-columns:repeat(4,1fr); }
-        .stat-cell { padding:12px 20px; border-right:1px solid var(--border); }
-        .stat-cell:last-child { border-right:none; }
-        .stat-label { font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); margin-bottom:3px; }
-        .stat-value { font-family:var(--mono); font-size:24px; font-weight:600; color:var(--text); line-height:1; }
-        .stat-value.accent { background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-        .stat-sub { font-size:10px; color:var(--text3); margin-top:2px; font-family:var(--mono); }
+/* NAV */
+.topnav{
+    background:var(--bg2);
+    border-bottom:2px solid var(--border);
+    padding:0 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    height:60px;
+}
+.logo-wrap{display:flex;align-items:center;gap:12px}
+.logo-text{
+    font-family:var(--mono);
+    font-size:24px;
+    font-weight:700;
+    background:var(--grad);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.logo-divider{width:1px;height:28px;background:var(--border2)}
+.logo-sub{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text3);
+}
+.nav-links{display:flex;gap:12px}
+.nav-link{
+    color:var(--text2);
+    text-decoration:none;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+}
+.nav-link.active{color:var(--teal)}
+.nav-time{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text3);
+}
 
-        /* TICKER */
-        .ticker-bar { background:var(--text); color:#fff; font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:0.3px; padding:4px 0; overflow:hidden; white-space:nowrap; }
-        .ticker-inner { display:inline-block; animation:ticker 40s linear infinite; padding-left:100%; }
-        .ticker-inner span { margin:0 32px; }
-        .ticker-inner .sep { color:var(--teal); }
-        @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+/* STAT BAR */
+.stat-bar{
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+}
+.stat-cell{
+    padding:12px 20px;
+    border-right:1px solid var(--border);
+}
+.stat-cell:last-child{border-right:none}
+.stat-label{
+    font-family:var(--mono);
+    font-size:9px;
+    text-transform:uppercase;
+    color:var(--text3);
+}
+.stat-value{
+    font-family:var(--mono);
+    font-size:24px;
+    font-weight:600;
+}
+.stat-value.accent{
+    background:var(--grad);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.stat-sub{
+    font-size:10px;
+    color:var(--text3);
+    font-family:var(--mono);
+}
 
-        /* LAYOUT */
-        .main-layout { display:grid; grid-template-columns:270px 1fr; min-height:calc(100vh - 60px - 55px - 24px); }
+/* LAYOUT */
+.main-layout{
+    display:grid;
+    grid-template-columns:270px 1fr;
+    min-height:calc(100vh - 120px);
+}
 
-        /* SIDEBAR */
-        .sidebar { background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; }
-        .sidebar-section { display:flex; flex-direction:column; border-bottom:1px solid var(--border); }
-        .section-header { padding:10px 16px; display:flex; justify-content:space-between; align-items:center; background:var(--bg3); border-bottom:1px solid var(--border); }
-        .section-title  { font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); }
-        .section-action { font-size:9px; color:var(--teal); text-decoration:none; letter-spacing:0.5px; text-transform:uppercase; font-weight:600; }
-        .section-action:hover { color:var(--magenta); }
+/* SIDEBAR */
+.sidebar{
+    background:var(--bg2);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+}
+.section-header{
+    padding:10px 16px;
+    background:var(--bg3);
+    border-bottom:1px solid var(--border);
+    font-family:var(--mono);
+    font-size:9px;
+    text-transform:uppercase;
+    color:var(--text3);
+}
+.client-row{
+    display:flex;
+    justify-content:space-between;
+    padding:9px 16px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+}
+.client-row:hover{background:var(--bg3)}
+.client-row.active{
+    background:#e8f7fc;
+    border-left:3px solid var(--teal);
+    padding-left:13px;
+}
+.client-row-count{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--teal);
+}
 
-        /* CLIENT ROWS */
-        .client-row { display:flex; justify-content:space-between; align-items:center; padding:9px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
-        .client-row:hover { background:var(--bg3); }
-        .client-row.active { background:#e8f7fc; border-left:3px solid var(--teal); padding-left:13px; }
-        .client-row-name { font-size:12px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:175px; }
-        .client-row.active .client-row-name { color:var(--teal); font-weight:600; }
-        .client-row-count { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--teal); background:rgba(14,165,201,0.1); border:1px solid rgba(14,165,201,0.3); border-radius:3px; padding:1px 7px; flex-shrink:0; }
-        .client-row-count.zero { color:var(--text3); background:transparent; border-color:var(--border); }
+/* UPLOAD */
+.upload-box{
+    padding:14px;
+    border-top:1px solid var(--border);
+}
+.upload-label{
+    font-family:var(--mono);
+    font-size:9px;
+    color:var(--text3);
+    text-transform:uppercase;
+}
+.upload-input{
+    margin-top:6px;
+    width:100%;
+    font-family:var(--mono);
+    font-size:11px;
+}
+.btn-upload{
+    margin-top:8px;
+    width:100%;
+    font-family:var(--mono);
+    font-size:10px;
+    background:var(--grad);
+    border:none;
+    color:white;
+    padding:6px;
+    cursor:pointer;
+    border-radius:3px;
+}
 
-        /* JOURNALIST ROWS */
-        .journalist-row { display:flex; justify-content:space-between; align-items:center; padding:8px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
-        .journalist-row:hover { background:var(--bg3); }
-        .journalist-row.active { background:#fdf0f5; border-left:3px solid var(--magenta); padding-left:13px; }
-        .journalist-name { font-size:11px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:165px; }
-        .journalist-count { font-family:var(--mono); font-size:10px; color:var(--text3); flex-shrink:0; }
-        .period-select { background:var(--bg3); border:1px solid var(--border2); color:var(--text2); font-family:var(--mono); font-size:9px; padding:3px 6px; border-radius:3px; cursor:pointer; }
-        .period-select:focus { outline:none; border-color:var(--teal); }
+/* MAIN PANEL */
+.main-panel{display:flex;flex-direction:column}
+.panel-header{
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+    padding:10px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.panel-title{
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--text2);
+}
+.period-select{
+    font-family:var(--mono);
+    font-size:11px;
+    padding:4px 8px;
+}
 
-        /* MAIN PANEL */
-        .main-panel   { display:flex; flex-direction:column; background:var(--bg); }
-        .panel-header { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 20px; height:42px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-        .panel-title  { font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text2); }
-        .panel-controls { display:flex; gap:4px; }
-        .period-btn { font-family:var(--mono); font-size:9px; font-weight:600; padding:4px 10px; background:transparent; border:1px solid var(--border2); color:var(--text2); cursor:pointer; transition:all 0.15s; border-radius:3px; }
-        .period-btn:hover  { border-color:var(--teal); color:var(--teal); }
-        .period-btn.active { border-color:var(--teal); color:var(--teal); background:rgba(14,165,201,0.08); }
+.articles-wrap{position:relative;flex:1;overflow-y:auto}
 
-        /* ARTICLE TABLE */
-        .articles-wrap { overflow-y:auto; flex:1; }
-        .table-header  { display:grid; grid-template-columns:110px 130px 1fr 100px; border-bottom:2px solid var(--border); background:var(--bg3); position:sticky; top:0; z-index:10; }
-        .table-header > div { padding:7px 14px; font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text3); border-right:1px solid var(--border); }
-        .table-header > div:last-child { border-right:none; }
-        .article-row   { display:grid; grid-template-columns:110px 130px 1fr 100px; align-items:center; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
-        .article-row:hover { background:#f0f9fc; }
-        .article-row > div { padding:10px 14px; overflow:hidden; border-right:1px solid var(--border); }
-        .article-row > div:last-child { border-right:none; }
-        .art-testata { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--amber); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .art-author  { font-size:11px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .art-title   { font-size:12px; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .art-date    { font-family:var(--mono); font-size:10px; color:var(--text2); text-align:right; }
+.table-header,
+.article-row{
+    display:grid;
+    grid-template-columns:120px 140px 1fr 100px;
+}
+.table-header{
+    background:var(--bg3);
+    font-family:var(--mono);
+    font-size:10px;
+    border-bottom:1px solid var(--border);
+}
+.table-header div,
+.article-row div{
+    padding:8px 14px;
+}
+.article-row{
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+}
+.article-row:hover{background:#f0f9fc}
+.art-testata{font-family:var(--mono);font-size:11px;color:#d97706}
+.art-date{font-family:var(--mono);font-size:11px;text-align:right;color:var(--text2)}
 
-        /* DETAIL */
-        .detail-wrap     { padding:24px 28px; overflow-y:auto; flex:1; }
-        .detail-meta-bar { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-        .detail-chip     { font-family:var(--mono); font-size:10px; font-weight:600; padding:3px 10px; border-radius:3px; }
-        .chip-testata { background:rgba(217,119,6,0.1); color:var(--amber); border:1px solid rgba(217,119,6,0.3); }
-        .chip-date    { background:var(--bg3); color:var(--text2); border:1px solid var(--border2); }
-        .chip-author  { background:rgba(14,165,201,0.08); color:var(--teal); border:1px solid rgba(14,165,201,0.25); }
-        .detail-title       { font-size:20px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:8px; }
-        .detail-occhiello   { font-size:13px; color:var(--magenta); font-style:italic; margin-bottom:6px; }
-        .detail-sottotitolo { font-size:14px; color:var(--text2); margin-bottom:16px; font-weight:500; }
-        .detail-divider     { border:none; border-top:1px solid var(--border); margin:16px 0; }
-        .detail-body        { font-size:13px; line-height:1.8; color:var(--text); white-space:pre-wrap; }
-        .detail-actions     { display:flex; gap:8px; margin-bottom:20px; }
+.empty{
+    padding:30px;
+    text-align:center;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text3);
+}
 
-        .btn-back   { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--text2); background:transparent; border:1px solid var(--border2); padding:5px 12px; cursor:pointer; border-radius:3px; letter-spacing:0.5px; text-transform:uppercase; text-decoration:none; display:inline-block; transition:all 0.15s; }
-        .btn-back:hover { border-color:var(--teal); color:var(--teal); }
-        .btn-edit   { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--teal); background:rgba(14,165,201,0.08); border:1px solid rgba(14,165,201,0.3); padding:5px 12px; cursor:pointer; border-radius:3px; letter-spacing:0.5px; text-transform:uppercase; }
-        .btn-delete { font-family:var(--mono); font-size:10px; font-weight:600; color:var(--red); background:rgba(224,58,90,0.06); border:1px solid rgba(224,58,90,0.3); padding:5px 12px; cursor:pointer; border-radius:3px; letter-spacing:0.5px; text-transform:uppercase; }
-
-        /* EDIT FORM */
-        .edit-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px 28px; overflow-y:auto; }
-        .edit-form-grid .full { grid-column:1/-1; }
-        .edit-field label { display:block; font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text3); margin-bottom:4px; }
-        .edit-field input, .edit-field textarea { width:100%; background:var(--bg3); border:1px solid var(--border2); color:var(--text); font-family:var(--sans); font-size:12px; padding:7px 10px; border-radius:3px; transition:border-color 0.15s; }
-        .edit-field input:focus, .edit-field textarea:focus { outline:none; border-color:var(--teal); }
-        .edit-field textarea { min-height:120px; resize:vertical; }
-        .btn-save { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#fff; background:var(--green); border:none; padding:8px 20px; cursor:pointer; border-radius:3px; }
-
-        /* UPLOAD BAR */
-        .upload-bar   { background:var(--bg2); border-top:2px solid var(--border); padding:10px 20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-        .upload-label { font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text3); white-space:nowrap; }
-        .upload-input { background:var(--bg3); border:1px solid var(--border2); color:var(--text); font-family:var(--mono); font-size:11px; padding:5px 10px; border-radius:3px; flex:1; min-width:0; }
-        .upload-input::file-selector-button { background:var(--bg2); border:1px solid var(--border2); color:var(--text2); font-family:var(--mono); font-size:10px; padding:3px 8px; cursor:pointer; margin-right:8px; border-radius:3px; }
-        .btn-upload   { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color:#fff; background:var(--grad); border:none; padding:7px 18px; cursor:pointer; border-radius:3px; white-space:nowrap; }
-        .btn-upload:disabled { opacity:0.5; }
-        .last-upload-info { font-family:var(--mono); font-size:10px; color:var(--text3); white-space:nowrap; }
-
-        /* EMPTY STATE */
-        .state-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text3); gap:12px; padding:40px; }
-        .state-empty .icon { font-size:40px; opacity:0.3; }
-        .state-empty p { font-family:var(--mono); font-size:10px; letter-spacing:1px; text-align:center; }
-
-        /* ANIM */
-        mark.kw-highlight {
-            background: linear-gradient(120deg, rgba(14,165,201,0.25) 0%, rgba(212,54,122,0.2) 100%);
-            color: inherit;
-            border-radius: 3px;
-            padding: 1px 2px;
-            font-weight: 600;
-        }
-
-        @keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
-        .fade-in { animation:fadeIn 0.15s ease; }
-        ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
-
-        /* ── MOBILE ─────────────────────────────────────────── */
-        @media (max-width: 768px) {
-            .topnav { height:auto; padding:10px 16px; flex-wrap:wrap; gap:8px; }
-            .nav-links { display:none; }
-            .logo-sub { display:none; }
-            .stat-bar { grid-template-columns:1fr 1fr; }
-            .stat-cell { padding:10px 14px; }
-            .stat-value { font-size:20px; }
-            .main-layout { grid-template-columns:1fr; }
-            .sidebar { border-right:none; border-bottom:1px solid var(--border); }
-            .sidebar-section { max-height:240px; overflow:hidden; }
-            .sidebar-scroll  { max-height:180px; }
-            .table-header, .article-row { grid-template-columns:90px 1fr 80px; }
-            .table-header > div:nth-child(2), .article-row > div:nth-child(2) { display:none; }
-            .upload-bar { flex-wrap:wrap; gap:8px; }
-            .upload-input { width:100%; }
-            .edit-form-grid { grid-template-columns:1fr; }
-            .detail-wrap { padding:16px; }
-        }
-
-        @media (max-width: 480px) {
-            .stat-bar { grid-template-columns:1fr 1fr; }
-            .stat-value { font-size:18px; }
-            .ticker-bar { display:none; }
-        }
-
-        /* MOBILE NAV */
-        .nav-mobile-menu {
-            display:none;
-            flex-direction:column;
-            gap:2px;
-            background:var(--bg2);
-            border:1px solid var(--border);
-            border-radius:4px;
-            padding:8px;
-            position:fixed;
-            top:64px;
-            right:16px;
-            z-index:9999;
-            min-width:160px;
-            box-shadow:0 4px 20px rgba(0,0,0,0.1);
-        }
-        .nav-mobile-menu a { padding:8px 12px; color:var(--text2); text-decoration:none; font-size:12px; font-weight:600; border-radius:3px; }
-        .nav-mobile-menu a:hover { background:var(--bg3); color:var(--teal); }
-        .hamburger { display:none; background:none; border:1px solid var(--border2); padding:6px 10px; border-radius:3px; cursor:pointer; font-size:14px; color:var(--text2); }
-        @media (max-width:768px) { .hamburger { display:block; } }
-    </style>
+/* DETAIL */
+#article-detail{
+    position:absolute;
+    inset:0;
+    background:var(--bg);
+    padding:30px;
+    overflow-y:auto;
+}
+.detail-title{
+    font-size:22px;
+    font-weight:700;
+    margin-bottom:10px;
+}
+.detail-meta{
+    font-size:13px;
+    line-height:1.6;
+    margin-bottom:20px;
+}
+.detail-meta strong{
+    font-family:var(--mono);
+    font-size:14px;
+}
+.detail-body{
+    line-height:1.7;
+    font-size:14px;
+}
+.back-btn{
+    margin-bottom:20px;
+    font-family:var(--mono);
+    font-size:11px;
+    cursor:pointer;
+    background:none;
+    border:1px solid var(--border2);
+    padding:5px 10px;
+}
+</style>
 </head>
+
 <body>
 
-<!-- NAV -->
 <nav class="topnav">
     <div class="logo-wrap">
         <span class="logo-text">MAIM</span>
@@ -241,35 +281,9 @@
         <a href="/monitor" class="nav-link">Web Monitor</a>
         <a href="/clients" class="nav-link">Clienti</a>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;">
-        <div class="nav-time" id="nav-time">--:--:--</div>
-        <button class="hamburger" onclick="toggleMobileMenu(event)">☰</button>
-    </div>
-    <div class="nav-mobile-menu" id="mobile-menu">
-        <a href="/">Dashboard</a>
-        <a href="/chat">AI Analysis</a>
-        <a href="/pitch">Pitch Advisor</a>
-        <a href="/monitor">Web Monitor</a>
-        <a href="/clients">Clienti</a>
-    </div>
+    <div class="nav-time" id="nav-time">--:--:--</div>
 </nav>
 
-<!-- TICKER -->
-<div class="ticker-bar">
-    <div class="ticker-inner">
-        <span class="sep">●</span><span id="tk-total">ARCHIVIO: --</span>
-        <span class="sep">●</span><span id="tk-today">OGGI: --</span>
-        <span class="sep">●</span><span id="tk-giornalisti">GIORNALISTI: --</span>
-        <span class="sep">●</span><span id="tk-testate">TESTATE: --</span>
-        <span class="sep">●</span><span id="tk-upload">ULTIMO CSV: --</span>
-        <span class="sep">●</span><span id="tk-total2">ARCHIVIO: --</span>
-        <span class="sep">●</span><span id="tk-today2">OGGI: --</span>
-        <span class="sep">●</span><span id="tk-gior2">GIORNALISTI: --</span>
-        <span class="sep">●</span><span id="tk-test2">TESTATE: --</span>
-    </div>
-</div>
-
-<!-- STAT BAR -->
 <div class="stat-bar">
     <div class="stat-cell">
         <div class="stat-label">Totale Archivio</div>
@@ -279,7 +293,7 @@
     <div class="stat-cell">
         <div class="stat-label">Pubblicati Oggi</div>
         <div class="stat-value" id="stat-today">--</div>
-        <div class="stat-sub" id="stat-today-sub">-- firmati · -- anonimi</div>
+        <div class="stat-sub" id="stat-today-sub">0 firmati · 0 anonimi</div>
     </div>
     <div class="stat-cell">
         <div class="stat-label">Giornalisti Oggi</div>
@@ -293,381 +307,373 @@
     </div>
 </div>
 
-<!-- MAIN LAYOUT -->
 <div class="main-layout">
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
-        <div class="sidebar-section">
-            <div class="section-header">
-                <span class="section-title">Citazioni Oggi</span>
-                <a href="/clients" class="section-action">Gestisci →</a>
-            </div>
-            <div class="sidebar-scroll" id="client-list-container">
-                <div style="padding:16px;color:var(--text3);font-family:var(--mono);font-size:10px;">CARICAMENTO...</div>
-            </div>
+        <div class="section-header">
+            Clienti – Citazioni di oggi
         </div>
-        <div class="sidebar-section">
-            <div class="section-header">
-                <span class="section-title">Top Giornalisti</span>
-                <select class="period-select" id="giornalisti-period" onchange="loadTopGiornalisti()">
-                    <option value="7days">7GG</option>
-                    <option value="30days" selected>30GG</option>
-                    <option value="6months">6M</option>
-                </select>
-            </div>
-            <div class="sidebar-scroll" id="giornalisti-list">
-                <div style="padding:16px;color:var(--text3);font-family:var(--mono);font-size:10px;">CARICAMENTO...</div>
-            </div>
+        <div id="client-list-container"></div>
+
+        <div class="section-header">
+            Macro Strategici
+        </div>
+        <!-- FIX: id corretto → macro-groups-container -->
+        <div id="macro-groups-container" style="padding:10px 16px;"></div>
+        <div style="padding:0 16px 10px 16px;display:flex;gap:6px;">
+            <button onclick="selectAllMacros()"
+                    style="font-family:var(--mono);font-size:10px;border:1px solid var(--border2);background:none;padding:4px 8px;cursor:pointer;flex:1;">
+                Tutti
+            </button>
+            <button onclick="deselectAllMacros()"
+                    style="font-family:var(--mono);font-size:10px;border:1px solid var(--border2);background:none;padding:4px 8px;cursor:pointer;flex:1;">
+                Nessuno
+            </button>
+        </div>
+
+        <div class="upload-box">
+            <div class="upload-label">Carica CSV</div>
+            <input type="file" id="file-input" class="upload-input" multiple accept=".csv">
+            <button class="btn-upload" onclick="handleUpload()">▲ IMPORTA</button>
         </div>
     </div>
 
-    <!-- MAIN PANEL -->
     <div class="main-panel">
+
         <div class="panel-header">
-            <div class="panel-title" id="panel-title">SELEZIONA UN CLIENTE O UN GIORNALISTA</div>
-            <div class="panel-controls" id="panel-controls" style="display:none;">
-                <button class="period-btn active" data-period="today"    onclick="setPeriod(this)">OGGI</button>
-                <button class="period-btn"         data-period="7days"   onclick="setPeriod(this)">7GG</button>
-                <button class="period-btn"         data-period="30days"  onclick="setPeriod(this)">30GG</button>
-                <button class="period-btn"         data-period="3months" onclick="setPeriod(this)">3M</button>
+            <div class="panel-title">
+                Filtra per cliente e periodo
             </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span id="share-link-display"
+                      style="font-family:var(--mono);font-size:10px;color:var(--text3);
+                             max-width:180px;overflow:hidden;text-overflow:ellipsis;
+                             white-space:nowrap;" title="">
+                    —
+                </span>
+                <button onclick="generateShareLink()"
+                        style="font-family:var(--mono);font-size:10px;
+                               border:1px solid var(--teal);color:var(--teal);
+                               background:none;padding:4px 8px;cursor:pointer;border-radius:3px;">
+                    🔗 Condividi
+                </button>
+                <button id="copy-btn"
+                        onclick="copyShareLink()"
+                        style="font-family:var(--mono);font-size:10px;
+                               border:1px solid var(--border2);background:none;
+                               padding:4px 8px;cursor:pointer;border-radius:3px;
+                               display:none;">
+                    Copia
+                </button>
+            </div>
+
+            <select id="main-period-select"
+                    class="period-select"
+                    onchange="onMainPeriodChange()">
+                <option value="today" selected>Oggi</option>
+                <option value="yesterday">Ieri</option>
+                <option value="7days">7 giorni</option>
+                <option value="30days">30 giorni</option>
+                <option value="6months">6 mesi</option>
+                <option value="12months">12 mesi</option>
+            </select>
         </div>
 
-        <!-- ARTICOLI -->
-        <div id="articles-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-            <div class="state-empty" id="empty-state">
-                <div class="icon">◎</div>
-                <p>SELEZIONA UN CLIENTE O UN GIORNALISTA<br>PER VISUALIZZARE GLI ARTICOLI</p>
+        <div class="articles-wrap">
+            <div class="table-header">
+                <div>Testata</div>
+                <div>Giornalista</div>
+                <div>Titolo</div>
+                <div>Data</div>
             </div>
-            <div id="articles-table-wrap" class="articles-wrap" style="display:none;">
-                <div class="table-header">
-                    <div>Testata</div><div>Giornalista</div><div>Titolo</div><div style="text-align:right;">Data</div>
-                </div>
-                <div id="articles-list"></div>
-            </div>
-        </div>
 
-        <!-- DETTAGLIO -->
-        <div id="article-detail" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-            <div class="detail-wrap">
-                <div class="detail-actions">
-                    <a class="btn-back" id="back-to-list" href="#">← LISTA</a>
-                    <button class="btn-edit"   id="edit-article-btn">MODIFICA</button>
-                    <button class="btn-delete" id="delete-article-btn">ELIMINA</button>
-                </div>
+            <div id="articles-list"></div>
+            <div id="empty-state" class="empty">Caricamento articoli...</div>
+
+            <div id="article-detail" style="display:none;">
+                <button class="back-btn" onclick="backToList()">← LISTA</button>
                 <div id="detail-content"></div>
-                <div id="edit-form-container" style="display:none;"></div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- UPLOAD BAR -->
-<div class="upload-bar">
-    <span class="upload-label">Carica CSV</span>
-    <input type="file" id="file-input" class="upload-input" multiple accept=".csv">
-    <button class="btn-upload" id="upload-btn" onclick="handleUpload()">▲ IMPORTA</button>
-    <span class="last-upload-info">ULTIMO: <span id="last-upload-date">--</span></span>
+    </div>
 </div>
 
 <script>
-    // Variabili globali
-    let currentClient           = null;
-    let currentGiornalista      = null;
-    let currentPeriod           = 'today';
-    let currentGiornalistiPeriod= '30days';
-    let currentArticleId        = null;
-    let currentArticleData      = null;
-    let mobileMenuOpen          = false;
+let currentClient = null;
+let currentPeriod = "today";
 
-    // Funzioni di utilità
-    function toggleMobileMenu(e) {
-        e.stopPropagation();
-        mobileMenuOpen = !mobileMenuOpen;
-        document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
+/* CLOCK */
+function updateClock(){
+    document.getElementById("nav-time").innerText =
+        new Date().toLocaleTimeString("it-IT",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* DATE RANGE */
+function getDateRange(period){
+    const today = new Date();
+    const iso = d => d.toISOString().split("T")[0];
+    let start = new Date(today);
+
+    switch(period){
+        case "today": break;
+        case "yesterday":
+            start.setDate(today.getDate()-1);
+            return {start:iso(start), end:iso(start)};
+        case "7days":    start.setDate(today.getDate()-7);    break;
+        case "30days":   start.setDate(today.getDate()-30);   break;
+        case "6months":  start.setMonth(today.getMonth()-6);  break;
+        case "12months": start.setMonth(today.getMonth()-12); break;
     }
-    document.addEventListener('click', function(e) {
-        if (mobileMenuOpen && !e.target.closest('#mobile-menu')) {
-            document.getElementById('mobile-menu').style.display = 'none';
-            mobileMenuOpen = false;
-        }
+    return {start:iso(start), end:iso(today)};
+}
+
+/* DASHBOARD */
+async function loadDashboard(){
+    const [statsRes, todayRes, mentionsRes] = await Promise.all([
+        fetch("/api/dashboard-stats"),
+        fetch("/api/today-stats"),
+        fetch("/api/today-mentions")
+    ]);
+
+    const stats    = await statsRes.json();
+    const today    = await todayRes.json();
+    const mentions = await mentionsRes.json();
+
+    document.getElementById("stat-total").innerText       = stats.totale ?? "--";
+    document.getElementById("stat-today").innerText       = today.total_today ?? "--";
+    document.getElementById("stat-giornalisti").innerText = today.giornalisti?.length ?? 0;
+    document.getElementById("stat-testate").innerText     = today.testate?.length ?? 0;
+
+    renderClientList(mentions);
+    loadArticlesGlobal();
+}
+
+function renderClientList(clients){
+    const container = document.getElementById("client-list-container");
+    container.innerHTML = clients.map(cl => `
+        <div class="client-row"
+             data-id="${cl.id}"
+             onclick="selectClient(this)">
+            <span>${cl.name}</span>
+            <span class="client-row-count">${cl.today}</span>
+        </div>
+    `).join("");
+}
+
+function selectClient(el){
+    document.querySelectorAll(".client-row").forEach(r => r.classList.remove("active"));
+    el.classList.add("active");
+    currentClient = {id: el.dataset.id};
+    loadArticlesForClient();
+}
+
+function onMainPeriodChange(){
+    currentPeriod = document.getElementById("main-period-select").value;
+    if(currentClient) loadArticlesForClient();
+    else loadArticlesGlobal();
+}
+
+async function loadArticlesGlobal(){
+    const {start, end} = getDateRange(currentPeriod);
+    const res  = await fetch(`/api/articles?from_date=${start}&to_date=${end}&limit=200`);
+    const data = await res.json();
+    renderArticlesTable(data.articles);
+}
+
+async function loadArticlesForClient(){
+    const {start, end} = getDateRange(currentPeriod);
+    const res  = await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
+    const data = await res.json();
+    renderArticlesTable(data.articles);
+}
+
+function renderArticlesTable(articles){
+    const list  = document.getElementById("articles-list");
+    const empty = document.getElementById("empty-state");
+
+    document.getElementById("article-detail").style.display = "none";
+    list.style.display = "block";
+
+    if(!articles || articles.length === 0){
+        empty.style.display = "block";
+        list.innerHTML = "";
+        return;
+    }
+    empty.style.display = "none";
+
+    list.innerHTML = articles.map(a => `
+        <div class="article-row"
+             onclick="loadArticleDetail('${a.id}')">
+            <div class="art-testata">${a.testata || "N/D"}</div>
+            <div>${a.giornalista || "Anonimo"}</div>
+            <div>${a.titolo || "Senza titolo"}</div>
+            <div class="art-date">${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
+        </div>
+    `).join("");
+}
+
+async function loadArticleDetail(id){
+    const res = await fetch(`/api/article/${id}`);
+    const a   = await res.json();
+
+    document.getElementById("articles-list").style.display    = "none";
+    document.getElementById("empty-state").style.display      = "none";
+    document.getElementById("article-detail").style.display   = "block";
+
+    let testo = a.testo_completo || "Testo non disponibile";
+    testo = testo
+        .replace(/([.!?])\s+([A-ZÀ-Ü])/g, "$1<br><br>$2")
+        .replace(/\n/g, "<br>");
+
+    document.getElementById("detail-content").innerHTML = `
+        <div class="detail-title">${a.titolo || "Senza titolo"}</div>
+        <div class="detail-meta">
+            <div><strong>${a.testata || "N/D"}</strong></div>
+            ${a.pagina_testata ? `<div>Pagina: ${a.pagina_testata}</div>` : ""}
+            <div>Giornalista: ${a.giornalista || "Anonimo"}</div>
+            <div>Data: ${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
+            ${a.tipologia_articolo ? `<div>Tipologia: ${a.tipologia_articolo}</div>` : ""}
+            ${a.macrosettori ? `<div><strong>Settori:</strong> ${a.macrosettori}</div>` : ""}
+        </div>
+        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">
+        <div class="detail-body">${testo}</div>
+    `;
+}
+
+function backToList(){
+    document.getElementById("article-detail").style.display = "none";
+    document.getElementById("articles-list").style.display  = "block";
+}
+
+async function handleUpload(){
+    const input = document.getElementById("file-input");
+    if(!input.files.length){ alert("Seleziona almeno un CSV"); return; }
+    const formData = new FormData();
+    for(let f of input.files) formData.append("files", f);
+    await fetch("/upload", {method:"POST", body:formData});
+    alert("Importazione completata");
+    loadDashboard();
+}
+
+/* ─── MACRO STRATEGICI ──────────────────────────────────────────────── */
+// Unica definizione pulita di loadMacroGroups
+
+async function loadMacroGroups(){
+    const res  = await fetch("/api/macro-groups");
+    const data = await res.json();
+
+    const container = document.getElementById("macro-groups-container");
+    if(!container) return;
+
+    container.innerHTML = "";
+
+    if(!data.groups || data.groups.length === 0){
+        container.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Nessun gruppo trovato</div>';
+        return;
+    }
+
+    data.groups.forEach(group => {
+        const div = document.createElement("div");
+        div.style.marginBottom = "6px";
+        div.innerHTML = `
+            <label style="font-size:12px;cursor:pointer;">
+                <input type="checkbox"
+                       value="${group.id}"
+                       class="macro-checkbox"
+                       checked>
+                ${group.name}
+            </label>
+        `;
+        container.appendChild(div);
     });
 
-    function updateClock() {
-        document.getElementById('nav-time').innerText =
-            new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    }
-    setInterval(updateClock,1000); updateClock();
-
-    function formatArticleText(text, keywords) {
-        if (!text) return 'Testo non disponibile';
-        text = text.replace(/([.!?])[ \t]+([A-Z\xC0-\xDE])/g, function(m, punct, cap) {
-            return punct + '<br><br>' + cap;
-        });
-        text = text.replace(/\n/g, '<br>');
-        if (keywords && keywords.length) {
-            keywords.forEach(function(kw) {
-                if (!kw || kw.length < 2) return;
-                var escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                var re = new RegExp('(' + escaped + ')', 'gi');
-                text = text.replace(re, '<mark class="kw-highlight">$1</mark>');
-            });
-        }
-        return text;
-    }
-
-    function formatDate(d) {
-        if (!d) return '--';
-        return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
-    }
-    function getDateRange(period) {
-        const d=(n)=>new Date(new Date().setDate(new Date().getDate()-n)).toISOString().split('T')[0];
-        const m=(n)=>new Date(new Date().setMonth(new Date().getMonth()-n)).toISOString().split('T')[0];
-        const end=new Date().toISOString().split('T')[0];
-        return { start:{today:end,'7days':d(7),'30days':d(30),'3months':m(3)}[period]||end, end };
-    }
-
-    // Caricamento dashboard
-    async function loadDashboard() {
-        try {
-            const [sR,lR,tR,mR] = await Promise.all([
-                fetch('/api/dashboard-stats'),fetch('/api/last-upload'),
-                fetch('/api/today-stats'),fetch('/api/today-mentions')
-            ]);
-            const [stats,last,today,mentions] = await Promise.all([sR.json(),lR.json(),tR.json(),mR.json()]);
-            document.getElementById('stat-total').innerText      = stats.totale??'--';
-            document.getElementById('stat-today').innerText      = today.total_today??'--';
-            document.getElementById('stat-today-sub').innerText  = (stats.firmati??0)+' firmati · '+(stats.anonimi??0)+' anonimi';
-            document.getElementById('stat-giornalisti').innerText= today.giornalisti?.length??'--';
-            document.getElementById('stat-testate').innerText    = today.testate?.length??'--';
-            const lu = last.last_upload ? formatDate(last.last_upload) : 'N/D';
-            document.getElementById('last-upload-date').innerText = lu;
-            [['tk-total','tk-total2','ARCHIVIO: '+(stats.totale||0)],
-             ['tk-today','tk-today2','OGGI: '+today.total_today],
-             ['tk-giornalisti','tk-gior2','GIORNALISTI: '+(today.giornalisti?.length||0)],
-             ['tk-testate','tk-test2','TESTATE: '+(today.testate?.length||0)]
-            ].forEach(([a,b,v])=>{document.getElementById(a).innerText=v;document.getElementById(b).innerText=v;});
-            document.getElementById('tk-upload').innerText='ULTIMO CSV: '+lu;
-            renderClientList(mentions.sort((a,b)=>a.name.localeCompare(b.name)));
-            loadTopGiornalisti();
-        } catch(e){console.error(e);}
-    }
-
-    function renderClientList(clients) {
-        const c=document.getElementById('client-list-container');
-        if(!clients.length){c.innerHTML='<div style="padding:16px;color:var(--text3);font-family:var(--mono);font-size:10px;">NESSUN CLIENTE</div>';return;}
-        c.innerHTML=clients.map(cl=>{
-            const active=currentClient?.id===cl.id?'active':'';
-            const zero=cl.today===0?'zero':'';
-            return `<div class="client-row ${active}" data-id="${cl.id}" data-name="${cl.name}" data-kw="${cl.keywords||''}" onclick="selectClient(this)">
-                <span class="client-row-name">${cl.name}</span>
-                <span class="client-row-count ${zero}">${cl.today}</span>
-            </div>`;
-        }).join('');
-    }
-
-    function selectClient(el) {
-        document.querySelectorAll('.client-row,.journalist-row').forEach(r=>r.classList.remove('active'));
-        el.classList.add('active');
-        currentClient={id:el.dataset.id,name:el.dataset.name,keywords:el.dataset.kw};
-        currentGiornalista=null;
-        document.getElementById('panel-title').innerText=el.dataset.name.toUpperCase();
-        document.getElementById('panel-controls').style.display='flex';
-        loadArticlesForClient();
-    }
-
-    function setPeriod(btn) {
-        document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active'); currentPeriod=btn.dataset.period;
-        if(currentClient) loadArticlesForClient();
-    }
-
-    async function loadArticlesForClient() {
-        if(!currentClient) return; showLoading();
-        const {start,end}=getDateRange(currentPeriod);
-        try { renderArticlesTable(await(await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`)).json()); }
-        catch(e){showError();}
-    }
-
-    // *** PATCH: funzione loadTopGiornalisti migliorata ***
-    async function loadTopGiornalisti() {
-        try {
-            const period = document.getElementById('giornalisti-period').value;
-            window.currentGiornalistiPeriod = period; // aggiorna variabile globale
-            const res = await fetch(`/api/top-giornalisti?period=${period}&limit=20`);
-            const data = await res.json();
-
-            const container = document.getElementById('giornalisti-list');
-            if (!container) return;
-
-            if (!Array.isArray(data) || data.length === 0) {
-                container.innerHTML = '<div style="padding:16px;color:var(--text3);font-family:var(--mono);font-size:10px;">NESSUN DATO</div>';
-                return;
-            }
-
-            container.innerHTML = data.map(g => {
-                const active = (currentGiornalista?.nome === g.nome) ? 'active' : '';
-                return `<div class="journalist-row ${active}" data-nome="${g.nome}" onclick="selectGiornalista(this)">
-                    <span class="journalist-name">${g.nome}</span>
-                    <span class="journalist-count">${g.articoli}</span>
-                </div>`;
-            }).join('');
-        } catch (err) {
-            console.error('[SPIZ] loadTopGiornalisti error:', err);
-        }
-    }
-
-    function selectGiornalista(el) {
-        document.querySelectorAll('.client-row,.journalist-row').forEach(r=>r.classList.remove('active'));
-        el.classList.add('active');
-        currentGiornalista = { nome: el.dataset.nome };
-        currentClient = null;
-        document.getElementById('panel-title').innerText = el.dataset.nome.toUpperCase();
-        document.getElementById('panel-controls').style.display = 'none';
-        loadArticlesForGiornalista(el.dataset.nome);
-    }
-
-    // *** PATCH: funzione loadArticlesForGiornalista migliorata ***
-    async function loadArticlesForGiornalista(nome) {
-        try {
-            const period = window.currentGiornalistiPeriod || '30days';
-            const encoded = encodeURIComponent(nome);
-            const res = await fetch(`/api/giornalista-articoli?nome=${encoded}&period=${period}&limit=100`);
-            const data = await res.json();
-
-            if (!Array.isArray(data)) {
-                console.warn('[SPIZ] risposta inattesa da /api/giornalista-articoli:', data);
-                return;
-            }
-
-            renderArticlesTable(data);
-        } catch (err) {
-            console.error('[SPIZ] loadArticlesForGiornalista error:', err);
-        }
-    }
-
-    function showLoading() {
-        document.getElementById('empty-state').style.display='none';
-        document.getElementById('articles-table-wrap').style.display='block';
-        document.getElementById('articles-list').innerHTML='<div style="padding:20px;color:var(--text3);font-family:var(--mono);font-size:10px;text-align:center;">CARICAMENTO...</div>';
-        document.getElementById('article-detail').style.display='none';
-        document.getElementById('articles-panel').style.display='flex';
-    }
-    function showError() {
-        document.getElementById('articles-list').innerHTML='<div style="padding:20px;color:var(--red);font-family:var(--mono);font-size:10px;">ERRORE CARICAMENTO</div>';
-    }
-
-    function renderArticlesTable(articles) {
-        document.getElementById('empty-state').style.display='none';
-        document.getElementById('articles-table-wrap').style.display='block';
-        document.getElementById('article-detail').style.display='none';
-        document.getElementById('articles-panel').style.display='flex';
-        if(!articles||!articles.length){
-            document.getElementById('articles-list').innerHTML='<div style="padding:24px;color:var(--text3);font-family:var(--mono);font-size:10px;text-align:center;">NESSUN ARTICOLO NEL PERIODO SELEZIONATO</div>';
-            return;
-        }
-        document.getElementById('articles-list').innerHTML=articles.map(a=>`
-            <div class="article-row fade-in" onclick="loadArticleDetail('${a.id}')">
-                <div class="art-testata">${a.testata||'N/D'}</div>
-                <div class="art-author">${a.giornalista||'Anonimo'}</div>
-                <div class="art-title">${a.titolo||'Senza titolo'}</div>
-                <div class="art-date">${formatDate(a.data)}</div>
-            </div>`).join('');
-    }
-
-    async function loadArticleDetail(id) {
-        try {
-            const article=await(await fetch(`/api/article/${id}`)).json();
-            if(article.error){alert(article.error);return;}
-            currentArticleId=id; currentArticleData=article; showArticleDetail(article);
-        } catch(e){alert('Errore caricamento');}
-    }
-
-    function showArticleDetail(a) {
-        document.getElementById('articles-panel').style.display='none';
-        document.getElementById('article-detail').style.display='flex';
-        document.getElementById('edit-form-container').style.display='none';
-        document.getElementById('detail-content').style.display='block';
-        document.getElementById('detail-content').innerHTML=`
-            <div class="detail-meta-bar">
-                <span class="detail-chip chip-testata">${a.testata||'N/D'}</span>
-                <span class="detail-chip chip-author">✍ ${a.giornalista||'Anonimo'}</span>
-                <span class="detail-chip chip-date">${formatDate(a.data)}</span>
-                ${a.tipologia_articolo?`<span class="detail-chip" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border2);">${a.tipologia_articolo}</span>`:''}
-            </div>
-            ${a.occhiello?`<div class="detail-occhiello">${a.occhiello}</div>`:''}
-            <div class="detail-title">${a.titolo||'Senza titolo'}</div>
-            ${a.sottotitolo?`<div class="detail-sottotitolo">${a.sottotitolo}</div>`:''}
-            <hr class="detail-divider">
-            <div class="detail-body">${formatArticleText(a.testo_completo, currentClient ? (currentClient.keywords||"").split(",").map(k=>k.trim()).filter(Boolean) : [])}</div>`;
-        document.getElementById('edit-article-btn').onclick  =()=>showEditForm(a);
-        document.getElementById('delete-article-btn').onclick=()=>deleteArticle(a.id);
-    }
-
-    document.getElementById('back-to-list').addEventListener('click',e=>{
-        e.preventDefault();
-        document.getElementById('article-detail').style.display='none';
-        document.getElementById('articles-panel').style.display='flex';
+    document.querySelectorAll(".macro-checkbox").forEach(cb => {
+        cb.addEventListener("change", loadFilteredArticles);
     });
+}
 
-    function showEditForm(article) {
-        document.getElementById('detail-content').style.display='none';
-        document.getElementById('edit-form-container').style.display='block';
-        const fields=[['titolo','Titolo','text'],['testata','Testata','text'],['data','Data','date'],
-            ['giornalista','Giornalista','text'],['occhiello','Occhiello','text'],['sottotitolo','Sottotitolo','text'],
-            ['tone','Tono','text'],['reputational_risk','Rischio Rep.','text'],['political_risk','Rischio Pol.','text'],
-            ['dominant_topic','Topic dominante','text'],['macrosettori','Macrosettori','text'],
-            ['tipologia_articolo','Tipologia','text'],['ave','AVE (€)','number'],['tipo_fonte','Tipo fonte','text']];
-        let html='<div class="edit-form-grid">';
-        fields.forEach(([k,l,t])=>{
-            html+=`<div class="edit-field"><label>${l}</label><input type="${t}" id="ef-${k}" value="${(article[k]||'').toString().replace(/"/g,'&quot;')}"></div>`;
-        });
-        html+=`<div class="edit-field full"><label>Testo completo</label><textarea id="ef-testo_completo">${article.testo_completo||''}</textarea></div>
-        <div class="full" style="display:flex;gap:8px;padding-top:8px;">
-            <button class="btn-save" onclick="saveArticle()">SALVA MODIFICHE</button>
-            <button class="btn-back" onclick="showArticleDetail(currentArticleData)">ANNULLA</button>
-        </div></div>`;
-        document.getElementById('edit-form-container').innerHTML=html;
+function selectAllMacros(){
+    document.querySelectorAll(".macro-checkbox").forEach(cb => {
+        cb.checked = true;
+    });
+    loadFilteredArticles();
+}
+
+function deselectAllMacros(){
+    document.querySelectorAll(".macro-checkbox").forEach(cb => {
+        cb.checked = false;
+    });
+    loadFilteredArticles();
+}
+
+async function loadFilteredArticles(){
+    const {start, end} = getDateRange(currentPeriod);
+
+    const selected = Array.from(document.querySelectorAll(".macro-checkbox:checked"))
+                          .map(cb => cb.value);
+
+    if(selected.length === 0){
+        renderArticlesTable([]);
+        return;
     }
 
-    async function saveArticle() {
-        const keys=['titolo','testata','data','giornalista','occhiello','sottotitolo','testo_completo',
-            'tone','reputational_risk','political_risk','dominant_topic','macrosettori','tipologia_articolo','tipo_fonte'];
-        const data={};
-        keys.forEach(k=>{const el=document.getElementById(`ef-${k}`);if(el&&el.value!=='')data[k]=el.value;});
-        const ave=document.getElementById('ef-ave'); if(ave?.value) data.ave=parseFloat(ave.value);
-        try {
-            const result=await(await fetch(`/api/article/${currentArticleId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})).json();
-            if(result.error){alert('Errore: '+result.error);return;}
-            currentArticleData=result; showArticleDetail(result);
-        } catch(e){alert('Errore connessione');}
-    }
+    const params = new URLSearchParams({ from_date: start, to_date: end });
 
-    async function deleteArticle(id) {
-        if(!confirm('Eliminare questo articolo?')) return;
-        try {
-            const r=await(await fetch(`/api/article/${id}`,{method:'DELETE'})).json();
-            if(r.error){alert('Errore: '+r.error);return;}
-            document.getElementById('back-to-list').click();
-            if(currentClient) loadArticlesForClient();
-            loadDashboard();
-        } catch(e){alert('Errore connessione');}
-    }
+    if(currentClient) params.append("client_id", currentClient.id);
+    if(selected.length === 1) params.append("macro_group_id", selected[0]);
 
-    async function handleUpload() {
-        const input=document.getElementById('file-input');
-        if(!input.files.length){alert('Seleziona almeno un file CSV.');return;}
-        const formData=new FormData();
-        for(let f of input.files) formData.append('files',f);
-        const btn=document.getElementById('upload-btn');
-        btn.disabled=true; btn.innerText='IMPORTAZIONE...';
-        try { await fetch('/upload',{method:'POST',body:formData}); alert('Importazione completata!'); loadDashboard(); }
-        catch(e){alert('Errore upload');}
-        finally{btn.disabled=false;btn.innerText='▲ IMPORTA';}
-    }
+    const res  = await fetch("/api/articles-filtered?" + params.toString());
+    const data = await res.json();
+    renderArticlesTable(data.articles || []);
+}
 
-    window.onload=loadDashboard;
+/* ─── SHARE ─────────────────────────────────────────────────────────── */
+let _currentShareUrl = null;
+
+async function generateShareLink(){
+    const {start, end} = getDateRange(currentPeriod);
+    const selectedMacros = Array.from(document.querySelectorAll(".macro-checkbox:checked"))
+                                .map(cb => cb.value);
+
+    const res = await fetch("/api/share", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            from_date: start,
+            to_date: end,
+            client_id: currentClient ? currentClient.id : null,
+            macro_group_ids: selectedMacros,
+        })
+    });
+    const data = await res.json();
+    if(data.token){
+        _currentShareUrl = window.location.origin + "/share/" + data.token;
+        const display = document.getElementById("share-link-display");
+        display.innerText = "/share/" + data.token + " (10min)";
+        display.title = _currentShareUrl;
+        document.getElementById("copy-btn").style.display = "inline-block";
+    }
+}
+
+function copyShareLink(){
+    if(!_currentShareUrl) return;
+    navigator.clipboard.writeText(_currentShareUrl).then(() => {
+        const btn = document.getElementById("copy-btn");
+        btn.innerText = "✓ Copiato!";
+        setTimeout(() => btn.innerText = "Copia", 2000);
+    });
+}
+
+/* ─── INIT ──────────────────────────────────────────────────────────── */
+window.onload = function(){
+    loadDashboard();
+    loadMacroGroups();
+};
 </script>
+
 </body>
 </html>
