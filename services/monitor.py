@@ -26,7 +26,8 @@ def load_sources() -> list[dict]:
 
 def load_clients() -> list[dict]:
     try:
-        res = supabase.table("clients").select("id, name, keywords").execute()
+        # Usa keywords_web (colonna reale nella tabella clients)
+        res = supabase.table("clients").select("id, name, keywords_web").execute()
         return res.data or []
     except Exception as e:
         print(f"Errore caricamento clienti: {e}")
@@ -44,7 +45,8 @@ def match_clients(text: str, clients: list[dict]) -> tuple[str, str]:
     text_low = text.lower()
     matched_clients, matched_kws = [], []
     for client in clients:
-        keywords = parse_keywords(client.get('keywords', ''))
+        # keywords_web è la colonna corretta nella tabella clients
+        keywords = parse_keywords(client.get('keywords_web', ''))
         hits = [kw for kw in keywords if kw in text_low]
         if hits:
             matched_clients.append(client['name'])
@@ -80,6 +82,7 @@ def fetch_rss(source: dict, clients: list[dict]) -> list[dict]:
             records.append({
                 'source_name':       source['name'],
                 'source_url':        source['url'],
+                'source_id':         str(source.get('id', '')),
                 'title':             title,
                 'url':               link,
                 'published_at':      published,
@@ -121,6 +124,7 @@ def fetch_scrape(source: dict, clients: list[dict]) -> list[dict]:
             records.append({
                 'source_name':       source['name'],
                 'source_url':        source['url'],
+                'source_id':         str(source.get('id', '')),
                 'title':             title,
                 'url':               link,
                 'published_at':      datetime.date.today().isoformat(),
@@ -137,8 +141,8 @@ def fetch_scrape(source: dict, clients: list[dict]) -> list[dict]:
     return records
 
 
-def run_monitoring() -> dict:
-    """Funzione principale — chiamata dallo scheduler"""
+def run_monitoring(from_date: str = None, to_date: str = None) -> dict:
+    """Funzione principale — chiamata dallo scheduler o manualmente"""
     print(f"[MONITOR] Avvio scansione: {datetime.datetime.now().isoformat()}")
 
     sources = load_sources()
@@ -146,11 +150,11 @@ def run_monitoring() -> dict:
 
     if not sources:
         print("[MONITOR] Nessuna sorgente attiva.")
-        return {'status': 'ok', 'found': 0}
+        return {'status': 'ok', 'found': 0, 'duplicates': 0}
 
     if not clients:
         print("[MONITOR] Nessun cliente con keyword.")
-        return {'status': 'ok', 'found': 0}
+        return {'status': 'ok', 'found': 0, 'duplicates': 0}
 
     all_records = []
     for source in sources:
@@ -163,7 +167,7 @@ def run_monitoring() -> dict:
 
     if not all_records:
         print("[MONITOR] Nessun nuovo articolo trovato.")
-        return {'status': 'ok', 'found': 0}
+        return {'status': 'ok', 'found': 0, 'duplicates': 0}
 
     # Deduplicazione interna
     seen, deduped = set(), []
@@ -177,9 +181,17 @@ def run_monitoring() -> dict:
         result = supabase.table("web_mentions").upsert(
             deduped, on_conflict="content_hash"
         ).execute()
-        inserted = len(result.data) if result.data else 0
-        print(f"[MONITOR] Inseriti: {inserted} | Già presenti ignorati: {len(deduped)-inserted}")
-        return {'status': 'ok', 'found': inserted}
+        inserted   = len(result.data) if result.data else 0
+        duplicates = len(deduped) - inserted
+
+        # Salva timestamp ultima scansione
+        scan_type = 'historical' if from_date else 'daily'
+        supabase.table("monitor_meta").upsert([
+            {"key": f"last_{scan_type}_scan", "value": datetime.date.today().isoformat()}
+        ]).execute()
+
+        print(f"[MONITOR] Inseriti: {inserted} | Duplicati ignorati: {duplicates}")
+        return {'status': 'ok', 'found': inserted, 'duplicates': duplicates}
     except Exception as e:
         print(f"[MONITOR] Errore upsert: {e}")
-        return {'status': 'error', 'message': str(e)}
+        return {'status': 'error', 'message': str(e), 'found': 0, 'duplicates': 0}
