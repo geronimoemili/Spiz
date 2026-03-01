@@ -5,7 +5,7 @@ import json
 import uuid
 import time
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -85,7 +85,7 @@ class ArticleUpdateSimple(BaseModel):
 class ClientModel(BaseModel):
     name:           str
     keywords:       Optional[str] = None
-    web_keywords:   Optional[str] = None
+    keywords_web:   Optional[str] = None
     sector:         Optional[str] = None
     description:    Optional[str] = None
     website:        Optional[str] = None
@@ -95,7 +95,12 @@ class ClientModel(BaseModel):
 class SourceModel(BaseModel):
     name:   str
     url:    str
+    type:   Optional[str]  = "rss"
     active: Optional[bool] = True
+
+class HistoricalScanRequest(BaseModel):
+    from_date: str
+    to_date:   str
 
 class ShareRequest(BaseModel):
     article_ids: List[str]
@@ -285,7 +290,7 @@ async def today_mentions():
 
         result = []
         for cl in clients:
-            keywords = [k.strip().lower() for k in (cl.get("keywords") or "").split(",") if k.strip()]
+            keywords = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
             if not keywords:
                 count = 0
             else:
@@ -301,7 +306,7 @@ async def today_mentions():
             result.append({
                 "id":       cl["id"],
                 "name":     cl.get("name",""),
-                "keywords": cl.get("keywords",""),
+                "keywords": cl.get("keywords_press") or cl.get("keywords",""),
                 "today":    count,
             })
 
@@ -458,7 +463,7 @@ async def get_articles_filtered(
                 client = client_res.data[0]
                 keywords = [
                     k.strip().lower()
-                    for k in (client.get("keywords") or "").split(",")
+                    for k in (client.get("keywords_press") or client.get("keywords") or "").split(",")
                     if k.strip()
                 ]
                 if keywords:
@@ -499,7 +504,7 @@ async def get_articles_filtered(
 
 
 # ══════════════════════════════════════════════════════════════════════
-# SHARE TOKEN (link temporaneo 10 minuti)
+# SHARE TOKEN
 # ══════════════════════════════════════════════════════════════════════
 
 @app.post("/api/share")
@@ -523,7 +528,11 @@ async def create_share(req: ShareRequest):
 async def read_share(token: str):
     try:
         now = datetime.now(timezone.utc).isoformat()
-        row = supabase.table("shared_reports")             .select("*")             .eq("token", token)             .gt("expires_at", now)             .execute()
+        row = supabase.table("shared_reports") \
+            .select("*") \
+            .eq("token", token) \
+            .gt("expires_at", now) \
+            .execute()
 
         if not row.data:
             return PlainTextResponse("Link scaduto o non trovato.", status_code=404)
@@ -534,7 +543,10 @@ async def read_share(token: str):
         if not article_ids:
             return PlainTextResponse("Nessun articolo salvato in questo link.", status_code=404)
 
-        res = supabase.table("articles")             .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo")             .in_("id", article_ids)             .execute()
+        res = supabase.table("articles") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo") \
+            .in_("id", article_ids) \
+            .execute()
 
         id_order = {aid: i for i, aid in enumerate(article_ids)}
         articles = sorted(res.data or [], key=lambda a: id_order.get(a["id"], 9999))
@@ -564,7 +576,7 @@ async def read_share(token: str):
 async def debug_articles():
     try:
         res       = supabase.table("articles").select("id, titolo, data, testata, giornalista").order("data", desc=True).limit(5).execute()
-        clients   = supabase.table("clients").select("id, name, keywords, semantic_topic").execute()
+        clients   = supabase.table("clients").select("id, name, keywords_press, keywords_web, macro_strategici").execute()
         total     = supabase.table("articles").select("id", count="exact").execute()
         today     = date.today().isoformat()
         oggi      = supabase.table("articles").select("id").eq("data", today).execute().data or []
@@ -593,7 +605,11 @@ async def get_client_articles(client_id: str, from_date: str, to_date: str):
             raise HTTPException(status_code=404, detail="Cliente non trovato")
 
         client_data = client_res.data[0]
-        keywords    = [k.strip().lower() for k in (client_data.get("keywords") or "").split(",") if k.strip()]
+        keywords    = [
+            k.strip().lower()
+            for k in (client_data.get("keywords_press") or client_data.get("keywords") or "").split(",")
+            if k.strip()
+        ]
 
         articles_res = supabase.table("articles").select(
             "id, testata, data, giornalista, occhiello, titolo, sottotitolo, "
@@ -689,7 +705,7 @@ async def delete_article(article_id: str):
 async def get_clients():
     try:
         res = supabase.table("clients").select("*").execute()
-        return {"clients": res.data or []}
+        return res.data or []
     except Exception as e:
         return {"error": str(e)}
 
@@ -698,14 +714,8 @@ async def get_clients():
 async def create_client(data: ClientModel):
     try:
         res = supabase.table("clients").insert({
-            "name":           data.name,
-            "keywords":       data.keywords,
-            "web_keywords":   data.web_keywords,
-            "sector":         data.sector,
-            "description":    data.description,
-            "website":        data.website,
-            "contact":        data.contact,
-            "semantic_topic": data.semantic_topic,
+            "name":         data.name,
+            "keywords_web": data.keywords_web or data.keywords,
         }).execute()
         return {"success": True, "client": res.data}
     except Exception as e:
@@ -732,30 +742,33 @@ async def delete_client(client_id: str):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# FONTI MONITORATE
+# FONTI / SORGENTI MONITORATE
 # ══════════════════════════════════════════════════════════════════════
 
-@app.get("/api/monitored-sources")
+@app.get("/api/sources")
 async def get_sources():
     try:
         res = supabase.table("monitored_sources").select("*").order("name").execute()
-        return {"sources": res.data or []}
+        return res.data or []
     except Exception as e:
         return {"error": str(e)}
 
 
-@app.post("/api/monitored-sources")
+@app.post("/api/sources")
 async def create_source(data: SourceModel):
     try:
         res = supabase.table("monitored_sources").insert({
-            "name": data.name, "url": data.url, "active": data.active,
+            "name":   data.name,
+            "url":    data.url,
+            "type":   data.type,
+            "active": data.active,
         }).execute()
-        return {"success": True, "source": res.data}
+        return res.data[0] if res.data else {"success": True}
     except Exception as e:
         return {"error": str(e)}
 
 
-@app.delete("/api/monitored-sources/{source_id}")
+@app.delete("/api/sources/{source_id}")
 async def delete_source(source_id: str):
     try:
         supabase.table("monitored_sources").delete().eq("id", source_id).execute()
@@ -764,17 +777,106 @@ async def delete_source(source_id: str):
         return {"error": str(e)}
 
 
-@app.patch("/api/monitored-sources/{source_id}/toggle")
-async def toggle_source(source_id: str, active: bool = Query(...)):
+@app.patch("/api/sources/{source_id}/toggle")
+async def toggle_source(source_id: str, request: Request):
     try:
-        res = supabase.table("monitored_sources").update({"active": active}).eq("id", source_id).execute()
-        return {"success": True, "source": res.data}
+        body   = await request.json()
+        active = body.get("active", True)
+        supabase.table("monitored_sources").update({"active": active}).eq("id", source_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# Alias legacy per compatibilità con vecchi endpoint
+@app.get("/api/monitored-sources")
+async def get_monitored_sources_legacy():
+    return await get_sources()
+
+@app.post("/api/monitored-sources")
+async def create_monitored_source_legacy(data: SourceModel):
+    return await create_source(data)
+
+@app.delete("/api/monitored-sources/{source_id}")
+async def delete_monitored_source_legacy(source_id: str):
+    return await delete_source(source_id)
+
+@app.patch("/api/monitored-sources/{source_id}/toggle")
+async def toggle_monitored_source_legacy(source_id: str, active: bool = Query(...)):
+    try:
+        supabase.table("monitored_sources").update({"active": active}).eq("id", source_id).execute()
+        return {"success": True}
     except Exception as e:
         return {"error": str(e)}
 
 
 # ══════════════════════════════════════════════════════════════════════
-# MONITOR META + WEB MENTIONS
+# WEB MENTIONS
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/api/web-mentions")
+async def get_web_mentions(
+    client: Optional[str] = None,   # nome cliente (matched_client è testo)
+    limit:  int           = 50,
+):
+    try:
+        query = supabase.table("web_mentions") \
+            .select("*") \
+            .order("published_at", desc=True)
+
+        if client:
+            query = query.ilike("matched_client", f"%{client}%")
+
+        res = query.limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# MONITOR — RUN / STORICO / SCAN-INFO
+# ══════════════════════════════════════════════════════════════════════
+
+@app.post("/api/monitor/run")
+async def monitor_run():
+    try:
+        if run_monitoring is None:
+            return {"error": "Monitor non disponibile (import fallito)"}
+        result = run_monitoring()
+        return result
+    except Exception as e:
+        return {"error": str(e), "found": 0, "duplicates": 0}
+
+
+@app.post("/api/monitor/run-historical")
+async def monitor_run_historical(req: HistoricalScanRequest):
+    try:
+        if run_monitoring is None:
+            return {"error": "Monitor non disponibile (import fallito)"}
+        result = run_monitoring(from_date=req.from_date, to_date=req.to_date)
+        return result
+    except Exception as e:
+        return {"error": str(e), "found": 0, "duplicates": 0}
+
+
+@app.get("/api/monitor/scan-info")
+async def monitor_scan_info():
+    try:
+        res = supabase.table("monitor_meta") \
+            .select("key, value") \
+            .in_("key", ["last_daily_scan", "last_historical_scan"]) \
+            .execute()
+        info = {row["key"]: row["value"] for row in (res.data or [])}
+        return {
+            "last_daily":      info.get("last_daily_scan"),
+            "last_historical": info.get("last_historical_scan"),
+        }
+    except Exception as e:
+        return {"last_daily": None, "last_historical": None}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# MONITOR META (legacy)
 # ══════════════════════════════════════════════════════════════════════
 
 @app.get("/api/monitor-meta")
@@ -791,18 +893,6 @@ async def upsert_monitor_meta(data: dict):
     try:
         supabase.table("monitor_meta").upsert(data).execute()
         return {"success": True}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.get("/api/web-mentions")
-async def get_web_mentions(client_id: Optional[str] = None, limit: int = 50):
-    try:
-        query = supabase.table("web_mentions").select("*").order("published_at", desc=True)
-        if client_id:
-            query = query.eq("client_id", client_id)
-        res = query.limit(limit).execute()
-        return {"mentions": res.data or [], "total": len(res.data or [])}
     except Exception as e:
         return {"error": str(e)}
 
