@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM Intelligence — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #f4f6f9;
+    --surface:  #ffffff;
+    --border:   #dde3ed;
+    --border2:  #eef1f6;
+    --text:     #1a2236;
+    --muted:    #5a6a84;
+    --faint:    #9aabc0;
+    --cyan:     #0ea5c9;
+    --pink:     #d4367a;
+    --amber:    #d97706;
+    --green:    #059669;
+    --red:      #e03a5a;
+    --grad:     linear-gradient(135deg, #0ea5c9, #d4367a);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; background: var(--bg); color: var(--text); min-height: 100vh; }
+  a { text-decoration: none; color: inherit; }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--grad);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    flex-shrink: 0;
+  }
+  .logo-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 1px;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .logo-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .nav-links { display: flex; gap: 2px; margin-left: auto; }
+  .nav-link {
+    color: var(--muted); font-size: 11px; font-weight: 600;
+    letter-spacing: .5px; text-transform: uppercase;
+    padding: 6px 14px; border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  .nav-link:hover { color: var(--text); }
+  .nav-link.active { color: var(--pink); border-bottom-color: var(--pink); }
+
+  /* ── LAYOUT ── */
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── STAT CARDS ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--grad);
+  }
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 6px;
+  }
+  .stat-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 32px; font-weight: 700; line-height: 1;
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-sub { font-size: 11px; color: var(--faint); margin-top: 5px; }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 14px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  /* ── CHARTS ROW ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* ── SELECT ── */
+  select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    background: #eef1f6;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: var(--cyan); }
+
+  /* ── UPLOAD ── */
+  .upload-card {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    transition: border-color .2s;
+  }
+  .upload-card:hover { border-color: var(--cyan); }
+  .upload-icon { font-size: 28px; flex-shrink: 0; }
+  .upload-info { flex: 1; min-width: 200px; }
+  .upload-info h3 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .upload-info p { font-size: 11px; color: var(--faint); }
+  .file-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #eef1f6; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 16px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted);
+    transition: background .2s;
+    max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file-label:hover { background: #e4e9f2; }
+  .btn-upload {
+    background: var(--grad);
+    color: #fff; border: none; border-radius: 6px;
+    padding: 10px 24px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+    cursor: pointer; letter-spacing: .5px;
+    transition: opacity .2s, transform .1s;
+    white-space: nowrap;
+  }
+  .btn-upload:disabled { opacity: .4; cursor: default; }
+  .btn-upload:not(:disabled):hover { opacity: .9; transform: translateY(-1px); }
+  .progress-wrap {
+    width: 100%; background: #eef1f6;
+    border-radius: 4px; height: 6px;
+    margin-top: 10px; overflow: hidden;
+    display: none;
+  }
+  .progress-bar {
+    height: 100%; background: var(--grad);
+    border-radius: 4px; width: 0%;
+    transition: width .3s ease;
+  }
+  .progress-txt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--faint); margin-top: 5px;
+    display: none;
+  }
+
+  /* ── BOTTOM ROW ── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* ── JOURNALIST LIST ── */
+  .j-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border2);
+  }
+  .j-row:last-child { border-bottom: none; }
+  .j-rank {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--faint);
+    width: 16px; text-align: right; flex-shrink: 0;
+  }
+  .j-info { flex: 1; min-width: 0; }
+  .j-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .j-testata {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--amber); margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .j-bar-wrap { width: 50px; height: 4px; background: #eef1f6; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+  .j-bar { height: 100%; background: var(--grad); border-radius: 2px; }
+  .j-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 700; color: var(--cyan);
+    width: 24px; text-align: right; flex-shrink: 0;
+  }
+
+  /* ── MACRO HEATMAP ── */
+  .macro-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: 5px; margin-bottom: 2px;
+  }
+  .macro-row:nth-child(odd) { background: #fafbfc; }
+  .macro-name { flex: 1; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .macro-bar-wrap { width: 70px; height: 5px; background: #eef1f6; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .macro-bar { height: 100%; border-radius: 3px; }
+  .macro-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    width: 28px; text-align: right; flex-shrink: 0;
+  }
+  .macro-delta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    width: 32px; text-align: right; flex-shrink: 0;
+  }
+  .macro-legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--border2);
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: var(--faint); letter-spacing: .5px;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── CLIENT LIST ── */
+  .client-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--border2);
+  }
+  .client-row:last-child { border-bottom: none; }
+  .client-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--grad);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 12px;
+    flex-shrink: 0; font-family: 'IBM Plex Mono', monospace;
+  }
+  .client-name { flex: 1; font-weight: 600; font-size: 13px; }
+  .client-bar-wrap { width: 100px; height: 5px; background: #eef1f6; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .client-bar { height: 100%; background: var(--grad); border-radius: 3px; }
+  .client-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 700; color: var(--cyan);
+    min-width: 36px; text-align: right; flex-shrink: 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: right;
+    padding: 14px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; letter-spacing: 1px;
+    color: #c8d0e0; text-transform: uppercase;
+  }
+
+  /* ── LOADING SKELETON ── */
+  .skeleton {
+    background: linear-gradient(90deg, #eef1f6 25%, #e4e9f2 50%, #eef1f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--text); color: #fff;
+    padding: 10px 18px; border-radius: 7px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    transform: translateY(60px); opacity: 0;
+    transition: all .3s ease;
+    z-index: 9999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red); }
+
+  @media (max-width: 1024px) {
+    .charts-row { grid-template-columns: 1fr 1fr; }
+    .bottom-row { grid-template-columns: 1fr 1fr; }
+    .stat-grid  { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 640px) {
+    .charts-row, .bottom-row, .stat-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo-mark">M</div>
+  <div>
+    <div class="logo-name">MAIM</div>
+    <div class="logo-sub">Intelligence</div>
+  </div>
+  <div class="nav-links">
+    <a href="/"          class="nav-link active">Home</a>
+    <a href="/dashboard" class="nav-link">Dashboard</a>
+    <a href="/chat"      class="nav-link">AI Analysis</a>
+    <a href="/pitch"     class="nav-link">Pitch</a>
+    <a href="/monitor"   class="nav-link">Monitor</a>
+    <a href="/clients"   class="nav-link">Clienti</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Totale archivio</div>
+      <div class="stat-val" id="s-total">—</div>
+      <div class="stat-sub">articoli indicizzati</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Rassegnati oggi</div>
+      <div class="stat-val" id="s-today">—</div>
+      <div class="stat-sub" id="s-today-sub">firmati · anonimi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Giornalisti oggi</div>
+      <div class="stat-val" id="s-giornalisti">—</div>
+      <div class="stat-sub">firme uniche</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Testate oggi</div>
+      <div class="stat-val" id="s-testate">—</div>
+      <div class="stat-sub">pubblicazioni</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">📊 Articoli nel periodo</div>
+        <select id="bar-period" onchange="loadBarChart()">
+          <option value="7">Ultimi 7 giorni</option>
+          <option value="30" selected>Ultimi 30 giorni</option>
+          <option value="180">Ultimi 6 mesi</option>
+        </select>
+      </div>
+      <canvas id="chart-bar" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">📰 Tipo pubblicazione</div>
+      </div>
+      <canvas id="chart-tipo" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">🎭 Sentiment oggi</div>
+      </div>
+      <canvas id="chart-sentiment" height="180"></canvas>
+    </div>
+
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="upload-card" id="upload-zone">
+    <div class="upload-icon">📂</div>
+    <div class="upload-info">
+      <h3>Carica rassegna stampa</h3>
+      <p>CSV esportato da rassegna. Elaborazione e indicizzazione automatica.</p>
+      <div class="progress-wrap" id="prog-wrap">
+        <div class="progress-bar" id="prog-bar"></div>
+      </div>
+      <div class="progress-txt" id="prog-txt"></div>
+    </div>
+    <label class="file-label" id="file-label">
+      <span>📎</span>
+      <span id="file-name">Scegli file CSV</span>
+      <input type="file" id="file-input" accept=".csv" style="display:none" onchange="onFilePick(this)"/>
+    </label>
+    <button class="btn-upload" id="btn-upload" disabled onclick="doUpload()">⚡ Elabora</button>
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+
+    <!-- TOP GIORNALISTI -->
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">✍️ Top giornalisti</div>
+        <select id="j-period" onchange="loadJournalists()">
+          <option value="today">Oggi</option>
+          <option value="7days" selected>7 giorni</option>
+          <option value="30days">30 giorni</option>
+        </select>
+      </div>
+      <div id="journalists-list"><div class="skeleton" style="height:180px"></div></div>
+    </div>
+
+    <!-- HEATMAP MACRO -->
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">🎯 Copertura temi strategici</div>
+      </div>
+      <div id="macro-list"><div class="skeleton" style="height:180px"></div></div>
+      <div class="macro-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#e03a5a"></div>Alto</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Medio</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0ea5c9"></div>Basso</div>
+        <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c8d0e0;">articoli oggi</div>
+      </div>
+    </div>
+
+    <!-- CLIENTI CITAZIONI -->
+    <div class="card">
+      <div class="card-header">
+        <div class="sec-label">👥 Citazioni per cliente</div>
+        <select id="client-period" onchange="loadClientCitations()">
+          <option value="1">Oggi</option>
+          <option value="7" selected>7 giorni</option>
+          <option value="30">30 giorni</option>
+          <option value="180">6 mesi</option>
+        </select>
+      </div>
+      <div id="clients-list"><div class="skeleton" style="height:220px"></div></div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>Geronimo Emili project</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── GLOBALS ─────────────────────────────────────────────────
+let chartBar, chartTipo, chartSentiment;
+let allClients = [];
+let selectedFile = null;
+
+// ── INIT ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  initCharts();
+  await Promise.all([
+    loadStats(),
+    loadTodayStats(),
+    loadBarChart(),
+    loadJournalists(),
+    loadMacroHeatmap(),
+    loadClientCitations(),
+  ]);
+});
+
+// ── TOAST ────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── STATS ────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch('/api/dashboard-stats');
+    const d = await r.json();
+    document.getElementById('s-total').textContent = fmt(d.totale || 0);
+  } catch(e) {}
+}
+
+async function loadTodayStats() {
+  try {
+    const r = await fetch('/api/today-stats');
+    const d = await r.json();
+    document.getElementById('s-today').textContent = fmt(d.total_today || 0);
+    // Calcola firmati vs anonimi dal sentiment data
+    const giornalisti = (d.giornalisti || []).filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome));
+    const firmati = giornalisti.reduce((a,g) => a + (g.articoli||0), 0);
+    const anonimi = (d.total_today||0) - firmati;
+    document.getElementById('s-today-sub').textContent = `${fmt(Math.max(0,firmati))} firmati · ${fmt(Math.max(0,anonimi))} anonimi`;
+    document.getElementById('s-giornalisti').textContent = fmt(giornalisti.length);
+    document.getElementById('s-testate').textContent = fmt((d.testate||[]).length);
+
+    // Sentiment pie
+    const sent = d.sentiment || {};
+    updateSentimentChart(sent);
+  } catch(e) {}
+}
+
+// ── BAR CHART ────────────────────────────────────────────────
+async function loadBarChart() {
+  const days = parseInt(document.getElementById('bar-period').value);
+  const today = new Date();
+  const from  = new Date(today);
+  from.setDate(from.getDate() - days);
+
+  try {
+    const r = await fetch(`/api/articles?from_date=${fmt_date(from)}&to_date=${fmt_date(today)}&limit=2000`);
+    const d = await r.json();
+    const articles = d.articles || [];
+
+    // Aggregate by period
+    const buckets = {};
+    if (days <= 7) {
+      // Daily
+      for (let i = days-1; i >= 0; i--) {
+        const d2 = new Date(today); d2.setDate(d2.getDate()-i);
+        buckets[fmt_date(d2)] = 0;
+      }
+      articles.forEach(a => { if (a.data && buckets.hasOwnProperty(a.data)) buckets[a.data]++; });
+    } else if (days <= 30) {
+      // Weekly buckets
+      const nWeeks = Math.ceil(days/7);
+      for (let w = nWeeks-1; w >= 0; w--) {
+        const key = `S-${nWeeks-w}`;
+        buckets[key] = 0;
+      }
+      articles.forEach(a => {
+        if (!a.data) return;
+        const diff = Math.floor((today - new Date(a.data)) / 86400000);
+        const wk = Math.floor(diff / 7);
+        const key = `S-${Math.ceil(days/7)-wk}`;
+        if (buckets.hasOwnProperty(key)) buckets[key]++;
+      });
+    } else {
+      // Monthly buckets
+      for (let m = 5; m >= 0; m--) {
+        const d2 = new Date(today); d2.setMonth(d2.getMonth()-m);
+        const key = d2.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+        buckets[key] = (buckets[key] || 0);
+      }
+      articles.forEach(a => {
+        if (!a.data) return;
+        const dt = new Date(a.data);
+        const key = dt.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+        if (buckets.hasOwnProperty(key)) buckets[key]++;
+      });
+    }
+
+    const labels = Object.keys(buckets);
+    const values = Object.values(buckets);
+    chartBar.data.labels = labels;
+    chartBar.data.datasets[0].data = values;
+    chartBar.update();
+  } catch(e) {}
+}
+
+// ── TIPO PUBBLICAZIONE ────────────────────────────────────────
+async function loadTipoPubblicazione(articles) {
+  const counter = {};
+  (articles||[]).forEach(a => {
+    const t = (a.tipo_fonte||'Altro').trim() || 'Altro';
+    counter[t] = (counter[t]||0) + 1;
+  });
+  const sorted = Object.entries(counter).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const COLORS = ['#0ea5c9','#d4367a','#7c3aed','#d97706','#059669'];
+  chartTipo.data.labels   = sorted.map(([k])=>k);
+  chartTipo.data.datasets[0].data            = sorted.map(([,v])=>v);
+  chartTipo.data.datasets[0].backgroundColor = sorted.map((_,i)=>COLORS[i]||'#9aabc0');
+  chartTipo.update();
+}
+
+// ── SENTIMENT ────────────────────────────────────────────────
+function updateSentimentChart(sent) {
+  const MAP = {
+    'positivo':'Positivo','neutro':'Neutro','negativo':'Negativo',
+    'positive':'Positivo','neutral':'Neutro','negative':'Negativo',
+    'Positivo':'Positivo','Neutro':'Neutro','Negativo':'Negativo',
+  };
+  const merged = {'Positivo':0,'Neutro':0,'Negativo':0};
+  Object.entries(sent).forEach(([k,v]) => {
+    const label = MAP[k.toLowerCase()] || MAP[k] || k;
+    if (merged.hasOwnProperty(label)) merged[label] += parseInt(v)||0;
+  });
+  chartSentiment.data.datasets[0].data = [merged['Positivo'], merged['Neutro'], merged['Negativo']];
+  chartSentiment.update();
+}
+
+// ── JOURNALISTS ──────────────────────────────────────────────
+async function loadJournalists() {
+  const period = document.getElementById('j-period').value;
+  const el = document.getElementById('journalists-list');
+  el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
+  try {
+    const r = await fetch(`/api/top-giornalisti?period=${period}&limit=8`);
+    const data = await r.json();
+    if (!data.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>'; return; }
+    const max = data[0]?.articoli || 1;
+    el.innerHTML = data.map((j,i) => `
+      <div class="j-row">
+        <div class="j-rank">${i+1}</div>
+        <div class="j-info">
+          <div class="j-name">${esc(j.nome)}</div>
+        </div>
+        <div class="j-bar-wrap"><div class="j-bar" style="width:${Math.round(j.articoli/max*100)}%"></div></div>
+        <div class="j-count">${j.articoli}</div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
+  }
+}
+
+// ── MACRO HEATMAP ────────────────────────────────────────────
+async function loadMacroHeatmap() {
+  const el = document.getElementById('macro-list');
+  el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
+  try {
+    const today = fmt_date(new Date());
+    const [rMacros, rArts] = await Promise.all([
+      fetch('/api/macro-groups').then(r=>r.json()),
+      fetch(`/api/articles?from_date=${today}&to_date=${today}&limit=1000`).then(r=>r.json()),
+    ]);
+
+    const macroGroups = (rMacros.groups || rMacros || []);
+    const articles = rArts.articles || [];
+
+    // Conta articoli per macrosettore (field è testo CSV)
+    const sectorCount = {};
+    articles.forEach(a => {
+      if (!a.macrosettori) return;
+      a.macrosettori.split(',').forEach(s => {
+        const t = s.trim();
+        if (t) sectorCount[t] = (sectorCount[t]||0) + 1;
+      });
+    });
+
+    // Mappa macro groups → somma articoli dei loro settori
+    // Se non abbiamo mapping dettagliato, mostriamo top macrosettori direttamente
+    let items;
+    if (macroGroups.length > 0) {
+      // Prova a matchare per nome
+      items = macroGroups.map(g => ({
+        name: g.name,
+        count: sectorCount[g.name] || 0,
+      })).filter(i => i.count > 0).sort((a,b)=>b.count-a.count).slice(0,8);
+
+      // Se nessun match, fallback ai raw macrosettori
+      if (!items.length) {
+        items = Object.entries(sectorCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
+      }
+    } else {
+      items = Object.entries(sectorCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
+    }
+
+    if (!items.length) {
+      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato per oggi</p>';
+      return;
+    }
+
+    const max = items[0].count || 1;
+    el.innerHTML = items.map((m, i) => {
+      const pct   = Math.round(m.count / max * 100);
+      const color = pct >= 75 ? '#e03a5a' : pct >= 40 ? '#d97706' : '#0ea5c9';
+      return `
+      <div class="macro-row">
+        <div class="macro-name">${esc(m.name)}</div>
+        <div class="macro-bar-wrap"><div class="macro-bar" style="width:${pct}%;background:${color}"></div></div>
+        <div class="macro-count" style="color:${color}">${m.count}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
+  }
+}
+
+// ── CLIENT CITATIONS ─────────────────────────────────────────
+async function loadClientCitations() {
+  const days = parseInt(document.getElementById('client-period').value);
+  const el   = document.getElementById('clients-list');
+  el.innerHTML = '<div class="skeleton" style="height:220px"></div>';
+
+  try {
+    const today = new Date();
+    const from  = new Date(today); from.setDate(from.getDate() - (days-1));
+
+    const [rClients, rArts] = await Promise.all([
+      fetch('/api/clients').then(r=>r.json()),
+      fetch(`/api/articles?from_date=${fmt_date(from)}&to_date=${fmt_date(today)}&limit=3000`).then(r=>r.json()),
+    ]);
+
+    allClients = Array.isArray(rClients) ? rClients : [];
+    const articles = rArts.articles || [];
+
+    // Per ogni client conta articoli che contengono le sue keyword
+    const results = allClients.map(c => {
+      const rawKw = c.keywords_press || c.keywords || '';
+      const kws   = rawKw.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+      let count = 0;
+      if (kws.length) {
+        articles.forEach(a => {
+          const text = `${a.titolo||''} ${a.occhiello||''}`.toLowerCase();
+          if (kws.some(kw => text.includes(kw))) count++;
+        });
+      }
+      return { name: c.name, count };
+    }).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+
+    if (!results.length) {
+      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun cliente configurato</p>';
+      return;
+    }
+
+    const max = results[0].count || 1;
+    el.innerHTML = results.map(c => {
+      const pct      = max > 0 ? Math.round(c.count/max*100) : 0;
+      const initials = c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+      return `
+      <div class="client-row">
+        <div class="client-avatar">${esc(initials)}</div>
+        <div class="client-name">${esc(c.name)}</div>
+        <div class="client-bar-wrap"><div class="client-bar" style="width:${pct}%"></div></div>
+        <div class="client-count">${c.count}</div>
+      </div>`;
+    }).join('');
+
+    // Carica anche tipo pubblicazione con questi articoli
+    loadTipoPubblicazione(articles);
+
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
+  }
+}
+
+// ── UPLOAD ──────────────────────────────────────────────────
+function onFilePick(input) {
+  const f = input.files?.[0];
+  if (!f) return;
+  selectedFile = f;
+  document.getElementById('file-name').textContent = f.name;
+  document.getElementById('btn-upload').disabled = false;
+}
+
+async function doUpload() {
+  if (!selectedFile) return;
+  const btn     = document.getElementById('btn-upload');
+  const progW   = document.getElementById('prog-wrap');
+  const progB   = document.getElementById('prog-bar');
+  const progTxt = document.getElementById('prog-txt');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Elaborazione…';
+  progW.style.display   = 'block';
+  progTxt.style.display = 'block';
+
+  // Fake progress while uploading
+  let pct = 0;
+  const iv = setInterval(() => {
+    pct = Math.min(pct + Math.random()*8, 85);
+    progB.style.width = pct+'%';
+    progTxt.textContent = `Elaborazione in corso… ${Math.round(pct)}%`;
+  }, 200);
+
+  try {
+    const fd = new FormData();
+    fd.append('files', selectedFile);
+    const r  = await fetch('/upload', { method:'POST', body:fd });
+    const d  = await r.json();
+    clearInterval(iv);
+    progB.style.width = '100%';
+    progTxt.textContent = 'Completato!';
+    const result = d.results?.[0];
+    if (result?.status === 'success') {
+      toast(`✅ ${selectedFile.name} caricato correttamente`, 'success');
+      setTimeout(() => loadStats(), 1000);
+    } else {
+      toast(`⚠️ ${result?.message || 'Errore durante l\'elaborazione'}`, 'error');
+    }
+  } catch(e) {
+    clearInterval(iv);
+    toast('❌ Errore di connessione', 'error');
+  }
+
+  setTimeout(() => {
+    progW.style.display = 'none';
+    progTxt.style.display = 'none';
+    progB.style.width = '0%';
+    btn.textContent = '⚡ Elabora';
+    btn.disabled = true;
+    selectedFile = null;
+    document.getElementById('file-name').textContent = 'Scegli file CSV';
+    document.getElementById('file-input').value = '';
+  }, 2000);
+}
+
+// ── CHARTS INIT ──────────────────────────────────────────────
+function initCharts() {
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.font.size   = 10;
+  Chart.defaults.color       = '#9aabc0';
+
+  // Bar chart
+  chartBar = new Chart(document.getElementById('chart-bar'), {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Articoli',
+        data: [],
+        backgroundColor: 'rgba(14,165,201,0.7)',
+        borderColor: '#0ea5c9',
+        borderWidth: 0,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label: c=>' '+c.raw+' articoli'}} },
+      scales: {
+        x: { grid:{display:false}, ticks:{maxRotation:0} },
+        y: { grid:{color:'#eef1f6'}, beginAtZero:true },
+      }
+    }
+  });
+
+  // Tipo pubblicazione
+  chartTipo = new Chart(document.getElementById('chart-tipo'), {
+    type: 'doughnut',
+    data: { labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0, hoverOffset:4 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, padding:10, font:{size:10} } } },
+      cutout: '60%',
+    }
+  });
+
+  // Sentiment
+  chartSentiment = new Chart(document.getElementById('chart-sentiment'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Positivo','Neutro','Negativo'],
+      datasets:[{
+        data: [0,0,0],
+        backgroundColor: ['#059669','#9aabc0','#e03a5a'],
+        borderWidth: 0, hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, padding:10, font:{size:10} } } },
+      cutout: '60%',
+    }
+  });
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function fmt(n)      { return Number(n).toLocaleString('it-IT'); }
+function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt_date(d) {
+  const dd = new Date(d);
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+</script>
+</body>
+</html>

@@ -115,18 +115,16 @@ class ShareRequest(BaseModel):
 # ══════════════════════════════════════════════════════════════════════
 
 @app.get("/")
-async def index():
-    if os.path.exists("web/index.html"):
-        return FileResponse("web/index.html")
-    return {"status": "ok"}
+async def root():
+    return FileResponse("web/home.html")
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+@app.get("/home")
+async def home_page():
+    return FileResponse("web/home.html")
 
-@app.get("/healthcheck")
-async def healthcheck():
-    return {"status": "ok"}
+@app.get("/dashboard")
+async def dashboard_page():
+    return FileResponse("web/index.html")  # era "/"
 
 @app.get("/chat")
 async def chat_page():
