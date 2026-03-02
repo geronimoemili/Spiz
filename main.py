@@ -35,7 +35,8 @@ except Exception as e:
     print(f"⚠️ Scheduler non avviato: {e}")
 
 app = FastAPI(title="SPIZ Intelligence")
-
+from fastapi.staticfiles import StaticFiles
+app.mount("/static", StaticFiles(directory="web"), name="static")
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
 
@@ -122,9 +123,13 @@ async def root():
 async def home_page():
     return FileResponse("web/home.html")
 
+@app.get("/press")
+async def press_page():
+    return FileResponse("web/press.html")
+
 @app.get("/dashboard")
 async def dashboard_page():
-    return FileResponse("web/index.html")  # era "/"
+    return FileResponse("web/press.html")
 
 @app.get("/chat")
 async def chat_page():

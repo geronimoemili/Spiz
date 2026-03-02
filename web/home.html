@@ -40,28 +40,7 @@
     z-index: 100;
     box-shadow: 0 2px 8px rgba(0,0,0,.04);
   }
-  .logo-mark {
-    width: 32px; height: 32px;
-    background: var(--grad);
-    border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 14px;
-    font-family: 'IBM Plex Mono', monospace;
-    flex-shrink: 0;
-  }
-  .logo-name {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px; font-weight: 700;
-    letter-spacing: 1px;
-    background: var(--grad);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .logo-sub {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--faint);
-  }
+  .logo-img { height: 38px; width: auto; display: block; flex-shrink: 0; }
   .nav-links { display: flex; gap: 2px; margin-left: auto; }
   .nav-link {
     color: var(--muted); font-size: 11px; font-weight: 600;
@@ -337,18 +316,14 @@
 
 <!-- NAV -->
 <nav>
-  <div class="logo-mark">M</div>
-  <div>
-    <div class="logo-name">MAIM</div>
-    <div class="logo-sub">Intelligence</div>
-  </div>
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
   <div class="nav-links">
-    <a href="/"          class="nav-link active">Home</a>
-    <a href="/dashboard" class="nav-link">Dashboard</a>
-    <a href="/chat"      class="nav-link">AI Analysis</a>
-    <a href="/pitch"     class="nav-link">Pitch</a>
-    <a href="/monitor"   class="nav-link">Monitor</a>
-    <a href="/clients"   class="nav-link">Clienti</a>
+    <a href="/"         class="nav-link active">Home</a>
+    <a href="/press"    class="nav-link">Press</a>
+    <a href="/chat"     class="nav-link">AI Analysis</a>
+    <a href="/pitch"    class="nav-link">Pitch</a>
+    <a href="/monitor"  class="nav-link">Monitor</a>
+    <a href="/clients"  class="nav-link">Clienti</a>
   </div>
 </nav>
 

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAIM · Press</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;--text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;--teal:#0ea5c9;--pink:#d4367a;--grad:linear-gradient(135deg,#0ea5c9,#d4367a);--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px}
+
+/* ── NAV ── */
+nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+.nav-links{display:flex;gap:2px;margin-left:auto}
+.nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+/* ── SEARCH BAR ── */
+.search-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px}
+.search-input{flex:1;font-family:var(--mono);font-size:13px;padding:9px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--teal);background:#fff}
+.search-input::placeholder{color:var(--text3)}
+.search-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:9px 20px;background:var(--grad);color:#fff;border:none;border-radius:5px;cursor:pointer;white-space:nowrap;letter-spacing:.5px}
+.search-btn:hover{opacity:.9}
+.search-clear{font-family:var(--mono);font-size:11px;padding:9px 14px;border:1px solid var(--border2);background:none;color:var(--text2);border-radius:5px;cursor:pointer;display:none}
+.search-clear:hover{background:var(--bg3)}
+.search-info{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
+
+
+.main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 56px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.section-header{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3)}
+.client-row{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.client-row:hover{background:var(--bg3)}
+.client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px}
+.client-row-count{font-family:var(--mono);font-size:11px;color:var(--teal)}
+
+/* ── MAIN ── */
+.main-panel{display:flex;flex-direction:column}
+.panel-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
+.period-select{font-family:var(--mono);font-size:11px;padding:4px 8px;flex-shrink:0;margin-left:auto;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:3px}
+.share-bar{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.share-count{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.share-count.ready{color:var(--teal);font-weight:600}
+.btn-share{font-family:var(--mono);font-size:10px;border:1px solid var(--border2);color:var(--text2);background:none;padding:4px 8px;cursor:pointer;border-radius:3px;white-space:nowrap}
+.btn-share:hover{border-color:var(--teal);color:var(--teal);background:#e8f7fc}
+.btn-share.active{border-color:var(--teal);color:var(--teal)}
+.btn-copy{font-family:var(--mono);font-size:10px;border:1px solid var(--teal);background:var(--teal);color:white;padding:4px 8px;cursor:pointer;border-radius:3px;white-space:nowrap;display:none}
+.btn-copy:hover{background:#0284a8}
+
+/* ── TABLE ── */
+.articles-wrap{position:relative;flex:1;overflow-y:auto}
+.table-header,.article-row{display:grid;grid-template-columns:120px 140px 1fr 100px}
+.table-header{background:var(--bg3);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)}
+.table-header div,.article-row div{padding:8px 14px}
+.article-row{border-bottom:1px solid var(--border);cursor:pointer}
+.article-row:hover{background:#f0f9fc}
+.art-testata{font-family:var(--mono);font-size:11px;color:#d97706}
+.art-date{font-family:var(--mono);font-size:11px;text-align:right;color:var(--text2)}
+.empty{padding:30px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3)}
+
+/* ── DETAIL ── */
+#article-detail{position:absolute;inset:0;background:var(--bg);padding:30px;overflow-y:auto}
+.detail-title{font-size:22px;font-weight:700;margin-bottom:10px}
+.detail-meta{font-size:13px;line-height:1.6;margin-bottom:20px}
+.detail-meta strong{font-family:var(--mono);font-size:14px}
+.detail-body{line-height:1.7;font-size:14px}
+.back-btn{margin-bottom:20px;font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 10px}
+
+/* ── MACRO ── */
+.macro-checkbox-wrap{padding:10px 16px}
+.macro-checkbox-wrap label{display:block;font-size:12px;cursor:pointer;padding:3px 0}
+.macro-actions{padding:0 16px 10px;display:flex;gap:6px}
+.macro-actions button{font-family:var(--mono);font-size:10px;border:1px solid var(--border2);background:none;padding:4px 8px;cursor:pointer;flex:1;border-radius:3px}
+.macro-actions button:hover{background:var(--bg3)}
+</style>
+</head>
+<body>
+
+<nav>
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
+  <div class="nav-links">
+    <a href="/"         class="nav-link">Home</a>
+    <a href="/press"    class="nav-link active">Press</a>
+    <a href="/chat"     class="nav-link">AI Analysis</a>
+    <a href="/pitch"    class="nav-link">Pitch</a>
+    <a href="/monitor"  class="nav-link">Monitor</a>
+    <a href="/clients"  class="nav-link">Clienti</a>
+  </div>
+</nav>
+
+<!-- SEARCH BAR -->
+<div class="search-bar">
+  <input type="text" id="search-input" class="search-input" placeholder="Cerca per titolo o testo articolo…" onkeydown="if(event.key==='Enter') doSearch()"/>
+  <button class="search-btn" onclick="doSearch()">🔍 Cerca</button>
+  <button class="search-clear" id="search-clear" onclick="clearSearch()">✕ Cancella</button>
+  <span class="search-info" id="search-info"></span>
+</div>
+
+<div class="main-layout">
+  <div class="sidebar">
+    <div class="section-header">Clienti – Citazioni di oggi</div>
+    <div id="client-list-container"></div>
+    <div class="section-header">Macro Strategici</div>
+    <div class="macro-checkbox-wrap" id="macro-groups-container"></div>
+    <div class="macro-actions">
+      <button onclick="selectAllMacros()">Tutti</button>
+      <button onclick="deselectAllMacros()">Nessuno</button>
+    </div>
+  </div>
+
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="panel-title">Rassegna Stampa</div>
+      <div class="share-bar">
+        <span id="share-count" class="share-count">0 articoli</span>
+        <button id="btn-share" class="btn-share" onclick="generateShareLink()">🔗 Genera link</button>
+        <button id="btn-copy" class="btn-copy" onclick="copyShareLink()">📋 Copia link</button>
+      </div>
+      <select id="main-period-select" class="period-select" onchange="onMainPeriodChange()">
+        <option value="today" selected>Oggi</option>
+        <option value="yesterday">Ieri</option>
+        <option value="7days">7 giorni</option>
+        <option value="30days">30 giorni</option>
+        <option value="6months">6 mesi</option>
+        <option value="12months">12 mesi</option>
+      </select>
+    </div>
+
+    <div class="articles-wrap">
+      <div class="table-header">
+        <div>Testata</div><div>Giornalista</div><div>Titolo</div><div>Data</div>
+      </div>
+      <div id="articles-list"></div>
+      <div id="empty-state" class="empty">Caricamento articoli...</div>
+      <div id="article-detail" style="display:none;">
+        <button class="back-btn" onclick="backToList()">← LISTA</button>
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentClient = null;
+let currentPeriod = "today";
+let _visibleIds   = [];
+let _currentShareUrl = null;
+
+/* ─── DATE RANGE ── */
+function getDateRange(period){
+  const today=new Date(), iso=d=>d.toISOString().split("T")[0];
+  let start=new Date(today);
+  switch(period){
+    case "yesterday": start.setDate(today.getDate()-1); return{start:iso(start),end:iso(start)};
+    case "7days":     start.setDate(today.getDate()-7);   break;
+    case "30days":    start.setDate(today.getDate()-30);  break;
+    case "6months":   start.setMonth(today.getMonth()-6); break;
+    case "12months":  start.setMonth(today.getMonth()-12);break;
+  }
+  return{start:iso(start),end:iso(today)};
+}
+
+/* ─── INIT ── */
+async function loadDashboard(){
+  const [sR,tR,mR]=await Promise.all([
+    fetch("/api/dashboard-stats"),
+    fetch("/api/today-stats"),
+    fetch("/api/today-mentions")
+  ]);
+  const today=await tR.json(), mentions=await mR.json();
+  renderClientList(mentions);
+  loadArticlesGlobal();
+}
+
+function renderClientList(clients){
+  document.getElementById("client-list-container").innerHTML=(clients||[]).map(cl=>`
+    <div class="client-row" data-id="${cl.id}" onclick="selectClient(this)">
+      <span>${cl.name}</span>
+      <span class="client-row-count">${cl.today}</span>
+    </div>`).join("");
+}
+
+function selectClient(el){
+  document.querySelectorAll(".client-row").forEach(r=>r.classList.remove("active"));
+  el.classList.add("active");
+  currentClient={id:el.getAttribute("data-id")};
+  loadFilteredArticles();
+}
+
+function onMainPeriodChange(){
+  currentPeriod=document.getElementById("main-period-select").value;
+  loadFilteredArticles();
+}
+
+async function loadArticlesGlobal(){
+  const {start,end}=getDateRange(currentPeriod);
+  const res=await fetch(`/api/articles?from_date=${start}&to_date=${end}&limit=200`);
+  const data=await res.json();
+  renderArticlesTable(data.articles);
+}
+
+/* ─── ARTICLES ── */
+async function loadFilteredArticles(){
+  const {start,end}=getDateRange(currentPeriod);
+  const selected=Array.from(document.querySelectorAll(".macro-checkbox:checked")).map(cb=>cb.value);
+  if(selected.length===0 && document.querySelectorAll(".macro-checkbox").length>0){
+    renderArticlesTable([]); return;
+  }
+  const params=new URLSearchParams({from_date:start,to_date:end});
+  if(currentClient?.id) params.append("client_id",currentClient.id);
+  if(selected.length===1) params.append("macro_group_id",selected[0]);
+  const res=await fetch("/api/articles-filtered?"+params.toString());
+  const data=await res.json();
+  renderArticlesTable(data.articles||[]);
+}
+
+function renderArticlesTable(articles){
+  const list=document.getElementById("articles-list");
+  const empty=document.getElementById("empty-state");
+  document.getElementById("article-detail").style.display="none";
+  list.style.display="block";
+  _visibleIds=(articles||[]).map(a=>a.id);
+  resetShareLink(); updateShareCount();
+  if(!articles||articles.length===0){
+    empty.style.display="block"; list.innerHTML=""; return;
+  }
+  empty.style.display="none";
+  list.innerHTML=articles.map(a=>`
+    <div class="article-row" onclick="loadArticleDetail('${a.id}')">
+      <div class="art-testata">${a.testata||'N/D'}</div>
+      <div>${a.giornalista||'Anonimo'}</div>
+      <div>${a.titolo||'Senza titolo'}</div>
+      <div class="art-date">${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
+    </div>`).join("");
+}
+
+function updateShareCount(){
+  const el=document.getElementById("share-count");
+  const n=_visibleIds.length;
+  el.innerText=n===0?"0 articoli":`${n} articolo${n===1?'':'i'}`;
+  el.className=n>0?"share-count ready":"share-count";
+  document.getElementById("btn-share").disabled=n===0;
+}
+
+async function loadArticleDetail(id){
+  const res=await fetch(`/api/article/${id}`);
+  const a=await res.json();
+  document.getElementById("articles-list").style.display="none";
+  document.getElementById("empty-state").style.display="none";
+  document.getElementById("article-detail").style.display="block";
+  let testo=a.testo_completo||"Testo non disponibile";
+  testo=testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,"$1<br><br>$2").replace(/\n/g,"<br>");
+  document.getElementById("detail-content").innerHTML=`
+    <div class="detail-title">${a.titolo||'Senza titolo'}</div>
+    <div class="detail-meta">
+      <div><strong>${a.testata||'N/D'}</strong></div>
+      ${a.pagina_testata?`<div>Pagina: ${a.pagina_testata}</div>`:""}
+      <div>Giornalista: ${a.giornalista||'Anonimo'}</div>
+      <div>Data: ${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
+      ${a.tipologia_articolo?`<div>Tipologia: ${a.tipologia_articolo}</div>`:""}
+      ${a.macrosettori?`<div><strong>Settori:</strong> ${a.macrosettori}</div>`:""}
+    </div>
+    <hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">
+    <div class="detail-body">${testo}</div>`;
+}
+
+function backToList(){
+  document.getElementById("article-detail").style.display="none";
+  document.getElementById("articles-list").style.display="block";
+}
+
+/* ─── MACRO ── */
+async function loadMacroGroups(){
+  const res=await fetch("/api/macro-groups");
+  const data=await res.json();
+  const container=document.getElementById("macro-groups-container");
+  if(!data.groups?.length){
+    container.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Nessun gruppo</div>';
+    return;
+  }
+  container.innerHTML=data.groups.map(g=>`
+    <label style="display:block;font-size:12px;cursor:pointer;padding:3px 0;">
+      <input type="checkbox" value="${g.id}" class="macro-checkbox" checked> ${g.name}
+    </label>`).join("");
+  document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.addEventListener("change",loadFilteredArticles));
+}
+
+function selectAllMacros(){document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.checked=true);loadFilteredArticles();}
+function deselectAllMacros(){document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.checked=false);loadFilteredArticles();}
+
+/* ─── SEARCH ── */
+let _searchMode = false;
+
+async function doSearch(){
+  const q = document.getElementById("search-input").value.trim();
+  if(!q) { clearSearch(); return; }
+  _searchMode = true;
+  document.getElementById("search-clear").style.display = "inline-block";
+  document.getElementById("search-info").textContent = "Ricerca in corso…";
+
+  // Cerca su tutto l'archivio (nessun filtro data) con limit alto
+  const res  = await fetch(`/api/articles?limit=2000`);
+  const data = await res.json();
+  const all  = data.articles || [];
+
+  const ql = q.toLowerCase();
+  const filtered = all.filter(a =>
+    (a.titolo||"").toLowerCase().includes(ql) ||
+    (a.occhiello||"").toLowerCase().includes(ql)
+  );
+
+  // Per il testo completo dobbiamo caricare i singoli articoli solo se non c'è
+  // Ma /api/articles non ritorna testo_completo, quindi facciamo una seconda chiamata
+  // solo se il risultato iniziale è 0, per non sovraccaricare
+  document.getElementById("search-info").textContent =
+    filtered.length > 0
+      ? `${filtered.length} risultati per "${q}"`
+      : `0 risultati per "${q}" — estendo la ricerca al testo completo…`;
+
+  if(filtered.length > 0){
+    renderArticlesTable(filtered);
+    return;
+  }
+
+  // Fallback: cerca con articles-filtered che ha testo_completo
+  const {start,end} = getDateRange("12months");
+  const res2  = await fetch(`/api/articles-filtered?from_date=${start}&to_date=${end}`);
+  const data2 = await res2.json();
+  const all2  = data2.articles || [];
+  const filtered2 = all2.filter(a =>
+    (a.titolo||"").toLowerCase().includes(ql) ||
+    (a.testo_completo||"").toLowerCase().includes(ql) ||
+    (a.occhiello||"").toLowerCase().includes(ql)
+  );
+
+  document.getElementById("search-info").textContent =
+    `${filtered2.length} risultati per "${q}"`;
+  renderArticlesTable(filtered2);
+}
+
+function clearSearch(){
+  _searchMode = false;
+  document.getElementById("search-input").value = "";
+  document.getElementById("search-clear").style.display = "none";
+  document.getElementById("search-info").textContent = "";
+  loadFilteredArticles();
+}
+
+
+function resetShareLink(){
+  _currentShareUrl=null;
+  document.getElementById("btn-share").textContent="🔗 Genera link";
+  document.getElementById("btn-share").className="btn-share";
+  document.getElementById("btn-copy").style.display="none";
+}
+
+async function generateShareLink(){
+  if(!_visibleIds.length) return;
+  const btn=document.getElementById("btn-share");
+  btn.textContent="…"; btn.disabled=true;
+  const res=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({article_ids:_visibleIds})});
+  const data=await res.json();
+  btn.disabled=false;
+  if(data.token){
+    _currentShareUrl=window.location.origin+"/share/"+data.token;
+    btn.textContent=`✓ Link pronto (${_visibleIds.length} art.)`;
+    btn.className="btn-share active";
+    const copy=document.getElementById("btn-copy");
+    copy.style.display="inline-block"; copy.innerText="📋 Copia link";
+  } else {
+    btn.textContent="🔗 Genera link";
+    alert("Errore: "+(data.error||"sconosciuto"));
+  }
+}
+
+function copyShareLink(){
+  if(!_currentShareUrl) return;
+  navigator.clipboard.writeText(_currentShareUrl).then(()=>{
+    const btn=document.getElementById("btn-copy");
+    btn.innerText="✓ Copiato!";
+    setTimeout(()=>btn.innerText="📋 Copia link",2000);
+  });
+}
+
+window.onload=function(){ loadDashboard(); loadMacroGroups(); };
+</script>
+</body>
+</html>
