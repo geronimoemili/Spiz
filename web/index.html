@@ -230,7 +230,7 @@ async function loadArticlesGlobal(){
 async function loadArticlesForClient(){
   if(!currentClient) return;
   const {start,end}=getDateRange(currentPeriod);
-  const res=await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
+  const res=await fetch(`/api/articles-filtered?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
   const data=await res.json();
   renderArticlesTable(data.articles);
 }
