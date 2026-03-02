@@ -94,6 +94,7 @@ class ClientModel(BaseModel):
     website:        Optional[str] = None
     contact:        Optional[str] = None
     semantic_topic: Optional[str] = None
+    macro_strategici: Optional[str] = None
 
 class SourceModel(BaseModel):
     name:   str
