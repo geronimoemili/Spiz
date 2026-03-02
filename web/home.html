@@ -75,7 +75,68 @@
   /* ── LAYOUT ── */
   .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
 
-  /* ── STAT CARDS ── */
+  /* ── TICKER ── */
+  .ticker-wrap {
+    background: #e8ecf2;
+    overflow: hidden;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    border-bottom: 1px solid #dde3ed;
+  }
+  .ticker-wrap + .ticker-wrap {
+    background: #dde3ed;
+    border-bottom: 2px solid #c8d0e0;
+  }
+  .ticker-source {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 0 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    z-index: 2;
+    height: 100%;
+    display: flex; align-items: center;
+    border-right: 1px solid rgba(0,0,0,.08);
+  }
+  .ticker-source.ansa   { color: #0ea5c9; background: #e8ecf2; }
+  .ticker-source.sole24 { color: #d4367a; background: #dde3ed; }
+  .ticker-track {
+    display: flex;
+    white-space: nowrap;
+    animation: ticker linear infinite;
+    will-change: transform;
+  }
+  .ticker-wrap:nth-child(1) .ticker-track { animation-duration: 55s; }
+  .ticker-wrap:nth-child(2) .ticker-track { animation-duration: 70s; }
+  @keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-track:hover { animation-play-state: paused; }
+  .ticker-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: #5a6a84;
+    padding: 0 28px;
+    cursor: default;
+    transition: color .2s;
+  }
+  .ticker-item:hover { color: var(--text); }
+  .ticker-sep {
+    color: rgba(0,0,0,.15);
+    font-size: 10px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .ticker-loading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: var(--faint);
+    padding: 0 20px; letter-spacing: 1px;
+  }
+
+
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -312,7 +373,7 @@
   /* ── TOAST ── */
   .toast {
     position: fixed; bottom: 20px; right: 20px;
-    background: var(--text); color: #fff;
+    background: #e8ecf2; color: #fff;
     padding: 10px 18px; border-radius: 7px;
     font-family: 'IBM Plex Mono', monospace; font-size: 11px;
     box-shadow: 0 4px 16px rgba(0,0,0,.2);
@@ -352,7 +413,23 @@
   </div>
 </nav>
 
-<div class="wrap">
+<!-- TICKER ANSA -->
+<div class="ticker-wrap" id="ticker-ansa">
+  <div class="ticker-source ansa">ANSA</div>
+  <div class="ticker-track" id="track-ansa">
+    <span class="ticker-loading">Caricamento notizie…</span>
+  </div>
+</div>
+
+<!-- TICKER SOLE 24 ORE -->
+<div class="ticker-wrap" id="ticker-sole">
+  <div class="ticker-source sole24">SOLE 24</div>
+  <div class="ticker-track" id="track-sole">
+    <span class="ticker-loading">Caricamento notizie…</span>
+  </div>
+</div>
+
+
 
   <!-- STAT CARDS -->
   <div class="stat-grid">
@@ -456,6 +533,10 @@ let selectedFile = null;
 
 // ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Ticker in parallelo, non bloccanti
+  loadTicker('track-ansa', 'https://www.ansa.it/sito/ansait_rss.xml');
+  loadTicker('track-sole', 'https://www.ilsole24ore.com/rss/italia--parlamento.xml');
+
   await Promise.all([
     loadStats(),
     loadTodayStats(),
@@ -503,7 +584,7 @@ async function loadJournalists() {
   const el = document.getElementById('journalists-list');
   el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
   try {
-    const r = await fetch(`/api/top-giornalisti?period=${period}&limit=8`);
+    const r = await fetch(`/api/top-giornalisti?period=${period}&limit=20`);
     const data = await r.json();
     if (!data.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>'; return; }
     const max = data[0]?.articoli || 1;
@@ -524,53 +605,36 @@ async function loadJournalists() {
 // ── MACRO HEATMAP ────────────────────────────────────────────
 async function loadMacroHeatmap() {
   const el = document.getElementById('macro-list');
-  el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
+  el.innerHTML = '<div class="skeleton" style="height:240px"></div>';
   try {
     const today = fmt_date(new Date());
-    const [rMacros, rArts] = await Promise.all([
-      fetch('/api/macro-groups').then(r=>r.json()),
-      fetch(`/api/articles?from_date=${today}&to_date=${today}&limit=1000`).then(r=>r.json()),
-    ]);
 
-    const macroGroups = (rMacros.groups || rMacros || []);
-    const articles = rArts.articles || [];
+    // 1. Carica tutti i 15 macro groups
+    const rMacros = await fetch('/api/macro-groups').then(r=>r.json());
+    const macroGroups = rMacros.groups || [];
 
-    // Conta articoli per macrosettore (field è testo CSV)
-    const sectorCount = {};
-    articles.forEach(a => {
-      if (!a.macrosettori) return;
-      a.macrosettori.split(',').forEach(s => {
-        const t = s.trim();
-        if (t) sectorCount[t] = (sectorCount[t]||0) + 1;
-      });
-    });
-
-    // Mappa macro groups → somma articoli dei loro settori
-    // Se non abbiamo mapping dettagliato, mostriamo top macrosettori direttamente
-    let items;
-    if (macroGroups.length > 0) {
-      // Prova a matchare per nome
-      items = macroGroups.map(g => ({
-        name: g.name,
-        count: sectorCount[g.name] || 0,
-      })).filter(i => i.count > 0).sort((a,b)=>b.count-a.count).slice(0,8);
-
-      // Se nessun match, fallback ai raw macrosettori
-      if (!items.length) {
-        items = Object.entries(sectorCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
-      }
-    } else {
-      items = Object.entries(sectorCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
-    }
-
-    if (!items.length) {
-      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato per oggi</p>';
+    if (!macroGroups.length) {
+      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun tema strategico configurato</p>';
       return;
     }
 
-    const max = items[0].count || 1;
-    el.innerHTML = items.map((m, i) => {
-      const pct   = Math.round(m.count / max * 100);
+    // 2. Per ogni gruppo chiama macro-group-articles in parallelo
+    //    L'endpoint usa la join macro_group_links → official_macrosectors → articles
+    const results = await Promise.all(
+      macroGroups.map(g =>
+        fetch(`/api/macro-group-articles?macro_group_id=${g.id}&from_date=${today}&to_date=${today}`)
+          .then(r => r.json())
+          .then(d => ({ id: g.id, name: g.name, count: (d.articles || []).length }))
+          .catch(() => ({ id: g.id, name: g.name, count: 0 }))
+      )
+    );
+
+    // 3. Ordina per copertura decrescente
+    const items = results.sort((a, b) => b.count - a.count);
+    const max   = items[0]?.count || 1;
+
+    el.innerHTML = items.map(m => {
+      const pct   = max > 0 ? Math.round(m.count / max * 100) : 0;
       const color = pct >= 75 ? '#e03a5a' : pct >= 40 ? '#d97706' : '#0ea5c9';
       return `
       <div class="macro-row">
@@ -579,6 +643,7 @@ async function loadMacroHeatmap() {
         <div class="macro-count" style="color:${color}">${m.count}</div>
       </div>`;
     }).join('');
+
   } catch(e) {
     el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
   }
@@ -700,7 +765,26 @@ async function doUpload() {
   }, 2000);
 }
 
-// ── UTILS ────────────────────────────────────────────────────
+// ── TICKER RSS ───────────────────────────────────────────────
+async function loadTicker(trackId, rssUrl) {
+  const track = document.getElementById(trackId);
+  try {
+    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=&count=40`;
+    const r   = await fetch(api);
+    const d   = await r.json();
+    const items = d.items || [];
+    if (!items.length) { track.innerHTML = '<span class="ticker-loading">Nessuna notizia disponibile</span>'; return; }
+
+    // Costruisce stringa doppia per loop continuo senza salti
+    const html = items.map(i =>
+      `<span class="ticker-item">${esc(i.title)}</span><span class="ticker-sep">◆</span>`
+    ).join('');
+    track.innerHTML = html + html; // duplicato per loop seamless
+  } catch(e) {
+    track.innerHTML = '<span class="ticker-loading">Feed non disponibile</span>';
+  }
+}
+
 function fmt(n)      { return Number(n).toLocaleString('it-IT'); }
 function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt_date(d) {
