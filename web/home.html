@@ -6,7 +6,6 @@
 <title>MAIM Intelligence — Home</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg:       #f4f6f9;
@@ -133,13 +132,6 @@
     margin-bottom: 14px;
   }
 
-  /* ── CHARTS ROW ── */
-  .charts-row {
-    display: grid;
-    grid-template-columns: 1.7fr 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
 
   /* ── SELECT ── */
   select {
@@ -333,12 +325,11 @@
   .toast.error   { border-left: 3px solid var(--red); }
 
   @media (max-width: 1024px) {
-    .charts-row { grid-template-columns: 1fr 1fr; }
     .bottom-row { grid-template-columns: 1fr 1fr; }
     .stat-grid  { grid-template-columns: repeat(2,1fr); }
   }
   @media (max-width: 640px) {
-    .charts-row, .bottom-row, .stat-grid { grid-template-columns: 1fr; }
+    .bottom-row, .stat-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -387,36 +378,6 @@
     </div>
   </div>
 
-  <!-- CHARTS ROW -->
-  <div class="charts-row">
-
-    <div class="card">
-      <div class="card-header">
-        <div class="sec-label">📊 Articoli nel periodo</div>
-        <select id="bar-period" onchange="loadBarChart()">
-          <option value="7">Ultimi 7 giorni</option>
-          <option value="30" selected>Ultimi 30 giorni</option>
-          <option value="180">Ultimi 6 mesi</option>
-        </select>
-      </div>
-      <canvas id="chart-bar" height="160"></canvas>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="sec-label">📰 Tipo pubblicazione</div>
-      </div>
-      <canvas id="chart-tipo" height="180"></canvas>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="sec-label">🎭 Sentiment oggi</div>
-      </div>
-      <canvas id="chart-sentiment" height="180"></canvas>
-    </div>
-
-  </div>
 
   <!-- UPLOAD -->
   <div class="upload-card" id="upload-zone">
@@ -490,17 +451,14 @@
 
 <script>
 // ── GLOBALS ─────────────────────────────────────────────────
-let chartBar, chartTipo, chartSentiment;
 let allClients = [];
 let selectedFile = null;
 
 // ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  initCharts();
   await Promise.all([
     loadStats(),
     loadTodayStats(),
-    loadBarChart(),
     loadJournalists(),
     loadMacroHeatmap(),
     loadClientCitations(),
@@ -536,100 +494,7 @@ async function loadTodayStats() {
     document.getElementById('s-today-sub').textContent = `${fmt(Math.max(0,firmati))} firmati · ${fmt(Math.max(0,anonimi))} anonimi`;
     document.getElementById('s-giornalisti').textContent = fmt(giornalisti.length);
     document.getElementById('s-testate').textContent = fmt((d.testate||[]).length);
-
-    // Sentiment pie
-    const sent = d.sentiment || {};
-    updateSentimentChart(sent);
   } catch(e) {}
-}
-
-// ── BAR CHART ────────────────────────────────────────────────
-async function loadBarChart() {
-  const days = parseInt(document.getElementById('bar-period').value);
-  const today = new Date();
-  const from  = new Date(today);
-  from.setDate(from.getDate() - days);
-
-  try {
-    const r = await fetch(`/api/articles?from_date=${fmt_date(from)}&to_date=${fmt_date(today)}&limit=2000`);
-    const d = await r.json();
-    const articles = d.articles || [];
-
-    // Aggregate by period
-    const buckets = {};
-    if (days <= 7) {
-      // Daily
-      for (let i = days-1; i >= 0; i--) {
-        const d2 = new Date(today); d2.setDate(d2.getDate()-i);
-        buckets[fmt_date(d2)] = 0;
-      }
-      articles.forEach(a => { if (a.data && buckets.hasOwnProperty(a.data)) buckets[a.data]++; });
-    } else if (days <= 30) {
-      // Weekly buckets
-      const nWeeks = Math.ceil(days/7);
-      for (let w = nWeeks-1; w >= 0; w--) {
-        const key = `S-${nWeeks-w}`;
-        buckets[key] = 0;
-      }
-      articles.forEach(a => {
-        if (!a.data) return;
-        const diff = Math.floor((today - new Date(a.data)) / 86400000);
-        const wk = Math.floor(diff / 7);
-        const key = `S-${Math.ceil(days/7)-wk}`;
-        if (buckets.hasOwnProperty(key)) buckets[key]++;
-      });
-    } else {
-      // Monthly buckets
-      for (let m = 5; m >= 0; m--) {
-        const d2 = new Date(today); d2.setMonth(d2.getMonth()-m);
-        const key = d2.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
-        buckets[key] = (buckets[key] || 0);
-      }
-      articles.forEach(a => {
-        if (!a.data) return;
-        const dt = new Date(a.data);
-        const key = dt.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
-        if (buckets.hasOwnProperty(key)) buckets[key]++;
-      });
-    }
-
-    const labels = Object.keys(buckets);
-    const values = Object.values(buckets);
-    chartBar.data.labels = labels;
-    chartBar.data.datasets[0].data = values;
-    chartBar.update();
-  } catch(e) {}
-}
-
-// ── TIPO PUBBLICAZIONE ────────────────────────────────────────
-async function loadTipoPubblicazione(articles) {
-  const counter = {};
-  (articles||[]).forEach(a => {
-    const t = (a.tipo_fonte||'Altro').trim() || 'Altro';
-    counter[t] = (counter[t]||0) + 1;
-  });
-  const sorted = Object.entries(counter).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const COLORS = ['#0ea5c9','#d4367a','#7c3aed','#d97706','#059669'];
-  chartTipo.data.labels   = sorted.map(([k])=>k);
-  chartTipo.data.datasets[0].data            = sorted.map(([,v])=>v);
-  chartTipo.data.datasets[0].backgroundColor = sorted.map((_,i)=>COLORS[i]||'#9aabc0');
-  chartTipo.update();
-}
-
-// ── SENTIMENT ────────────────────────────────────────────────
-function updateSentimentChart(sent) {
-  const MAP = {
-    'positivo':'Positivo','neutro':'Neutro','negativo':'Negativo',
-    'positive':'Positivo','neutral':'Neutro','negative':'Negativo',
-    'Positivo':'Positivo','Neutro':'Neutro','Negativo':'Negativo',
-  };
-  const merged = {'Positivo':0,'Neutro':0,'Negativo':0};
-  Object.entries(sent).forEach(([k,v]) => {
-    const label = MAP[k.toLowerCase()] || MAP[k] || k;
-    if (merged.hasOwnProperty(label)) merged[label] += parseInt(v)||0;
-  });
-  chartSentiment.data.datasets[0].data = [merged['Positivo'], merged['Neutro'], merged['Negativo']];
-  chartSentiment.update();
 }
 
 // ── JOURNALISTS ──────────────────────────────────────────────
@@ -769,9 +634,6 @@ async function loadClientCitations() {
       </div>`;
     }).join('');
 
-    // Carica anche tipo pubblicazione con questi articoli
-    loadTipoPubblicazione(articles);
-
   } catch(e) {
     el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
   }
@@ -836,66 +698,6 @@ async function doUpload() {
     document.getElementById('file-name').textContent = 'Scegli file CSV';
     document.getElementById('file-input').value = '';
   }, 2000);
-}
-
-// ── CHARTS INIT ──────────────────────────────────────────────
-function initCharts() {
-  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
-  Chart.defaults.font.size   = 10;
-  Chart.defaults.color       = '#9aabc0';
-
-  // Bar chart
-  chartBar = new Chart(document.getElementById('chart-bar'), {
-    type: 'bar',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'Articoli',
-        data: [],
-        backgroundColor: 'rgba(14,165,201,0.7)',
-        borderColor: '#0ea5c9',
-        borderWidth: 0,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false}, tooltip:{callbacks:{label: c=>' '+c.raw+' articoli'}} },
-      scales: {
-        x: { grid:{display:false}, ticks:{maxRotation:0} },
-        y: { grid:{color:'#eef1f6'}, beginAtZero:true },
-      }
-    }
-  });
-
-  // Tipo pubblicazione
-  chartTipo = new Chart(document.getElementById('chart-tipo'), {
-    type: 'doughnut',
-    data: { labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0, hoverOffset:4 }] },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, padding:10, font:{size:10} } } },
-      cutout: '60%',
-    }
-  });
-
-  // Sentiment
-  chartSentiment = new Chart(document.getElementById('chart-sentiment'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Positivo','Neutro','Negativo'],
-      datasets:[{
-        data: [0,0,0],
-        backgroundColor: ['#059669','#9aabc0','#e03a5a'],
-        borderWidth: 0, hoverOffset: 4,
-      }]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:8, padding:10, font:{size:10} } } },
-      cutout: '60%',
-    }
-  });
 }
 
 // ── UTILS ────────────────────────────────────────────────────
