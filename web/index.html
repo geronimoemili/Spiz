@@ -228,6 +228,7 @@ async function loadArticlesGlobal(){
 }
 
 async function loadArticlesForClient(){
+  if(!currentClient) return;
   const {start,end}=getDateRange(currentPeriod);
   const res=await fetch(`/api/client-articles?client_id=${currentClient.id}&from_date=${start}&to_date=${end}`);
   const data=await res.json();
@@ -341,7 +342,7 @@ async function loadFilteredArticles(){
   const selected=Array.from(document.querySelectorAll(".macro-checkbox:checked")).map(cb=>cb.value);
   if(selected.length===0){renderArticlesTable([]);return;}
   const params=new URLSearchParams({from_date:start,to_date:end});
-  if(currentClient) params.append("client_id",currentClient.id);
+  if(currentClient && currentClient.id) params.append("client_id",currentClient.id);
   if(selected.length===1) params.append("macro_group_id",selected[0]);
   const res=await fetch("/api/articles-filtered?"+params.toString());
   const data=await res.json();
