@@ -769,17 +769,17 @@ async function doUpload() {
 async function loadTicker(trackId, rssUrl) {
   const track = document.getElementById(trackId);
   try {
-    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=&count=40`;
-    const r   = await fetch(api);
-    const d   = await r.json();
-    const items = d.items || [];
+    const proxy = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
+    const r     = await fetch(proxy);
+    const text  = await r.text();
+    const xml   = new DOMParser().parseFromString(text, 'text/xml');
+    const items = Array.from(xml.querySelectorAll('item')).slice(0, 40);
     if (!items.length) { track.innerHTML = '<span class="ticker-loading">Nessuna notizia disponibile</span>'; return; }
-
-    // Costruisce stringa doppia per loop continuo senza salti
-    const html = items.map(i =>
-      `<span class="ticker-item">${esc(i.title)}</span><span class="ticker-sep">◆</span>`
-    ).join('');
-    track.innerHTML = html + html; // duplicato per loop seamless
+    const html = items.map(i => {
+      const title = i.querySelector('title')?.textContent?.trim() || '';
+      return `<span class="ticker-item">${esc(title)}</span><span class="ticker-sep">◆</span>`;
+    }).join('');
+    track.innerHTML = html + html;
   } catch(e) {
     track.innerHTML = '<span class="ticker-loading">Feed non disponibile</span>';
   }
