@@ -210,7 +210,7 @@ function renderClientList(clients){
 function selectClient(el){
   document.querySelectorAll(".client-row").forEach(r=>r.classList.remove("active"));
   el.classList.add("active");
-  currentClient={id:el.dataset.id};
+  currentClient={id:el.getAttribute("data-id")};
   loadArticlesForClient();
 }
 

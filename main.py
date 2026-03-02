@@ -293,7 +293,9 @@ async def today_mentions():
 
         result = []
         for cl in clients:
-            keywords = [k.strip().lower() for k in (cl.get("keywords") or "").split(",") if k.strip()]
+            # Tenta keywords_press, poi keywords
+            raw_keywords = cl.get("keywords_press") or cl.get("keywords") or ""
+            keywords = [k.strip().lower() for k in raw_keywords.split(",") if k.strip()]
             if not keywords:
                 count = 0
             else:
@@ -309,7 +311,7 @@ async def today_mentions():
             result.append({
                 "id":       cl["id"],
                 "name":     cl.get("name",""),
-                "keywords": cl.get("keywords_press") or cl.get("keywords",""),
+                "keywords": raw_keywords,
                 "today":    count,
             })
 
