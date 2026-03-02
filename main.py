@@ -10,6 +10,7 @@ load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, timedelta, datetime, timezone
@@ -34,9 +35,9 @@ try:
 except Exception as e:
     print(f"⚠️ Scheduler non avviato: {e}")
 
-app = FastAPI(title="SPIZ Intelligence")
-from fastapi.staticfiles import StaticFiles
+app = FastAPI(title="MAIM Intelligence")
 app.mount("/static", StaticFiles(directory="web"), name="static")
+
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
 
@@ -87,14 +88,14 @@ class ArticleUpdateSimple(BaseModel):
     tipo_fonte:         Optional[str]   = None
 
 class ClientModel(BaseModel):
-    name:           Optional[str] = None
-    keywords:       Optional[str] = None
-    keywords_web:   Optional[str] = None
-    sector:         Optional[str] = None
-    description:    Optional[str] = None
-    website:        Optional[str] = None
-    contact:        Optional[str] = None
-    semantic_topic: Optional[str] = None
+    name:             Optional[str] = None
+    keywords:         Optional[str] = None
+    keywords_web:     Optional[str] = None
+    sector:           Optional[str] = None
+    description:      Optional[str] = None
+    website:          Optional[str] = None
+    contact:          Optional[str] = None
+    semantic_topic:   Optional[str] = None
     macro_strategici: Optional[str] = None
 
 class SourceModel(BaseModel):
@@ -129,7 +130,15 @@ async def press_page():
 
 @app.get("/dashboard")
 async def dashboard_page():
-    return FileResponse("web/press.html")
+    return FileResponse("web/press.html")  # alias legacy
+
+@app.get("/web")
+async def web_page():
+    return FileResponse("web/web.html")
+
+@app.get("/monitor")
+async def monitor_page():
+    return FileResponse("web/web.html")  # alias legacy
 
 @app.get("/chat")
 async def chat_page():
@@ -139,13 +148,17 @@ async def chat_page():
 async def clients_page():
     return FileResponse("web/clienti.html")
 
-@app.get("/monitor")
-async def monitor_page():
-    return FileResponse("web/monitor.html")
-
 @app.get("/pitch")
 async def pitch_page():
     return FileResponse("web/pitch.html")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.get("/healthcheck")
+async def healthcheck():
+    return {"status": "ok"}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -297,7 +310,6 @@ async def today_mentions():
 
         result = []
         for cl in clients:
-            # Tenta keywords_press, poi keywords
             raw_keywords = cl.get("keywords_press") or cl.get("keywords") or ""
             keywords = [k.strip().lower() for k in raw_keywords.split(",") if k.strip()]
             if not keywords:
@@ -560,7 +572,7 @@ async def read_share(token: str):
         id_order = {aid: i for i, aid in enumerate(article_ids)}
         articles = sorted(res.data or [], key=lambda a: id_order.get(a["id"], 9999))
         lines = []
-        lines.append("ARCHIVIO SPIZ - " + str(len(articles)) + " articoli")
+        lines.append("ARCHIVIO MAIM - " + str(len(articles)) + " articoli")
         lines.append("")
         for i, a in enumerate(articles, 1):
             lines.append("---")
@@ -724,16 +736,17 @@ async def create_client(data: ClientModel):
     try:
         if not data.name or not data.name.strip():
             raise HTTPException(status_code=400, detail="Il nome è obbligatorio")
-        
+
         res = supabase.table("clients").insert({
-            "name":           data.name.strip(),
-            "keywords":       data.keywords,
-            "keywords_web":   data.keywords_web,
-            "sector":         data.sector,
-            "description":    data.description,
-            "website":        data.website,
-            "contact":        data.contact,
-            "semantic_topic": data.semantic_topic,
+            "name":             data.name.strip(),
+            "keywords":         data.keywords,
+            "keywords_web":     data.keywords_web,
+            "sector":           data.sector,
+            "description":      data.description,
+            "website":          data.website,
+            "contact":          data.contact,
+            "semantic_topic":   data.semantic_topic,
+            "macro_strategici": data.macro_strategici,
         }).execute()
         return {"success": True, "id": res.data[0].get("id") if res.data else None, "client": res.data[0] if res.data else {}}
     except HTTPException:
@@ -810,7 +823,7 @@ async def toggle_source(source_id: str, request: Request):
         return {"error": str(e)}
 
 
-# Alias legacy per compatibilità con vecchi endpoint
+# Alias legacy
 @app.get("/api/monitored-sources")
 async def get_monitored_sources_legacy():
     return await get_sources()
@@ -838,7 +851,7 @@ async def toggle_monitored_source_legacy(source_id: str, active: bool = Query(..
 
 @app.get("/api/web-mentions")
 async def get_web_mentions(
-    client: Optional[str] = None,   # nome cliente (matched_client è testo)
+    client: Optional[str] = None,
     limit:  int           = 50,
 ):
     try:
@@ -856,7 +869,7 @@ async def get_web_mentions(
 
 
 # ══════════════════════════════════════════════════════════════════════
-# MONITOR — RUN / STORICO / SCAN-INFO
+# MONITOR
 # ══════════════════════════════════════════════════════════════════════
 
 @app.post("/api/monitor/run")
@@ -896,10 +909,6 @@ async def monitor_scan_info():
     except Exception as e:
         return {"last_daily": None, "last_historical": None}
 
-
-# ══════════════════════════════════════════════════════════════════════
-# MONITOR META (legacy)
-# ══════════════════════════════════════════════════════════════════════
 
 @app.get("/api/monitor-meta")
 async def get_monitor_meta():
