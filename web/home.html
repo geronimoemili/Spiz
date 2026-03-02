@@ -75,67 +75,6 @@
   /* ── LAYOUT ── */
   .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
 
-  /* ── TICKER ── */
-  .ticker-wrap {
-    background: #e8ecf2;
-    overflow: hidden;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    border-bottom: 1px solid #dde3ed;
-  }
-  .ticker-wrap + .ticker-wrap {
-    background: #dde3ed;
-    border-bottom: 2px solid #c8d0e0;
-  }
-  .ticker-source {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    padding: 0 14px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    z-index: 2;
-    height: 100%;
-    display: flex; align-items: center;
-    border-right: 1px solid rgba(0,0,0,.08);
-  }
-  .ticker-source.ansa   { color: #0ea5c9; background: #e8ecf2; }
-  .ticker-source.sole24 { color: #d4367a; background: #dde3ed; }
-  .ticker-track {
-    display: flex;
-    white-space: nowrap;
-    animation: ticker linear infinite;
-    will-change: transform;
-  }
-  .ticker-wrap:nth-child(1) .ticker-track { animation-duration: 55s; }
-  .ticker-wrap:nth-child(2) .ticker-track { animation-duration: 70s; }
-  @keyframes ticker {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  .ticker-track:hover { animation-play-state: paused; }
-  .ticker-item {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; color: #5a6a84;
-    padding: 0 28px;
-    cursor: default;
-    transition: color .2s;
-  }
-  .ticker-item:hover { color: var(--text); }
-  .ticker-sep {
-    color: rgba(0,0,0,.15);
-    font-size: 10px;
-    padding: 0 4px;
-    flex-shrink: 0;
-  }
-  .ticker-loading {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--faint);
-    padding: 0 20px; letter-spacing: 1px;
-  }
-
 
   .stat-grid {
     display: grid;
@@ -413,23 +352,6 @@
   </div>
 </nav>
 
-<!-- TICKER ANSA -->
-<div class="ticker-wrap" id="ticker-ansa">
-  <div class="ticker-source ansa">ANSA</div>
-  <div class="ticker-track" id="track-ansa">
-    <span class="ticker-loading">Caricamento notizie…</span>
-  </div>
-</div>
-
-<!-- TICKER SOLE 24 ORE -->
-<div class="ticker-wrap" id="ticker-sole">
-  <div class="ticker-source sole24">SOLE 24</div>
-  <div class="ticker-track" id="track-sole">
-    <span class="ticker-loading">Caricamento notizie…</span>
-  </div>
-</div>
-
-
 
   <!-- STAT CARDS -->
   <div class="stat-grid">
@@ -534,8 +456,6 @@ let selectedFile = null;
 // ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   // Ticker in parallelo, non bloccanti
-  loadTicker('track-ansa', 'https://www.ansa.it/sito/ansait_rss.xml');
-  loadTicker('track-sole', 'https://www.ilsole24ore.com/rss/italia--parlamento.xml');
 
   await Promise.all([
     loadStats(),
@@ -765,25 +685,6 @@ async function doUpload() {
   }, 2000);
 }
 
-// ── TICKER RSS ───────────────────────────────────────────────
-async function loadTicker(trackId, rssUrl) {
-  const track = document.getElementById(trackId);
-  try {
-    const proxy = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
-    const r     = await fetch(proxy);
-    const text  = await r.text();
-    const xml   = new DOMParser().parseFromString(text, 'text/xml');
-    const items = Array.from(xml.querySelectorAll('item')).slice(0, 40);
-    if (!items.length) { track.innerHTML = '<span class="ticker-loading">Nessuna notizia disponibile</span>'; return; }
-    const html = items.map(i => {
-      const title = i.querySelector('title')?.textContent?.trim() || '';
-      return `<span class="ticker-item">${esc(title)}</span><span class="ticker-sep">◆</span>`;
-    }).join('');
-    track.innerHTML = html + html;
-  } catch(e) {
-    track.innerHTML = '<span class="ticker-loading">Feed non disponibile</span>';
-  }
-}
 
 function fmt(n)      { return Number(n).toLocaleString('it-IT'); }
 function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
