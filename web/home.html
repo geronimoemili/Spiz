@@ -366,8 +366,8 @@
     </div>
     <label class="file-label" id="file-label">
       <span>📎</span>
-      <span id="file-name">Scegli file CSV</span>
-      <input type="file" id="file-input" accept=".csv" style="display:none" onchange="onFilePick(this)"/>
+      <span id="file-name">Scegli uno o più CSV</span>
+      <input type="file" id="file-input" accept=".csv" multiple style="display:none" onchange="onFilePick(this)"/>
     </label>
     <button class="btn-upload" id="btn-upload" disabled onclick="doUpload()">⚡ Elabora</button>
   </div>
@@ -463,9 +463,13 @@ async function loadTodayStats() {
     const r = await fetch('/api/today-stats');
     const d = await r.json();
     document.getElementById('s-today').textContent = fmt(d.total_today || 0);
-    document.getElementById('s-today-sub').textContent = `${fmt(d.total_firmati || 0)} firmati · ${fmt(d.total_anonimi || 0)} anonimi`;
-    document.getElementById('s-giornalisti').textContent = fmt(d.total_giornalisti || 0);
-    document.getElementById('s-testate').textContent = fmt(d.total_testate || 0);
+    // Calcola firmati vs anonimi dal sentiment data
+    const giornalisti = (d.giornalisti || []).filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome));
+    const firmati = giornalisti.reduce((a,g) => a + (g.articoli||0), 0);
+    const anonimi = (d.total_today||0) - firmati;
+    document.getElementById('s-today-sub').textContent = `${fmt(Math.max(0,firmati))} firmati · ${fmt(Math.max(0,anonimi))} anonimi`;
+    document.getElementById('s-giornalisti').textContent = fmt(giornalisti.length);
+    document.getElementById('s-testate').textContent = fmt((d.testate||[]).length);
   } catch(e) {}
 }
 
@@ -597,15 +601,17 @@ async function loadClientCitations() {
 
 // ── UPLOAD ──────────────────────────────────────────────────
 function onFilePick(input) {
-  const f = input.files?.[0];
-  if (!f) return;
-  selectedFile = f;
-  document.getElementById('file-name').textContent = f.name;
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  selectedFile = files;
+  document.getElementById('file-name').textContent =
+    files.length === 1 ? files[0].name : `${files.length} file selezionati`;
   document.getElementById('btn-upload').disabled = false;
 }
 
 async function doUpload() {
-  if (!selectedFile) return;
+  if (!selectedFile || !selectedFile.length) return;
+  const files   = selectedFile;
   const btn     = document.getElementById('btn-upload');
   const progW   = document.getElementById('prog-wrap');
   const progB   = document.getElementById('prog-bar');
@@ -626,19 +632,21 @@ async function doUpload() {
 
   try {
     const fd = new FormData();
-    fd.append('files', selectedFile);
+    files.forEach(f => fd.append('files', f));
     const r  = await fetch('/upload', { method:'POST', body:fd });
     const d  = await r.json();
     clearInterval(iv);
     progB.style.width = '100%';
     progTxt.textContent = 'Completato!';
-    const result = d.results?.[0];
-    if (result?.status === 'success') {
-      toast(`✅ ${selectedFile.name} caricato correttamente`, 'success');
-      setTimeout(() => loadStats(), 1000);
-    } else {
-      toast(`⚠️ ${result?.message || 'Errore durante l\'elaborazione'}`, 'error');
-    }
+
+    const results = d.results || [];
+    const ok  = results.filter(r => r.status === 'success');
+    const err = results.filter(r => r.status !== 'success');
+
+    if (ok.length)  toast(`✅ ${ok.length} file caricati correttamente`, 'success');
+    if (err.length) toast(`⚠️ ${err.length} file con errori: ${err.map(r=>r.file).join(', ')}`, 'error');
+    if (ok.length)  setTimeout(() => loadStats(), 1000);
+
   } catch(e) {
     clearInterval(iv);
     toast('❌ Errore di connessione', 'error');
@@ -651,7 +659,7 @@ async function doUpload() {
     btn.textContent = '⚡ Elabora';
     btn.disabled = true;
     selectedFile = null;
-    document.getElementById('file-name').textContent = 'Scegli file CSV';
+    document.getElementById('file-name').textContent = 'Scegli uno o più CSV';
     document.getElementById('file-input').value = '';
   }, 2000);
 }

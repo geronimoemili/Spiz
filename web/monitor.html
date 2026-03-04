@@ -296,7 +296,8 @@
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────
 let clients     = [];   // { id, name, keywords_web, count }
-let mentions    = [];   // array web_mentions
+let mentions    = [];   // array web_mentions filtrate
+let allMentions = [];   // tutte le web_mentions non filtrate
 let sources     = [];   // array monitored_sources
 let activeClient = null; // nome cliente selezionato (null = tutti)
 let currentTab  = 'mentions';
@@ -356,21 +357,37 @@ async function loadClients() {
 }
 
 async function computeClientCounts() {
-    // Carica tutte le mentions per calcolare i count per cliente
+    // Carica tutte le mentions per calcolare i count per cliente (usa keywords_web)
     try {
         const res  = await fetch('/api/web-mentions?limit=500');
         const data = await res.json();
-        mentions = Array.isArray(data) ? data : (data.mentions || []);
+        allMentions = Array.isArray(data) ? data : (data.mentions || []);
+        mentions = allMentions;
 
-        // Calcola count per ogni cliente
-        clients.forEach(c => {
-            c.count = mentions.filter(m =>
-                m.matched_client && m.matched_client.toLowerCase().includes(c.name.toLowerCase())
-            ).length;
-        });
+        updateClientCounts();
     } catch(e) {
         clients.forEach(c => c.count = 0);
     }
+}
+
+function updateClientCounts() {
+    clients.forEach(c => {
+        const kws = getClientKeywords(c);
+        if (kws.length === 0) { c.count = 0; return; }
+        c.count = allMentions.filter(m => matchesKeywords(m, kws)).length;
+    });
+}
+
+function getClientKeywords(client) {
+    if (!client.keywords_web) return [];
+    return client.keywords_web.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+}
+
+function matchesKeywords(mention, kws) {
+    const mk = (mention.matched_keywords || '').toLowerCase();
+    const title = (mention.title || '').toLowerCase();
+    const summary = (mention.summary || '').toLowerCase();
+    return kws.some(kw => mk.includes(kw) || title.includes(kw) || summary.includes(kw));
 }
 
 function renderSidebar() {
@@ -392,14 +409,13 @@ function renderSidebar() {
 function selectClient(name) {
     activeClient = name;
     renderSidebar();
-    loadMentions();
+    applyClientFilter();
 }
 
 // ── MENTIONS ──────────────────────────────────────────────────────────
 async function loadMentions() {
     const limit  = document.getElementById('filter-limit').value;
-    const params = new URLSearchParams({ limit });
-    if (activeClient) params.set('client', activeClient);
+    const params = new URLSearchParams({ limit: 500 }); // carica sempre tutto, filtra client-side
 
     document.getElementById('mentions-list').innerHTML =
         '<div class="empty-state"><div class="icon"><div class="spinner dark"></div></div></div>';
@@ -407,20 +423,33 @@ async function loadMentions() {
     try {
         const res  = await fetch('/api/web-mentions?' + params);
         const data = await res.json();
-        mentions   = Array.isArray(data) ? data : [];
-        renderMentions();
+        allMentions = Array.isArray(data) ? data : [];
 
-        // Aggiorna i count in sidebar
-        clients.forEach(c => {
-            c.count = mentions.filter(m =>
-                m.matched_client && m.matched_client.toLowerCase().includes(c.name.toLowerCase())
-            ).length;
-        });
+        applyClientFilter();
+        updateClientCounts();
         renderSidebar();
     } catch(e) {
         document.getElementById('mentions-list').innerHTML =
             '<div class="empty-state"><p>Errore caricamento</p></div>';
     }
+}
+
+function applyClientFilter() {
+    if (!activeClient) {
+        mentions = allMentions;
+    } else {
+        const client = clients.find(c => c.name === activeClient);
+        const kws = client ? getClientKeywords(client) : [];
+        if (kws.length > 0) {
+            mentions = allMentions.filter(m => matchesKeywords(m, kws));
+        } else {
+            // fallback: filtra per nome cliente su matched_client
+            mentions = allMentions.filter(m =>
+                m.matched_client && m.matched_client.toLowerCase().includes(activeClient.toLowerCase())
+            );
+        }
+    }
+    renderMentions();
 }
 
 function renderMentions() {
