@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM Intelligence — Accesso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:      #f4f6f9;
+    --surface: #ffffff;
+    --border:  #dde3ed;
+    --text:    #1a2236;
+    --muted:   #5a6a84;
+    --cyan:    #0ea5c9;
+    --pink:    #d4367a;
+    --red:     #e03a5a;
+    --grad:    linear-gradient(135deg, #0ea5c9, #d4367a);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.08);
+  }
+
+  .logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .logo-wrap img {
+    height: 44px;
+    width: auto;
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 32px;
+    letter-spacing: .3px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    background: #fafbfd;
+    outline: none;
+    transition: border-color .2s;
+    margin-bottom: 20px;
+  }
+  input:focus { border-color: var(--cyan); background: #fff; }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--grad);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity .2s;
+    margin-top: 4px;
+  }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .error-msg {
+    display: none;
+    background: #fef0f2;
+    border: 1px solid #fccdd5;
+    color: var(--red);
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .error-msg.show { display: block; }
+
+  .footer-txt {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 28px;
+    opacity: .7;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="logo-wrap">
+    <img src="/static/LogoMAIM_orizzontale.jpg" alt="MAIM Intelligence" onerror="this.style.display='none'"/>
+  </div>
+
+  <h1>Accesso alla piattaforma</h1>
+  <p class="subtitle">Inserisci le credenziali per continuare</p>
+
+  <div class="error-msg" id="errorMsg">Credenziali non valide. Riprova.</div>
+
+  <label for="username">Username</label>
+  <input type="text" id="username" placeholder="admin" autocomplete="username"/>
+
+  <label for="password">Password</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+
+  <button class="btn" id="loginBtn" onclick="doLogin()">Accedi</button>
+
+  <p class="footer-txt">MAIM Intelligence © 2025</p>
+</div>
+
+<script>
+  // Premi Invio per fare login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const btn      = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    errorMsg.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = 'Verifica…';
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        window.location.href = '/home';
+      } else {
+        errorMsg.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Accedi';
+      }
+    } catch (err) {
+      errorMsg.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Accedi';
+    }
+  }
+</script>
+</body>
+</html>

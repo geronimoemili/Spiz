@@ -4,13 +4,16 @@ import uvicorn
 import json
 import uuid
 import time
+import hashlib
+import secrets
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, timedelta, datetime, timezone
@@ -37,6 +40,56 @@ except Exception as e:
 
 app = FastAPI(title="MAIM Intelligence")
 app.mount("/static", StaticFiles(directory="web"), name="static")
+
+# ══════════════════════════════════════════════════════════════════════
+# AUTENTICAZIONE
+# ══════════════════════════════════════════════════════════════════════
+
+LOGIN_USERNAME = os.environ.get("LOGIN_USERNAME", "admin")
+LOGIN_PASSWORD = os.environ.get("LOGIN_PASSWORD", "!?!19481948")
+SESSION_COOKIE = "maim_session"
+
+# Sessioni attive in memoria: token -> expiry timestamp
+_SESSIONS: dict = {}
+SESSION_DURATION = 8 * 3600  # 8 ore
+
+def _create_session() -> str:
+    token = secrets.token_hex(32)
+    _SESSIONS[token] = time.time() + SESSION_DURATION
+    return token
+
+def _is_valid_session(token: str | None) -> bool:
+    if not token:
+        return False
+    expiry = _SESSIONS.get(token)
+    if not expiry:
+        return False
+    if time.time() > expiry:
+        del _SESSIONS[token]
+        return False
+    # Rinnova la sessione ad ogni richiesta
+    _SESSIONS[token] = time.time() + SESSION_DURATION
+    return True
+
+# Route pubbliche (non richiedono login)
+PUBLIC_PATHS = {"/login", "/api/login", "/health", "/healthcheck"}
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        # Permettiamo sempre static files e route pubbliche
+        if path.startswith("/static") or path in PUBLIC_PATHS:
+            return await call_next(request)
+        # Controlliamo il cookie di sessione
+        token = request.cookies.get(SESSION_COOKIE)
+        if not _is_valid_session(token):
+            # Se è una chiamata API restituiamo 401, altrimenti redirect al login
+            if path.startswith("/api/"):
+                return JSONResponse({"error": "Non autenticato"}, status_code=401)
+            return RedirectResponse(url="/login", status_code=302)
+        return await call_next(request)
+
+app.add_middleware(AuthMiddleware)
 
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
@@ -110,6 +163,43 @@ class HistoricalScanRequest(BaseModel):
 
 class ShareRequest(BaseModel):
     article_ids: List[str]
+
+
+# ══════════════════════════════════════════════════════════════════════
+# LOGIN / LOGOUT
+# ══════════════════════════════════════════════════════════════════════
+
+@app.get("/login")
+async def login_page():
+    return FileResponse("web/login.html")
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@app.post("/api/login")
+async def api_login(data: LoginRequest):
+    if data.username == LOGIN_USERNAME and data.password == LOGIN_PASSWORD:
+        token = _create_session()
+        response = JSONResponse({"success": True})
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=token,
+            httponly=True,
+            samesite="lax",
+            max_age=SESSION_DURATION,
+        )
+        return response
+    return JSONResponse({"success": False, "error": "Credenziali non valide"}, status_code=401)
+
+@app.post("/api/logout")
+async def api_logout(request: Request):
+    token = request.cookies.get(SESSION_COOKIE)
+    if token and token in _SESSIONS:
+        del _SESSIONS[token]
+    response = RedirectResponse(url="/login", status_code=302)
+    response.delete_cookie(SESSION_COOKIE)
+    return response
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -284,18 +374,12 @@ async def today_stats():
         tones    = Counter(a.get("tone","") for a in articles if a.get("tone"))
         tone_tot = sum(tones.values()) or 1
 
-        total_firmati = sum(giornalisti_counter.values())
-
         return {
-            "total_today":       len(articles),
-            "totale":            len(articles),
-            "total_firmati":     total_firmati,
-            "total_anonimi":     max(0, len(articles) - total_firmati),
-            "total_giornalisti": len(giornalisti_counter),
-            "total_testate":     len(testate_counter),
-            "testate":           [{"name": k, "count": v} for k,v in testate_counter.most_common(10)],
-            "giornalisti":       [{"nome": k, "articoli": v} for k,v in giornalisti_counter.most_common(20)],
-            "sentiment":         {k: round(v/tone_tot*100) for k,v in tones.items() if k},
+            "total_today": len(articles),
+            "totale":      len(articles),
+            "testate":     [{"name": k, "count": v} for k,v in testate_counter.most_common(10)],
+            "giornalisti": [{"nome": k, "articoli": v} for k,v in giornalisti_counter.most_common(20)],
+            "sentiment":   {k: round(v/tone_tot*100) for k,v in tones.items() if k},
         }
     except Exception as e:
         return {"total_today": 0, "totale": 0, "testate": [], "giornalisti": [], "sentiment": {}, "error": str(e)}
