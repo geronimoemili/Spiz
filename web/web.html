@@ -383,15 +383,22 @@ function updateClientCounts() {
 }
 
 function getClientKeywords(client) {
-    if (!client.keywords_web) return [];
-    return client.keywords_web.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    const kws = [];
+    // keywords_web esplicite
+    if (client.keywords_web) {
+        client.keywords_web.split(',').forEach(k => { const t = k.trim().toLowerCase(); if (t) kws.push(t); });
+    }
+    // aggiunge sempre anche il nome cliente come keyword di fallback
+    if (client.name) kws.push(client.name.trim().toLowerCase());
+    return kws;
 }
 
 function matchesKeywords(mention, kws) {
-    const mk = (mention.matched_keywords || '').toLowerCase();
-    const title = (mention.title || '').toLowerCase();
+    const mk      = (mention.matched_keywords || '').toLowerCase();
+    const title   = (mention.title   || '').toLowerCase();
     const summary = (mention.summary || '').toLowerCase();
-    return kws.some(kw => mk.includes(kw) || title.includes(kw) || summary.includes(kw));
+    const client  = (mention.matched_client || '').toLowerCase();
+    return kws.some(kw => mk.includes(kw) || title.includes(kw) || summary.includes(kw) || client.includes(kw));
 }
 
 function renderSidebar() {

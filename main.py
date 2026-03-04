@@ -227,8 +227,8 @@ async def web_page():
     return FileResponse("web/web.html")
 
 @app.get("/monitor")
-async def monitor_redirect():
-    return RedirectResponse(url="/web", status_code=301)
+async def monitor_page():
+    return FileResponse("web/web.html")  # alias legacy
 
 @app.get("/chat")
 async def chat_page():
@@ -237,6 +237,10 @@ async def chat_page():
 @app.get("/clients")
 async def clients_page():
     return FileResponse("web/clienti.html")
+
+@app.get("/giornalisti")
+async def giornalisti_page():
+    return FileResponse("web/giornalisti.html")
 
 @app.get("/pitch")
 async def pitch_page():
