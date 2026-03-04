@@ -61,6 +61,12 @@
     gap: 12px;
     margin-bottom: 20px;
   }
+  .stat-grid .upload-card {
+    grid-column: span 2;
+    margin-bottom: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -132,7 +138,7 @@
     border: 2px dashed var(--border);
     border-radius: 10px;
     padding: 22px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     gap: 20px;
@@ -329,7 +335,7 @@
 </nav>
 
 
-  <!-- STAT CARDS -->
+  <!-- STAT CARDS + UPLOAD nella stessa griglia -->
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-label">Totale archivio</div>
@@ -339,38 +345,26 @@
     <div class="stat-card">
       <div class="stat-label">Rassegnati oggi</div>
       <div class="stat-val" id="s-today">—</div>
-      <div class="stat-sub" id="s-today-sub">firmati · anonimi</div>
+      <div class="stat-sub" id="s-today-sub">firmati</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Giornalisti oggi</div>
-      <div class="stat-val" id="s-giornalisti">—</div>
-      <div class="stat-sub">firme uniche</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Testate oggi</div>
-      <div class="stat-val" id="s-testate">—</div>
-      <div class="stat-sub">pubblicazioni</div>
-    </div>
-  </div>
-
-
-  <!-- UPLOAD -->
-  <div class="upload-card" id="upload-zone">
-    <div class="upload-icon">📂</div>
-    <div class="upload-info">
-      <h3>Carica rassegna stampa</h3>
-      <p>CSV esportato da rassegna. Elaborazione e indicizzazione automatica.</p>
-      <div class="progress-wrap" id="prog-wrap">
-        <div class="progress-bar" id="prog-bar"></div>
+    <!-- Upload occupa le 2 colonne destre -->
+    <div class="upload-card" id="upload-zone">
+      <div class="upload-icon">📂</div>
+      <div class="upload-info">
+        <h3>Carica rassegna stampa</h3>
+        <p>CSV esportato da rassegna. Elaborazione e indicizzazione automatica.</p>
+        <div class="progress-wrap" id="prog-wrap">
+          <div class="progress-bar" id="prog-bar"></div>
+        </div>
+        <div class="progress-txt" id="prog-txt"></div>
       </div>
-      <div class="progress-txt" id="prog-txt"></div>
+      <label class="file-label" id="file-label">
+        <span>📎</span>
+        <span id="file-name">Scegli uno o più CSV</span>
+        <input type="file" id="file-input" accept=".csv" multiple style="display:none" onchange="onFilePick(this)"/>
+      </label>
+      <button class="btn-upload" id="btn-upload" disabled onclick="doUpload()">⚡ Elabora</button>
     </div>
-    <label class="file-label" id="file-label">
-      <span>📎</span>
-      <span id="file-name">Scegli uno o più CSV</span>
-      <input type="file" id="file-input" accept=".csv" multiple style="display:none" onchange="onFilePick(this)"/>
-    </label>
-    <button class="btn-upload" id="btn-upload" disabled onclick="doUpload()">⚡ Elabora</button>
   </div>
 
   <!-- BOTTOM ROW -->
@@ -379,11 +373,12 @@
     <!-- TOP GIORNALISTI -->
     <div class="card">
       <div class="card-header">
-        <div class="sec-label">✍️ Top giornalisti</div>
+        <div class="sec-label">✍️ Giornalisti / AVE</div>
         <select id="j-period" onchange="loadJournalists()">
-          <option value="today">Oggi</option>
-          <option value="7days" selected>7 giorni</option>
+          <option value="today" selected>Oggi</option>
+          <option value="7days">7 giorni</option>
           <option value="30days">30 giorni</option>
+          <option value="6months">6 mesi</option>
         </select>
       </div>
       <div id="journalists-list"><div class="skeleton" style="height:180px"></div></div>
@@ -393,6 +388,12 @@
     <div class="card">
       <div class="card-header">
         <div class="sec-label">🎯 Copertura temi strategici</div>
+        <select id="macro-period" onchange="loadMacroHeatmap()">
+          <option value="today" selected>Oggi</option>
+          <option value="7days">7 giorni</option>
+          <option value="30days">30 giorni</option>
+          <option value="6months">6 mesi</option>
+        </select>
       </div>
       <div id="macro-list"><div class="skeleton" style="height:180px"></div></div>
       <div class="macro-legend">
@@ -463,35 +464,32 @@ async function loadTodayStats() {
   try {
     const r = await fetch('/api/today-stats');
     const d = await r.json();
-    document.getElementById('s-today').textContent = fmt(d.total_today || 0);
-    // Calcola firmati vs anonimi dal sentiment data
     const giornalisti = (d.giornalisti || []).filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome));
     const firmati = giornalisti.reduce((a,g) => a + (g.articoli||0), 0);
-    const anonimi = (d.total_today||0) - firmati;
-    document.getElementById('s-today-sub').textContent = `${fmt(Math.max(0,firmati))} firmati · ${fmt(Math.max(0,anonimi))} anonimi`;
-    document.getElementById('s-giornalisti').textContent = fmt(giornalisti.length);
-    document.getElementById('s-testate').textContent = fmt((d.testate||[]).length);
+    document.getElementById('s-today').textContent = fmt(firmati);
+    document.getElementById('s-today-sub').textContent = 'articoli firmati';
   } catch(e) {}
 }
 
-// ── JOURNALISTS ──────────────────────────────────────────────
+// ── JOURNALISTS / AVE ────────────────────────────────────────
 async function loadJournalists() {
   const period = document.getElementById('j-period').value;
   const el = document.getElementById('journalists-list');
   el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
   try {
-    const r = await fetch(`/api/top-giornalisti?period=${period}&limit=20`);
+    const r = await fetch(`/api/top-giornalisti-ave?period=${period}&limit=20`);
     const data = await r.json();
     if (!data.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>'; return; }
-    const max = data[0]?.articoli || 1;
+    const maxAve = data[0]?.ave || 1;
     el.innerHTML = data.map((j,i) => `
       <div class="j-row">
         <div class="j-rank">${i+1}</div>
         <div class="j-info">
           <div class="j-name">${esc(j.nome)}</div>
+          <div class="j-testata">${esc(j.testata||'')}</div>
         </div>
-        <div class="j-bar-wrap"><div class="j-bar" style="width:${Math.round(j.articoli/max*100)}%"></div></div>
-        <div class="j-count">${j.articoli}</div>
+        <div class="j-bar-wrap"><div class="j-bar" style="width:${Math.round((j.ave||0)/maxAve*100)}%"></div></div>
+        <div class="j-count">${fmtAve(j.ave)}</div>
       </div>`).join('');
   } catch(e) {
     el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
@@ -503,9 +501,12 @@ async function loadMacroHeatmap() {
   const el = document.getElementById('macro-list');
   el.innerHTML = '<div class="skeleton" style="height:240px"></div>';
   try {
-    const today = fmt_date(new Date());
+    const period = document.getElementById('macro-period').value;
+    const today  = fmt_date(new Date());
+    const daysMap = { today: 0, '7days': 7, '30days': 30, '6months': 180 };
+    const days = daysMap[period] ?? 0;
+    const from_date = days === 0 ? today : fmt_date(new Date(Date.now() - days*86400000));
 
-    // 1. Carica tutti i 15 macro groups
     const rMacros = await fetch('/api/macro-groups').then(r=>r.json());
     const macroGroups = rMacros.groups || [];
 
@@ -514,11 +515,9 @@ async function loadMacroHeatmap() {
       return;
     }
 
-    // 2. Per ogni gruppo chiama macro-group-articles in parallelo
-    //    L'endpoint usa la join macro_group_links → official_macrosectors → articles
     const results = await Promise.all(
       macroGroups.map(g =>
-        fetch(`/api/macro-group-articles?macro_group_id=${g.id}&from_date=${today}&to_date=${today}`)
+        fetch(`/api/macro-group-articles?macro_group_id=${g.id}&from_date=${from_date}&to_date=${today}`)
           .then(r => r.json())
           .then(d => ({ id: g.id, name: g.name, count: (d.articles || []).length }))
           .catch(() => ({ id: g.id, name: g.name, count: 0 }))
@@ -668,6 +667,12 @@ async function doUpload() {
 
 function fmt(n)      { return Number(n).toLocaleString('it-IT'); }
 function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtAve(n) {
+  if (!n || n === 0) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000)    return Math.round(n/1000)+'k';
+  return Math.round(n).toString();
+}
 function fmt_date(d) {
   const dd = new Date(d);
   return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;

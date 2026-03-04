@@ -242,6 +242,7 @@ async def clients_page():
 async def giornalisti_page():
     return FileResponse("web/giornalisti.html")
 
+
 @app.get("/pitch")
 async def pitch_page():
     return FileResponse("web/pitch.html")
@@ -461,6 +462,35 @@ async def top_giornalisti(
     except Exception as e:
         return []
 
+
+
+@app.get("/api/top-giornalisti-ave")
+async def top_giornalisti_ave(
+    period: str = Query("today"),
+    limit:  int = Query(20),
+):
+    try:
+        today = date.today()
+        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
+        days = days_map.get(period, 0)
+        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+        to_date = today.isoformat()
+        res = supabase.table("articles").select("giornalista, testata, ave").gte("data", from_date).lte("data", to_date).execute()
+        articles = res.data or []
+        SKIP = {"", "N.D.", "N/D", "Redazione", "Autore non indicato", "redazione"}
+        from collections import defaultdict
+        agg = defaultdict(lambda: {"ave": 0.0, "articoli": 0, "testate": set()})
+        for a in articles:
+            g = a.get("giornalista", "") or ""
+            if not g or g in SKIP: continue
+            agg[g]["ave"] += float(a.get("ave") or 0)
+            agg[g]["articoli"] += 1
+            if a.get("testata"): agg[g]["testate"].add(a["testata"])
+        result = [{"nome": nome, "ave": round(v["ave"], 0), "articoli": v["articoli"], "testata": ", ".join(sorted(v["testate"]))[:60]} for nome, v in agg.items()]
+        result.sort(key=lambda x: x["ave"], reverse=True)
+        return result[:limit]
+    except Exception as e:
+        return []
 
 @app.get("/api/giornalista-articoli")
 async def giornalista_articoli(
