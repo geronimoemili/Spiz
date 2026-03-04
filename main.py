@@ -242,7 +242,6 @@ async def clients_page():
 async def giornalisti_page():
     return FileResponse("web/giornalisti.html")
 
-
 @app.get("/pitch")
 async def pitch_page():
     return FileResponse("web/pitch.html")
@@ -467,26 +466,43 @@ async def top_giornalisti(
 @app.get("/api/top-giornalisti-ave")
 async def top_giornalisti_ave(
     period: str = Query("today"),
-    limit:  int = Query(20),
+    limit:  int = Query(15),
 ):
+    """Top giornalisti per AVE del loro articolo più importante nel periodo."""
     try:
         today = date.today()
         days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
         days = days_map.get(period, 0)
         from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
         to_date = today.isoformat()
-        res = supabase.table("articles").select("giornalista, testata, ave").gte("data", from_date).lte("data", to_date).execute()
+
+        res = supabase.table("articles").select(
+            "giornalista, testata, ave, titolo"
+        ).gte("data", from_date).lte("data", to_date).execute()
+
         articles = res.data or []
         SKIP = {"", "N.D.", "N/D", "Redazione", "Autore non indicato", "redazione"}
+
         from collections import defaultdict
-        agg = defaultdict(lambda: {"ave": 0.0, "articoli": 0, "testate": set()})
+        # Per ogni giornalista teniamo l'articolo con AVE massima
+        best = {}
         for a in articles:
-            g = a.get("giornalista", "") or ""
-            if not g or g in SKIP: continue
-            agg[g]["ave"] += float(a.get("ave") or 0)
-            agg[g]["articoli"] += 1
-            if a.get("testata"): agg[g]["testate"].add(a["testata"])
-        result = [{"nome": nome, "ave": round(v["ave"], 0), "articoli": v["articoli"], "testata": ", ".join(sorted(v["testate"]))[:60]} for nome, v in agg.items()]
+            g = (a.get("giornalista") or "").strip()
+            if not g or g in SKIP:
+                continue
+            ave = float(a.get("ave") or 0)
+            if g not in best or ave > best[g]["ave"]:
+                best[g] = {
+                    "ave":     ave,
+                    "testata": a.get("testata") or "",
+                    "titolo":  (a.get("titolo") or "")[:80],
+                }
+
+        result = [
+            {"nome": nome, "ave": round(v["ave"], 0), "testata": v["testata"], "titolo": v["titolo"]}
+            for nome, v in best.items()
+            if v["ave"] > 0
+        ]
         result.sort(key=lambda x: x["ave"], reverse=True)
         return result[:limit]
     except Exception as e:
@@ -590,10 +606,11 @@ async def get_articles_filtered(
     to_date: str,
     client_id: str | None = None,
     macro_group_id: str | None = None,
+    sort: str | None = None,
 ):
     try:
         articles_res = supabase.table("articles") \
-            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello, ave") \
             .gte("data", from_date) \
             .lte("data", to_date) \
             .order("data", desc=True) \
@@ -642,6 +659,9 @@ async def get_articles_filtered(
                     )
                 ]
 
+        if sort == "ave":
+            articles = sorted(articles, key=lambda a: float(a.get("ave") or 0), reverse=True)
+        articles = articles[:50]  # max 50 after filtering
         return {"articles": articles}
 
     except Exception as e:
@@ -790,15 +810,19 @@ async def get_articles(
     to_date:   Optional[str] = None,
     testata:   Optional[str] = None,
     limit:     int           = 50,
+    sort:      Optional[str] = None,
 ):
     try:
         query = supabase.table("articles").select(
-            "id, titolo, testata, data, occhiello, giornalista, tone, dominant_topic, macrosettori"
+            "id, titolo, testata, data, occhiello, giornalista, tone, dominant_topic, macrosettori, ave"
         )
         if from_date: query = query.gte("data", from_date)
         if to_date:   query = query.lte("data", to_date)
         if testata:   query = query.eq("testata", testata)
-        res = query.order("data", desc=True).limit(limit).execute()
+        if sort == "ave":
+            res = query.order("ave", desc=True).limit(limit).execute()
+        else:
+            res = query.order("data", desc=True).limit(limit).execute()
         return {"articles": res.data or [], "total": len(res.data or [])}
     except Exception as e:
         return {"error": str(e)}
@@ -838,6 +862,35 @@ async def delete_article(article_id: str):
     try:
         supabase.table("articles").delete().eq("id", article_id).execute()
         return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/article/{article_id}/split-giornalista")
+async def split_giornalista(article_id: str):
+    """Duplica un articolo con doppia firma, uno per ogni giornalista separato da virgola."""
+    try:
+        res = supabase.table("articles").select("*").eq("id", article_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Articolo non trovato")
+        original = res.data[0]
+        giornalista = original.get("giornalista", "") or ""
+        nomi = [n.strip() for n in giornalista.split(",") if n.strip()]
+        if len(nomi) < 2:
+            raise HTTPException(status_code=400, detail="Il campo giornalista non contiene più di un nome separato da virgola")
+        # Aggiorna originale col primo nome
+        supabase.table("articles").update({"giornalista": nomi[0]}).eq("id", article_id).execute()
+        # Crea copie per gli altri nomi
+        created = []
+        for nome in nomi[1:]:
+            copy = {k: v for k, v in original.items() if k != "id"}
+            copy["giornalista"] = nome
+            r = supabase.table("articles").insert(copy).execute()
+            if r.data:
+                created.append(r.data[0].get("id"))
+        return {"success": True, "nomi": nomi, "created_ids": created}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 

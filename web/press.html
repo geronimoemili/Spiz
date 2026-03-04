@@ -6,11 +6,17 @@
 <title>MAIM · Press</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;--text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;--teal:#0ea5c9;--pink:#d4367a;--grad:linear-gradient(135deg,#0ea5c9,#d4367a);--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+:root{
+  --bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;
+  --text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;
+  --teal:#0ea5c9;--pink:#d4367a;--grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --green:#059669;--red:#e03a5a;--amber:#d97706;--purple:#7c3aed;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px}
 
-/* ── NAV ── */
+/* NAV */
 nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
 .nav-links{display:flex;gap:2px;margin-left:auto}
@@ -18,7 +24,7 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 .nav-link:hover{color:var(--text)}
 .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
 
-/* ── SEARCH BAR ── */
+/* SEARCH BAR */
 .search-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px}
 .search-input{flex:1;font-family:var(--mono);font-size:13px;padding:9px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);outline:none;transition:border-color .2s}
 .search-input:focus{border-color:var(--teal);background:#fff}
@@ -29,20 +35,34 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 .search-clear:hover{background:var(--bg3)}
 .search-info{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
 
+/* LAYOUT */
+.main-layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 56px - 49px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
 
-.main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 56px)}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
-.section-header{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3)}
-.client-row{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+/* SIDEBAR */
+.section-header{padding:8px 16px;background:var(--bg3);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.client-row{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
 .client-row:hover{background:var(--bg3)}
 .client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px}
-.client-row-count{font-family:var(--mono);font-size:11px;color:var(--teal)}
+.client-name-text{font-size:12px;font-weight:600;color:var(--text)}
+.client-row.active .client-name-text{color:var(--teal)}
+.client-row-count{font-family:var(--mono);font-size:10px;color:var(--teal);font-weight:600;background:rgba(14,165,201,.1);padding:2px 6px;border-radius:10px;flex-shrink:0}
 
-/* ── MAIN ── */
+/* MACRO GROUPS */
+.macro-item{display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.macro-item:hover{background:var(--bg3)}
+.macro-cb{width:13px;height:13px;accent-color:var(--purple);flex-shrink:0;cursor:pointer}
+.macro-label{font-size:12px;color:var(--text);flex:1;line-height:1.3;cursor:pointer}
+.macro-actions{padding:8px 16px;display:flex;gap:6px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.macro-btn{font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);padding:4px 10px;cursor:pointer;flex:1;border-radius:3px;transition:all .15s}
+.macro-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+/* MAIN */
 .main-panel{display:flex;flex-direction:column}
 .panel-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .panel-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
-.period-select{font-family:var(--mono);font-size:11px;padding:4px 8px;flex-shrink:0;margin-left:auto;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:3px}
+.period-select{font-family:var(--mono);font-size:11px;padding:4px 8px;flex-shrink:0;margin-left:auto;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:3px;cursor:pointer;outline:none}
+.period-select:focus{border-color:var(--teal)}
 .share-bar{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .share-count{font-family:var(--mono);font-size:10px;color:var(--text3)}
 .share-count.ready{color:var(--teal);font-weight:600}
@@ -52,31 +72,61 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 .btn-copy{font-family:var(--mono);font-size:10px;border:1px solid var(--teal);background:var(--teal);color:white;padding:4px 8px;cursor:pointer;border-radius:3px;white-space:nowrap;display:none}
 .btn-copy:hover{background:#0284a8}
 
-/* ── TABLE ── */
+/* TABLE */
 .articles-wrap{position:relative;flex:1;overflow-y:auto}
-.table-header,.article-row{display:grid;grid-template-columns:120px 140px 1fr 100px}
-.table-header{background:var(--bg3);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)}
-.table-header div,.article-row div{padding:8px 14px}
-.article-row{border-bottom:1px solid var(--border);cursor:pointer}
+.table-header,.article-row{display:grid;grid-template-columns:110px 130px 1fr 80px 80px}
+.table-header{background:var(--bg3);font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:10}
+.table-header div,.article-row div{padding:8px 12px}
+.article-row{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
 .article-row:hover{background:#f0f9fc}
-.art-testata{font-family:var(--mono);font-size:11px;color:#d97706}
-.art-date{font-family:var(--mono);font-size:11px;text-align:right;color:var(--text2)}
-.empty{padding:30px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3)}
+.art-testata{font-family:var(--mono);font-size:11px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art-journalist{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art-journalist a{color:var(--teal);text-decoration:none;font-weight:600}
+.art-journalist a:hover{text-decoration:underline}
+.art-date{font-family:var(--mono);font-size:10px;text-align:right;color:var(--text2)}
+.art-ave{font-family:var(--mono);font-size:11px;font-weight:700;text-align:right;color:var(--teal)}
+.empty{padding:40px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.5px}
 
-/* ── DETAIL ── */
-#article-detail{position:absolute;inset:0;background:var(--bg);padding:30px;overflow-y:auto}
-.detail-title{font-size:22px;font-weight:700;margin-bottom:10px}
-.detail-meta{font-size:13px;line-height:1.6;margin-bottom:20px}
-.detail-meta strong{font-family:var(--mono);font-size:14px}
-.detail-body{line-height:1.7;font-size:14px}
-.back-btn{margin-bottom:20px;font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 10px}
+/* DETAIL VIEW */
+#article-detail{position:absolute;inset:0;background:var(--bg);padding:0;overflow-y:auto;display:none}
+.detail-toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.back-btn{font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 12px;border-radius:3px;color:var(--text2);transition:all .15s}
+.back-btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn-edit{font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;background:rgba(14,165,201,.08);border:1px solid rgba(14,165,201,.3);padding:5px 14px;border-radius:3px;color:var(--teal);transition:all .15s}
+.btn-edit:hover{background:rgba(14,165,201,.15)}
+.btn-split{font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;background:rgba(212,54,122,.06);border:1px solid rgba(212,54,122,.3);padding:5px 14px;border-radius:3px;color:var(--pink);transition:all .15s;display:none}
+.btn-split:hover{background:rgba(212,54,122,.12)}
+.btn-save{font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;background:var(--green);border:none;padding:5px 16px;border-radius:3px;color:#fff;display:none}
+.btn-save:hover{opacity:.9}
+.btn-cancel-edit{font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 12px;border-radius:3px;color:var(--text2);display:none}
+.detail-body-wrap{padding:28px 32px;max-width:860px}
+.detail-title-view{font-size:22px;font-weight:700;margin-bottom:14px;line-height:1.3}
+.detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+.meta-field{display:flex;flex-direction:column;gap:3px}
+.meta-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3)}
+.meta-value{font-size:13px;color:var(--text)}
+.meta-value a{color:var(--teal);text-decoration:none;font-weight:600}
+.meta-value a:hover{text-decoration:underline}
+.meta-value.ave-val{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--teal)}
+.detail-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.detail-text{line-height:1.8;font-size:14px;color:var(--text)}
 
-/* ── MACRO ── */
-.macro-checkbox-wrap{padding:10px 16px}
-.macro-checkbox-wrap label{display:block;font-size:12px;cursor:pointer;padding:3px 0}
-.macro-actions{padding:0 16px 10px;display:flex;gap:6px}
-.macro-actions button{font-family:var(--mono);font-size:10px;border:1px solid var(--border2);background:none;padding:4px 8px;cursor:pointer;flex:1;border-radius:3px}
-.macro-actions button:hover{background:var(--bg3)}
+/* EDIT FORM */
+.edit-form{display:none}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+.edit-field{display:flex;flex-direction:column;gap:4px}
+.edit-field.full{grid-column:1/-1}
+.edit-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3)}
+.edit-input,.edit-select,.edit-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;font-size:13px;color:var(--text);font-family:var(--sans);width:100%;transition:border-color .15s;outline:none}
+.edit-input:focus,.edit-select:focus,.edit-textarea:focus{border-color:var(--teal);background:#fff}
+.edit-select{font-family:var(--mono);cursor:pointer}
+.edit-textarea{min-height:120px;resize:vertical;font-size:13px;line-height:1.6}
+.edit-hint{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.split-notice{background:rgba(212,54,122,.06);border:1px solid rgba(212,54,122,.2);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;color:var(--pink);line-height:1.5}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:6px;font-family:var(--mono);font-size:11px;z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -94,7 +144,6 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
   </div>
 </nav>
 
-<!-- SEARCH BAR -->
 <div class="search-bar">
   <input type="text" id="search-input" class="search-input" placeholder="Cerca per titolo o testo articolo…" onkeydown="if(event.key==='Enter') doSearch()"/>
   <button class="search-btn" onclick="doSearch()">🔍 Cerca</button>
@@ -104,13 +153,13 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
 <div class="main-layout">
   <div class="sidebar">
-    <div class="section-header">Clienti – Citazioni di oggi</div>
+    <div class="section-header">Clienti – Citazioni</div>
     <div id="client-list-container"></div>
     <div class="section-header">Macro Strategici</div>
-    <div class="macro-checkbox-wrap" id="macro-groups-container"></div>
+    <div id="macro-groups-container"></div>
     <div class="macro-actions">
-      <button onclick="selectAllMacros()">Tutti</button>
-      <button onclick="deselectAllMacros()">Nessuno</button>
+      <button class="macro-btn" onclick="selectAllMacros()">Tutti</button>
+      <button class="macro-btn" onclick="deselectAllMacros()">Nessuno</button>
     </div>
   </div>
 
@@ -134,217 +183,397 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
     <div class="articles-wrap">
       <div class="table-header">
-        <div>Testata</div><div>Giornalista</div><div>Titolo</div><div>Data</div>
+        <div>Testata</div><div>Giornalista</div><div>Titolo</div>
+        <div style="text-align:right">AVE</div><div style="text-align:right">Data</div>
       </div>
       <div id="articles-list"></div>
       <div id="empty-state" class="empty">Caricamento articoli...</div>
-      <div id="article-detail" style="display:none;">
-        <button class="back-btn" onclick="backToList()">← LISTA</button>
-        <div id="detail-content"></div>
+
+      <div id="article-detail">
+        <div class="detail-toolbar">
+          <button class="back-btn" onclick="backToList()">← Lista</button>
+          <button class="btn-edit" id="btn-edit" onclick="toggleEdit()">✏️ Modifica</button>
+          <button class="btn-split" id="btn-split" onclick="doSplit()">✂️ Separa firme</button>
+          <button class="btn-save" id="btn-save" onclick="saveArticle()">💾 Salva</button>
+          <button class="btn-cancel-edit" id="btn-cancel-edit" onclick="cancelEdit()">Annulla</button>
+        </div>
+        <div class="detail-body-wrap">
+          <div id="detail-view"></div>
+          <div id="detail-edit-form" class="edit-form"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-let currentClient = null;
-let currentPeriod = "today";
-let _visibleIds   = [];
-let _currentShareUrl = null;
+<div class="toast" id="toast"></div>
 
-/* ─── DATE RANGE ── */
-function getDateRange(period){
-  const today=new Date(), iso=d=>d.toISOString().split("T")[0];
-  let start=new Date(today);
-  switch(period){
-    case "yesterday": start.setDate(today.getDate()-1); return{start:iso(start),end:iso(start)};
-    case "7days":     start.setDate(today.getDate()-7);   break;
-    case "30days":    start.setDate(today.getDate()-30);  break;
-    case "6months":   start.setMonth(today.getMonth()-6); break;
-    case "12months":  start.setMonth(today.getMonth()-12);break;
-  }
-  return{start:iso(start),end:iso(today)};
+<script>
+let currentClient    = null;
+let currentPeriod    = "today";
+let _visibleIds      = [];
+let _currentShareUrl = null;
+let _currentArticle  = null;
+
+/* TOAST */
+function showToast(msg, dur=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
 }
 
-/* ─── INIT ── */
-async function loadDashboard(){
-  const [sR,tR,mR]=await Promise.all([
-    fetch("/api/dashboard-stats"),
-    fetch("/api/today-stats"),
-    fetch("/api/today-mentions")
-  ]);
-  const today=await tR.json(), mentions=await mR.json();
+/* DATE RANGE */
+function getDateRange(period) {
+  const today = new Date(), iso = d => d.toISOString().split("T")[0];
+  let start = new Date(today);
+  switch(period) {
+    case "yesterday": start.setDate(today.getDate()-1); return {start:iso(start),end:iso(start)};
+    case "7days":     start.setDate(today.getDate()-7);    break;
+    case "30days":    start.setDate(today.getDate()-30);   break;
+    case "6months":   start.setMonth(today.getMonth()-6);  break;
+    case "12months":  start.setMonth(today.getMonth()-12); break;
+  }
+  return {start:iso(start), end:iso(today)};
+}
+
+/* INIT */
+async function loadDashboard() {
+  const mR = await fetch("/api/today-mentions");
+  const mentions = await mR.json();
   renderClientList(mentions);
   loadArticlesGlobal();
 }
 
-function renderClientList(clients){
-  document.getElementById("client-list-container").innerHTML=(clients||[]).map(cl=>`
+function renderClientList(clients) {
+  const all = `<div class="client-row" data-id="" onclick="selectClient(this)">
+    <span class="client-name-text">Tutti</span>
+  </div>`;
+  const rows = (clients||[]).map(cl => `
     <div class="client-row" data-id="${cl.id}" onclick="selectClient(this)">
-      <span>${cl.name}</span>
+      <span class="client-name-text">${esc(cl.name)}</span>
       <span class="client-row-count">${cl.today}</span>
-    </div>`).join("");
+    </div>`).join('');
+  document.getElementById("client-list-container").innerHTML = all + rows;
 }
 
-function selectClient(el){
-  document.querySelectorAll(".client-row").forEach(r=>r.classList.remove("active"));
+function selectClient(el) {
+  document.querySelectorAll(".client-row").forEach(r => r.classList.remove("active"));
   el.classList.add("active");
-  currentClient={id:el.getAttribute("data-id")};
+  const id = el.getAttribute("data-id");
+  currentClient = id ? {id} : null;
   loadFilteredArticles();
 }
 
-function onMainPeriodChange(){
-  currentPeriod=document.getElementById("main-period-select").value;
+function onMainPeriodChange() {
+  currentPeriod = document.getElementById("main-period-select").value;
   loadFilteredArticles();
 }
 
-async function loadArticlesGlobal(){
-  const {start,end}=getDateRange(currentPeriod);
-  const res=await fetch(`/api/articles?from_date=${start}&to_date=${end}&limit=200`);
-  const data=await res.json();
+/* ARTICLES — 50 ordinati per AVE desc */
+async function loadArticlesGlobal() {
+  const {start, end} = getDateRange(currentPeriod);
+  showLoading();
+  const res  = await fetch(`/api/articles?from_date=${start}&to_date=${end}&limit=50&sort=ave`);
+  const data = await res.json();
   renderArticlesTable(data.articles);
 }
 
-/* ─── ARTICLES ── */
-async function loadFilteredArticles(){
-  const {start,end}=getDateRange(currentPeriod);
-  const selected=Array.from(document.querySelectorAll(".macro-checkbox:checked")).map(cb=>cb.value);
-  if(selected.length===0 && document.querySelectorAll(".macro-checkbox").length>0){
+async function loadFilteredArticles() {
+  const {start, end} = getDateRange(currentPeriod);
+  const selected = Array.from(document.querySelectorAll(".macro-cb:checked")).map(cb => cb.value);
+  if (selected.length === 0 && document.querySelectorAll(".macro-cb").length > 0) {
     renderArticlesTable([]); return;
   }
-  const params=new URLSearchParams({from_date:start,to_date:end});
-  if(currentClient?.id) params.append("client_id",currentClient.id);
-  if(selected.length===1) params.append("macro_group_id",selected[0]);
-  const res=await fetch("/api/articles-filtered?"+params.toString());
-  const data=await res.json();
-  renderArticlesTable(data.articles||[]);
+  showLoading();
+  const params = new URLSearchParams({from_date:start, to_date:end, sort:'ave'});
+  if (currentClient?.id) params.append("client_id", currentClient.id);
+  if (selected.length === 1) params.append("macro_group_id", selected[0]);
+  const res  = await fetch("/api/articles-filtered?" + params.toString());
+  const data = await res.json();
+  renderArticlesTable(data.articles || []);
 }
 
-function renderArticlesTable(articles){
-  const list=document.getElementById("articles-list");
-  const empty=document.getElementById("empty-state");
-  document.getElementById("article-detail").style.display="none";
-  list.style.display="block";
-  _visibleIds=(articles||[]).map(a=>a.id);
+function showLoading() {
+  document.getElementById("empty-state").textContent = "Caricamento...";
+  document.getElementById("empty-state").style.display = "block";
+  document.getElementById("articles-list").innerHTML = "";
+}
+
+function renderArticlesTable(articles) {
+  const list  = document.getElementById("articles-list");
+  const empty = document.getElementById("empty-state");
+  document.getElementById("article-detail").style.display = "none";
+  list.style.display = "block";
+  _visibleIds = (articles||[]).map(a => a.id);
   resetShareLink(); updateShareCount();
-  if(!articles||articles.length===0){
-    empty.style.display="block"; list.innerHTML=""; return;
-  }
-  empty.style.display="none";
-  list.innerHTML=articles.map(a=>`
-    <div class="article-row" onclick="loadArticleDetail('${a.id}')">
-      <div class="art-testata">${a.testata||'N/D'}</div>
-      <div><a href="/giornalisti?nome=${encodeURIComponent(a.giornalista||'')}" onclick="event.stopPropagation()" style="color:var(--teal);text-decoration:none;font-weight:600;" title="Vedi profilo giornalista">${a.giornalista||'Anonimo'}</a></div>
-      <div>${a.titolo||'Senza titolo'}</div>
-      <div class="art-date">${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
-    </div>`).join("");
-}
-
-function updateShareCount(){
-  const el=document.getElementById("share-count");
-  const n=_visibleIds.length;
-  el.innerText=n===0?"0 articoli":`${n} articolo${n===1?'':'i'}`;
-  el.className=n>0?"share-count ready":"share-count";
-  document.getElementById("btn-share").disabled=n===0;
-}
-
-async function loadArticleDetail(id){
-  const res=await fetch(`/api/article/${id}`);
-  const a=await res.json();
-  document.getElementById("articles-list").style.display="none";
-  document.getElementById("empty-state").style.display="none";
-  document.getElementById("article-detail").style.display="block";
-  let testo=a.testo_completo||"Testo non disponibile";
-  testo=testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,"$1<br><br>$2").replace(/\n/g,"<br>");
-  document.getElementById("detail-content").innerHTML=`
-    <div class="detail-title">${a.titolo||'Senza titolo'}</div>
-    <div class="detail-meta">
-      <div><strong>${a.testata||'N/D'}</strong></div>
-      ${a.pagina_testata?`<div>Pagina: ${a.pagina_testata}</div>`:""}
-      <div>Giornalista: <a href="/giornalisti?nome=${encodeURIComponent(a.giornalista||'')}" style="color:var(--teal);text-decoration:none;font-weight:600;" title="Vedi profilo giornalista">${a.giornalista||'Anonimo'}</a></div>
-      <div>Data: ${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
-      ${a.tipologia_articolo?`<div>Tipologia: ${a.tipologia_articolo}</div>`:""}
-      ${a.macrosettori?`<div><strong>Settori:</strong> ${a.macrosettori}</div>`:""}
-    </div>
-    <hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">
-    <div class="detail-body">${testo}</div>`;
-}
-
-function backToList(){
-  document.getElementById("article-detail").style.display="none";
-  document.getElementById("articles-list").style.display="block";
-}
-
-/* ─── MACRO ── */
-async function loadMacroGroups(){
-  const res=await fetch("/api/macro-groups");
-  const data=await res.json();
-  const container=document.getElementById("macro-groups-container");
-  if(!data.groups?.length){
-    container.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Nessun gruppo</div>';
+  if (!articles || !articles.length) {
+    empty.style.display = "block";
+    empty.textContent   = "Nessun articolo trovato";
+    list.innerHTML = "";
     return;
   }
-  container.innerHTML=data.groups.map(g=>`
-    <label style="display:block;font-size:12px;cursor:pointer;padding:3px 0;">
-      <input type="checkbox" value="${g.id}" class="macro-checkbox" checked> ${g.name}
-    </label>`).join("");
-  document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.addEventListener("change",loadFilteredArticles));
+  empty.style.display = "none";
+  list.innerHTML = articles.map(a => `
+    <div class="article-row" onclick="loadArticleDetail('${a.id}')">
+      <div class="art-testata">${esc(a.testata||'N/D')}</div>
+      <div class="art-journalist">${fmtGiornalista(a.giornalista)}</div>
+      <div>${esc(a.titolo||'Senza titolo')}</div>
+      <div class="art-ave">${fmtAve(a.ave)}</div>
+      <div class="art-date">${fmtDate(a.data)}</div>
+    </div>`).join('');
 }
 
-function selectAllMacros(){document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.checked=true);loadFilteredArticles();}
-function deselectAllMacros(){document.querySelectorAll(".macro-checkbox").forEach(cb=>cb.checked=false);loadFilteredArticles();}
+function fmtGiornalista(g) {
+  if (!g || g === 'N/D') return '<span style="color:var(--text3)">Anonimo</span>';
+  return g.split(',').map(n => n.trim()).filter(Boolean).map(n =>
+    `<a href="/giornalisti?nome=${encodeURIComponent(n)}" onclick="event.stopPropagation()">${esc(n)}</a>`
+  ).join(', ');
+}
 
-/* ─── SEARCH ── */
+function updateShareCount() {
+  const el = document.getElementById("share-count");
+  const n  = _visibleIds.length;
+  el.innerText = n === 0 ? "0 articoli" : `${n} articolo${n===1?'':'i'}`;
+  el.className = n > 0 ? "share-count ready" : "share-count";
+  document.getElementById("btn-share").disabled = n === 0;
+}
+
+/* ARTICLE DETAIL */
+async function loadArticleDetail(id) {
+  const res = await fetch(`/api/article/${id}`);
+  _currentArticle = await res.json();
+  showDetail();
+}
+
+function showDetail() {
+  const a = _currentArticle;
+  document.getElementById("articles-list").style.display = "none";
+  document.getElementById("empty-state").style.display  = "none";
+  document.getElementById("article-detail").style.display = "block";
+  document.getElementById("detail-edit-form").style.display = "none";
+  document.getElementById("detail-view").style.display = "block";
+  document.getElementById("btn-save").style.display    = "none";
+  document.getElementById("btn-cancel-edit").style.display = "none";
+  document.getElementById("btn-edit").style.display    = "inline-block";
+
+  const hasMulti = (a.giornalista||'').split(',').filter(n=>n.trim()).length > 1;
+  document.getElementById("btn-split").style.display = hasMulti ? "inline-block" : "none";
+
+  let testo = a.testo_completo || "Testo non disponibile";
+  testo = testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,"$1<br><br>$2").replace(/\n/g,"<br>");
+
+  document.getElementById("detail-view").innerHTML = `
+    <div class="detail-title-view">${esc(a.titolo||'Senza titolo')}</div>
+    <div class="detail-meta-grid">
+      <div class="meta-field">
+        <span class="meta-label">Testata</span>
+        <span class="meta-value"><strong>${esc(a.testata||'N/D')}</strong></span>
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Giornalista</span>
+        <span class="meta-value">${fmtGiornalista(a.giornalista)}</span>
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">Data</span>
+        <span class="meta-value">${fmtDate(a.data)}</span>
+      </div>
+      <div class="meta-field">
+        <span class="meta-label">AVE</span>
+        <span class="meta-value ave-val">${fmtAve(a.ave)}</span>
+      </div>
+      ${a.tipologia_articolo?`<div class="meta-field"><span class="meta-label">Tipologia</span><span class="meta-value">${esc(a.tipologia_articolo)}</span></div>`:''}
+      ${a.tipo_fonte?`<div class="meta-field"><span class="meta-label">Tipo fonte</span><span class="meta-value">${esc(a.tipo_fonte)}</span></div>`:''}
+      ${a.tone?`<div class="meta-field"><span class="meta-label">Tono</span><span class="meta-value">${esc(a.tone)}</span></div>`:''}
+      ${a.reputational_risk?`<div class="meta-field"><span class="meta-label">Rischio reputazionale</span><span class="meta-value">${esc(a.reputational_risk)}</span></div>`:''}
+      ${a.macrosettori?`<div class="meta-field" style="grid-column:1/-1"><span class="meta-label">Macro Settori</span><span class="meta-value">${esc(a.macrosettori)}</span></div>`:''}
+      ${a.dominant_topic?`<div class="meta-field" style="grid-column:1/-1"><span class="meta-label">Topic</span><span class="meta-value">${esc(a.dominant_topic)}</span></div>`:''}
+    </div>
+    <hr class="detail-divider">
+    <div class="detail-text">${testo}</div>`;
+}
+
+/* EDIT */
+function toggleEdit() {
+  const a = _currentArticle;
+  document.getElementById("detail-view").style.display = "none";
+  document.getElementById("detail-edit-form").style.display = "block";
+  document.getElementById("btn-edit").style.display   = "none";
+  document.getElementById("btn-split").style.display  = "none";
+  document.getElementById("btn-save").style.display   = "inline-block";
+  document.getElementById("btn-cancel-edit").style.display = "inline-block";
+
+  const hasMulti = (a.giornalista||'').split(',').filter(n=>n.trim()).length > 1;
+  const splitNotice = hasMulti ? `<div class="split-notice">
+    ✂️ <strong>Doppia firma rilevata.</strong> Salva e poi usa "Separa firme" per creare articoli distinti per ogni giornalista.
+  </div>` : '';
+
+  const tipOptions = ['','Articolo','Breve','Intervista','Reportage','Commento','Editoriale','Comunicato','Recensione','Segnalazione','Altro'];
+  const fonteOptions = ['','Quotidiano','Periodico','Online','Agenzia','TV','Radio','Blog','Altro'];
+  const toneOptions = ['','Positivo','Neutro','Negativo','Molto positivo','Molto negativo'];
+
+  document.getElementById("detail-edit-form").innerHTML = `
+    <div class="detail-title-view" style="margin-bottom:16px">Modifica articolo</div>
+    <div class="edit-grid">
+      <div class="edit-field full">
+        <label class="edit-label">Titolo</label>
+        <input class="edit-input" id="e-titolo" value="${escAttr(a.titolo||'')}">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Testata</label>
+        <input class="edit-input" id="e-testata" value="${escAttr(a.testata||'')}">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Data</label>
+        <input class="edit-input" id="e-data" type="date" value="${escAttr(a.data||'')}">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Giornalista</label>
+        <input class="edit-input" id="e-giornalista" value="${escAttr(a.giornalista||'')}">
+        <span class="edit-hint">Per doppia firma: Mario Rossi, Luigi Bianchi</span>
+        ${splitNotice}
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">AVE (€)</label>
+        <input class="edit-input" id="e-ave" type="number" step="0.01" value="${a.ave||''}">
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Tipologia articolo</label>
+        <select class="edit-select" id="e-tipologia">
+          ${tipOptions.map(v=>`<option value="${v}" ${a.tipologia_articolo===v?'selected':''}>${v||'— seleziona —'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Tipo fonte</label>
+        <select class="edit-select" id="e-tipo-fonte">
+          ${fonteOptions.map(v=>`<option value="${v}" ${a.tipo_fonte===v?'selected':''}>${v||'— seleziona —'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Tono</label>
+        <select class="edit-select" id="e-tone">
+          ${toneOptions.map(v=>`<option value="${v}" ${a.tone===v?'selected':''}>${v||'— seleziona —'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="edit-field">
+        <label class="edit-label">Reputational Risk</label>
+        <input class="edit-input" id="e-rep-risk" value="${escAttr(a.reputational_risk||'')}">
+      </div>
+      <div class="edit-field full">
+        <label class="edit-label">Macro Settori <span style="color:var(--text3);font-weight:400">(separati da virgola)</span></label>
+        <input class="edit-input" id="e-macrosettori" value="${escAttr(a.macrosettori||'')}">
+      </div>
+      <div class="edit-field full">
+        <label class="edit-label">Occhiello / Sommario</label>
+        <textarea class="edit-textarea" id="e-occhiello" style="min-height:60px">${esc(a.occhiello||'')}</textarea>
+      </div>
+      <div class="edit-field full">
+        <label class="edit-label">Testo completo</label>
+        <textarea class="edit-textarea" id="e-testo">${esc(a.testo_completo||'')}</textarea>
+      </div>
+    </div>`;
+}
+
+function cancelEdit() { showDetail(); }
+
+async function saveArticle() {
+  const btn = document.getElementById("btn-save");
+  btn.textContent = "Salvataggio…"; btn.disabled = true;
+
+  const payload = {};
+  const map = {
+    'e-titolo':['titolo','text'],'e-testata':['testata','text'],'e-data':['data','text'],
+    'e-giornalista':['giornalista','text'],'e-ave':['ave','number'],
+    'e-tipologia':['tipologia_articolo','text'],'e-tipo-fonte':['tipo_fonte','text'],
+    'e-tone':['tone','text'],'e-rep-risk':['reputational_risk','text'],
+    'e-macrosettori':['macrosettori','text'],'e-occhiello':['occhiello','text'],
+    'e-testo':['testo_completo','text'],
+  };
+  for (const [id,[field,type]] of Object.entries(map)) {
+    const el = document.getElementById(id); if (!el) continue;
+    const v  = el.value;
+    if (v !== '') payload[field] = type==='number' ? parseFloat(v) : v;
+  }
+
+  const res  = await fetch(`/api/article/${_currentArticle.id}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  const data = await res.json();
+  btn.textContent = "💾 Salva"; btn.disabled = false;
+
+  if (data.error) { showToast('❌ ' + data.error); return; }
+  Object.assign(_currentArticle, payload);
+  showToast('✅ Articolo salvato');
+  showDetail();
+}
+
+/* SPLIT JOURNALIST */
+async function doSplit() {
+  const nomi = (_currentArticle.giornalista||'').split(',').map(n=>n.trim()).filter(Boolean);
+  if (nomi.length < 2) { showToast('⚠️ Nessuna doppia firma'); return; }
+  if (!confirm(`Separare le firme in ${nomi.length} articoli distinti?\n\n${nomi.join('\n')}`)) return;
+  const res  = await fetch(`/api/article/${_currentArticle.id}/split-giornalista`, {method:'POST'});
+  const data = await res.json();
+  if (data.error) { showToast('❌ ' + data.error); return; }
+  showToast(`✅ Creati ${data.nomi.length} articoli separati`);
+  backToList();
+  loadFilteredArticles();
+}
+
+function backToList() {
+  document.getElementById("article-detail").style.display = "none";
+  document.getElementById("articles-list").style.display  = "block";
+  _currentArticle = null;
+}
+
+/* MACRO GROUPS */
+async function loadMacroGroups() {
+  const res  = await fetch("/api/macro-groups");
+  const data = await res.json();
+  const container = document.getElementById("macro-groups-container");
+  const groups = data.groups || [];
+  if (!groups.length) {
+    container.innerHTML = '<div style="padding:10px 16px;font-family:var(--mono);font-size:10px;color:var(--text3);">Nessun gruppo</div>';
+    return;
+  }
+  container.innerHTML = groups.map(g => `
+    <div class="macro-item">
+      <input type="checkbox" class="macro-cb" id="mc-${g.id}" value="${g.id}" checked onchange="loadFilteredArticles()">
+      <label class="macro-label" for="mc-${g.id}">${esc(g.name)}</label>
+    </div>`).join('');
+}
+
+function selectAllMacros()   { document.querySelectorAll(".macro-cb").forEach(cb=>cb.checked=true);  loadFilteredArticles(); }
+function deselectAllMacros() { document.querySelectorAll(".macro-cb").forEach(cb=>cb.checked=false); loadFilteredArticles(); }
+
+/* SEARCH */
 let _searchMode = false;
-
-async function doSearch(){
+async function doSearch() {
   const q = document.getElementById("search-input").value.trim();
-  if(!q) { clearSearch(); return; }
+  if (!q) { clearSearch(); return; }
   _searchMode = true;
   document.getElementById("search-clear").style.display = "inline-block";
   document.getElementById("search-info").textContent = "Ricerca in corso…";
-
-  // Cerca su tutto l'archivio (nessun filtro data) con limit alto
   const res  = await fetch(`/api/articles?limit=2000`);
   const data = await res.json();
-  const all  = data.articles || [];
-
-  const ql = q.toLowerCase();
-  const filtered = all.filter(a =>
-    (a.titolo||"").toLowerCase().includes(ql) ||
-    (a.occhiello||"").toLowerCase().includes(ql)
+  const ql   = q.toLowerCase();
+  let filtered = (data.articles||[]).filter(a =>
+    (a.titolo||"").toLowerCase().includes(ql)||(a.occhiello||"").toLowerCase().includes(ql)
   );
-
-  // Per il testo completo dobbiamo caricare i singoli articoli solo se non c'è
-  // Ma /api/articles non ritorna testo_completo, quindi facciamo una seconda chiamata
-  // solo se il risultato iniziale è 0, per non sovraccaricare
-  document.getElementById("search-info").textContent =
-    filtered.length > 0
-      ? `${filtered.length} risultati per "${q}"`
-      : `0 risultati per "${q}" — estendo la ricerca al testo completo…`;
-
-  if(filtered.length > 0){
-    renderArticlesTable(filtered);
-    return;
+  if (!filtered.length) {
+    document.getElementById("search-info").textContent = "Estendo al testo completo…";
+    const {start,end} = getDateRange("12months");
+    const res2  = await fetch(`/api/articles-filtered?from_date=${start}&to_date=${end}`);
+    const data2 = await res2.json();
+    filtered = (data2.articles||[]).filter(a =>
+      (a.titolo||"").toLowerCase().includes(ql)||
+      (a.testo_completo||"").toLowerCase().includes(ql)||
+      (a.occhiello||"").toLowerCase().includes(ql)
+    );
   }
-
-  // Fallback: cerca con articles-filtered che ha testo_completo
-  const {start,end} = getDateRange("12months");
-  const res2  = await fetch(`/api/articles-filtered?from_date=${start}&to_date=${end}`);
-  const data2 = await res2.json();
-  const all2  = data2.articles || [];
-  const filtered2 = all2.filter(a =>
-    (a.titolo||"").toLowerCase().includes(ql) ||
-    (a.testo_completo||"").toLowerCase().includes(ql) ||
-    (a.occhiello||"").toLowerCase().includes(ql)
-  );
-
-  document.getElementById("search-info").textContent =
-    `${filtered2.length} risultati per "${q}"`;
-  renderArticlesTable(filtered2);
+  document.getElementById("search-info").textContent = `${filtered.length} risultati per "${q}"`;
+  renderArticlesTable(filtered);
 }
-
-function clearSearch(){
+function clearSearch() {
   _searchMode = false;
   document.getElementById("search-input").value = "";
   document.getElementById("search-clear").style.display = "none";
@@ -352,43 +581,47 @@ function clearSearch(){
   loadFilteredArticles();
 }
 
-
-function resetShareLink(){
-  _currentShareUrl=null;
-  document.getElementById("btn-share").textContent="🔗 Genera link";
-  document.getElementById("btn-share").className="btn-share";
-  document.getElementById("btn-copy").style.display="none";
+/* SHARE */
+function resetShareLink() {
+  _currentShareUrl = null;
+  document.getElementById("btn-share").textContent = "🔗 Genera link";
+  document.getElementById("btn-share").className   = "btn-share";
+  document.getElementById("btn-copy").style.display = "none";
 }
-
-async function generateShareLink(){
-  if(!_visibleIds.length) return;
-  const btn=document.getElementById("btn-share");
-  btn.textContent="…"; btn.disabled=true;
-  const res=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({article_ids:_visibleIds})});
-  const data=await res.json();
-  btn.disabled=false;
-  if(data.token){
-    _currentShareUrl=window.location.origin+"/share/"+data.token;
-    btn.textContent=`✓ Link pronto (${_visibleIds.length} art.)`;
-    btn.className="btn-share active";
-    const copy=document.getElementById("btn-copy");
-    copy.style.display="inline-block"; copy.innerText="📋 Copia link";
+async function generateShareLink() {
+  if (!_visibleIds.length) return;
+  const btn = document.getElementById("btn-share");
+  btn.textContent = "…"; btn.disabled = true;
+  const res  = await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({article_ids:_visibleIds})});
+  const data = await res.json();
+  btn.disabled = false;
+  if (data.token) {
+    _currentShareUrl = window.location.origin+"/share/"+data.token;
+    btn.textContent  = `✓ Link pronto (${_visibleIds.length} art.)`;
+    btn.className    = "btn-share active";
+    const copy = document.getElementById("btn-copy");
+    copy.style.display = "inline-block"; copy.innerText = "📋 Copia link";
   } else {
-    btn.textContent="🔗 Genera link";
+    btn.textContent = "🔗 Genera link";
     alert("Errore: "+(data.error||"sconosciuto"));
   }
 }
-
-function copyShareLink(){
-  if(!_currentShareUrl) return;
-  navigator.clipboard.writeText(_currentShareUrl).then(()=>{
-    const btn=document.getElementById("btn-copy");
-    btn.innerText="✓ Copiato!";
+function copyShareLink() {
+  if (!_currentShareUrl) return;
+  navigator.clipboard.writeText(_currentShareUrl).then(() => {
+    const btn = document.getElementById("btn-copy");
+    btn.innerText = "✓ Copiato!";
     setTimeout(()=>btn.innerText="📋 Copia link",2000);
   });
 }
 
-window.onload=function(){ loadDashboard(); loadMacroGroups(); };
+/* UTILS */
+function fmtDate(d) { if(!d)return'—'; return new Date(d+"T12:00:00").toLocaleDateString("it-IT"); }
+function fmtAve(n)  { if(!n||n===0)return'—'; if(n>=1000000)return'€'+(n/1000000).toFixed(1)+'M'; if(n>=1000)return'€'+Math.round(n/1000)+'k'; return'€'+Math.round(n); }
+function esc(s)     { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+window.onload = () => { loadDashboard(); loadMacroGroups(); };
 </script>
 </body>
 </html>

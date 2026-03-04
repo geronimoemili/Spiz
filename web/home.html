@@ -472,21 +472,25 @@ async function loadTodayStats() {
 }
 
 // ── JOURNALISTS / AVE ────────────────────────────────────────
+// ── JOURNALISTS — ordinati per AVE articolo più importante ──────────
 async function loadJournalists() {
   const period = document.getElementById('j-period').value;
   const el = document.getElementById('journalists-list');
   el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
   try {
-    const r = await fetch(`/api/top-giornalisti-ave?period=${period}&limit=20`);
+    const r = await fetch(`/api/top-giornalisti-ave?period=${period}&limit=15`);
     const data = await r.json();
-    if (!data.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>'; return; }
+    if (!data.length) {
+      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>';
+      return;
+    }
     const maxAve = data[0]?.ave || 1;
     el.innerHTML = data.map((j,i) => `
       <div class="j-row">
         <div class="j-rank">${i+1}</div>
         <div class="j-info">
           <div class="j-name">${esc(j.nome)}</div>
-          <div class="j-testata">${esc(j.testata||'')}</div>
+          <div class="j-testata">${esc(j.testata||'')}${j.titolo ? ' · <span style="color:var(--faint);font-style:italic">' + esc(j.titolo) + '</span>' : ''}</div>
         </div>
         <div class="j-bar-wrap"><div class="j-bar" style="width:${Math.round((j.ave||0)/maxAve*100)}%"></div></div>
         <div class="j-count">${fmtAve(j.ave)}</div>
