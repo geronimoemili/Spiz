@@ -284,12 +284,18 @@ async def today_stats():
         tones    = Counter(a.get("tone","") for a in articles if a.get("tone"))
         tone_tot = sum(tones.values()) or 1
 
+        total_firmati = sum(giornalisti_counter.values())
+
         return {
-            "total_today": len(articles),
-            "totale":      len(articles),
-            "testate":     [{"name": k, "count": v} for k,v in testate_counter.most_common(10)],
-            "giornalisti": [{"nome": k, "articoli": v} for k,v in giornalisti_counter.most_common(20)],
-            "sentiment":   {k: round(v/tone_tot*100) for k,v in tones.items() if k},
+            "total_today":       len(articles),
+            "totale":            len(articles),
+            "total_firmati":     total_firmati,
+            "total_anonimi":     max(0, len(articles) - total_firmati),
+            "total_giornalisti": len(giornalisti_counter),
+            "total_testate":     len(testate_counter),
+            "testate":           [{"name": k, "count": v} for k,v in testate_counter.most_common(10)],
+            "giornalisti":       [{"nome": k, "articoli": v} for k,v in giornalisti_counter.most_common(20)],
+            "sentiment":         {k: round(v/tone_tot*100) for k,v in tones.items() if k},
         }
     except Exception as e:
         return {"total_today": 0, "totale": 0, "testate": [], "giornalisti": [], "sentiment": {}, "error": str(e)}

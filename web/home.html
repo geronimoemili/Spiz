@@ -463,13 +463,9 @@ async function loadTodayStats() {
     const r = await fetch('/api/today-stats');
     const d = await r.json();
     document.getElementById('s-today').textContent = fmt(d.total_today || 0);
-    // Calcola firmati vs anonimi dal sentiment data
-    const giornalisti = (d.giornalisti || []).filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome));
-    const firmati = giornalisti.reduce((a,g) => a + (g.articoli||0), 0);
-    const anonimi = (d.total_today||0) - firmati;
-    document.getElementById('s-today-sub').textContent = `${fmt(Math.max(0,firmati))} firmati · ${fmt(Math.max(0,anonimi))} anonimi`;
-    document.getElementById('s-giornalisti').textContent = fmt(giornalisti.length);
-    document.getElementById('s-testate').textContent = fmt((d.testate||[]).length);
+    document.getElementById('s-today-sub').textContent = `${fmt(d.total_firmati || 0)} firmati · ${fmt(d.total_anonimi || 0)} anonimi`;
+    document.getElementById('s-giornalisti').textContent = fmt(d.total_giornalisti || 0);
+    document.getElementById('s-testate').textContent = fmt(d.total_testate || 0);
   } catch(e) {}
 }
 
