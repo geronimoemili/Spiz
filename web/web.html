@@ -1,456 +1,654 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAIM · Web Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;--text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;--teal:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;--grad:linear-gradient(135deg,#0ea5c9,#d4367a);--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAIM · Web</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:#f5f7fa; --bg2:#ffffff; --bg3:#eef1f6; --border:#dde3ed; --border2:#c8d0e0;
+            --text:#1a2236; --text2:#5a6a84; --text3:#9aabc0;
+            --teal:#0ea5c9; --magenta:#d4367a; --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+            --green:#059669; --red:#e03a5a; --amber:#d97706;
+            --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+            --sidebar-w: 220px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;}
 
-/* ── NAV ── */
-nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.logo-img{height:38px;width:auto;display:block;flex-shrink:0}
-.nav-links{display:flex;gap:2px;margin-left:auto}
-.nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+        /* NAV */
+        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;gap:12px;}
+        .logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+        .logo-img{height:36px;width:auto;}
+        .logo-divider{width:1px;height:28px;background:var(--border2);}
+        .logo-sub{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
+        .nav-links{display:flex;gap:2px;}
+        .nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;padding:6px 12px;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+        .nav-link:hover{color:var(--teal);border-bottom-color:var(--teal);}
+        .nav-link.active{color:var(--teal);border-bottom-color:var(--teal);}
+        .hamburger{display:none;background:none;border:1px solid var(--border2);padding:6px 10px;border-radius:3px;cursor:pointer;font-size:14px;color:var(--text2);}
+        .nav-mobile-menu{display:none;flex-direction:column;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px;position:absolute;top:64px;right:16px;z-index:200;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+        .nav-mobile-menu a{padding:8px 12px;color:var(--text2);text-decoration:none;font-size:12px;font-weight:600;border-radius:3px;}
+        .nav-mobile-menu a:hover{background:var(--bg3);color:var(--teal);}
+        @media(max-width:768px){.hamburger{display:block;}.nav-links{display:none;}.logo-sub{display:none;}}
 
-/* ── ACTION BAR ── */
-.action-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.btn-action{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.6px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.btn-action:hover{opacity:.9}
-.btn-action:disabled{opacity:.4;cursor:not-allowed}
-.btn-action.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
-.btn-action.secondary:hover{border-color:var(--teal);color:var(--teal);opacity:1}
-.scan-sep{width:1px;height:24px;background:var(--border2);flex-shrink:0}
-.scan-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap}
-.scan-date{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:4px}
-.scan-date:focus{outline:none;border-color:var(--teal)}
-.scan-info{font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto;text-align:right;line-height:1.6}
-.scan-info span{color:var(--teal)}
-.scan-log{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 20px;font-family:var(--mono);font-size:10px;color:var(--text2);display:none;max-height:50px;overflow-y:auto}
-.scan-log.show{display:block}
-.log-ok{color:var(--green)}
-.log-err{color:var(--red)}
+        /* ACTION BAR */
+        .action-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .btn-action{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:8px 18px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;cursor:pointer;transition:opacity 0.15s;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+        .btn-action:hover{opacity:0.88;}
+        .btn-action:disabled{opacity:0.45;cursor:not-allowed;}
+        .btn-action.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+        .btn-action.secondary:hover{border-color:var(--teal);color:var(--teal);opacity:1;}
+        .scan-sep{width:1px;height:24px;background:var(--border2);flex-shrink:0;}
+        .scan-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+        .scan-date{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:4px;cursor:pointer;}
+        .scan-date:focus{outline:none;border-color:var(--teal);}
+        .scan-info{font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto;text-align:right;line-height:1.6;}
+        .scan-info span{color:var(--teal);}
 
-/* ── TABS ── */
-.tab-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex}
-.tab-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:11px 16px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--text2);transition:all .15s}
-.tab-btn:hover{color:var(--teal)}
-.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
+        /* SCAN LOG */
+        .scan-log{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 20px;font-family:var(--mono);font-size:10px;color:var(--text2);display:none;max-height:60px;overflow-y:auto;}
+        .scan-log.show{display:block;}
+        .log-ok{color:var(--green);}
+        .log-err{color:var(--red);}
 
-/* ── LAYOUT ── */
-.main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 56px - 57px - 40px)}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
-.section-header{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3)}
-.client-row{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
-.client-row:hover{background:var(--bg3)}
-.client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px}
-.client-row-count{font-family:var(--mono);font-size:11px;color:var(--teal)}
+        /* TABS */
+        .tab-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;gap:0;}
+        .tab-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;padding:11px 16px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--text2);transition:all 0.15s;}
+        .tab-btn:hover{color:var(--teal);}
+        .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);}
 
-/* ── MAIN PANEL ── */
-.main-panel{display:flex;flex-direction:column}
-.panel-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.panel-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
-.filter-select{font-family:var(--mono);font-size:11px;padding:4px 8px;margin-left:auto;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:3px}
-.filter-count{font-family:var(--mono);font-size:10px;color:var(--text3)}
+        /* LAYOUT */
+        .layout{display:flex;min-height:calc(100vh - 60px - 57px - 42px);}
 
-/* ── ARTICLES ── */
-.articles-wrap{position:relative;flex:1;overflow-y:auto}
-.article-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:6px;padding:12px 14px;margin:8px 16px;cursor:pointer;transition:all .12s}
-.article-card:hover{border-left-color:var(--teal);box-shadow:0 2px 8px rgba(14,165,201,.08)}
-.article-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px}
-.article-title{font-weight:600;color:var(--text);font-size:13px;line-height:1.4;flex:1}
-.article-date{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0;padding-top:2px}
-.article-source{font-size:11px;color:var(--text2);margin-bottom:7px}
-.article-source span{color:var(--amber);font-weight:600}
-.badge-row{display:flex;gap:5px;flex-wrap:wrap}
-.badge-client{background:rgba(14,165,201,.07);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);font-weight:600}
-.badge-kw{background:rgba(212,54,122,.06);color:var(--pink);border:1px solid rgba(212,54,122,.18);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono)}
-.empty-state{text-align:center;padding:52px 20px;color:var(--text3)}
-.empty-state .icon{font-size:36px;opacity:.2;margin-bottom:10px}
-.empty-state p{font-family:var(--mono);font-size:10px;letter-spacing:.8px;line-height:1.9;text-transform:uppercase}
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);flex-shrink:0;border-right:1px solid var(--border);background:var(--bg2);position:sticky;top:159px;/* nav+action+tabs */height:calc(100vh - 159px);overflow-y:auto;}
+        .sidebar-head{padding:12px 14px 8px;border-bottom:1px solid var(--border);}
+        .sidebar-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
+        .client-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;gap:8px;}
+        .client-item:hover{background:var(--bg3);}
+        .client-item.active{background:rgba(14,165,201,0.06);border-left:3px solid var(--teal);}
+        .client-item.active .client-name{color:var(--teal);}
+        .client-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+        .client-badge{font-family:var(--mono);font-size:9px;font-weight:700;background:var(--bg3);border:1px solid var(--border2);color:var(--text3);border-radius:3px;padding:2px 6px;flex-shrink:0;}
+        .client-item.active .client-badge{background:rgba(14,165,201,0.1);border-color:rgba(14,165,201,0.3);color:var(--teal);}
 
-/* ── DETAIL ── */
-#article-detail{position:absolute;inset:0;background:var(--bg);padding:30px;overflow-y:auto;display:none}
-.detail-title{font-size:20px;font-weight:700;margin-bottom:10px;line-height:1.4}
-.detail-meta{font-size:13px;line-height:1.8;margin-bottom:20px;color:var(--text2)}
-.detail-meta strong{font-family:var(--mono);font-size:13px;color:var(--text)}
-.detail-body{line-height:1.75;font-size:14px}
-.back-btn{margin-bottom:20px;font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 10px;border-radius:3px}
-.back-btn:hover{border-color:var(--teal);color:var(--teal)}
-.btn-link{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:7px 16px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;margin-top:20px}
+        /* CONTENT */
+        .content-area{flex:1;min-width:0;padding:16px 20px;}
 
-/* ── FONTI ── */
-.fonti-layout{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
-.fonti-form{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;flex:0 0 320px}
-.fonti-form h6{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
-.form-field{margin-bottom:10px}
-.form-field label{display:block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
-.form-field input,.form-field select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:7px 10px;border-radius:5px}
-.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--teal)}
-.btn-add{background:var(--teal);color:#fff;border:none;border-radius:5px;padding:8px 20px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;width:100%;margin-top:4px}
-.btn-add:hover{background:#0891b2}
-.fonti-list{flex:1;min-width:0}
-.source-row{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:11px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px}
-.source-row.inactive{opacity:.45}
-.source-info{flex:1;min-width:0}
-.source-name{font-weight:600;color:var(--text);font-size:12px}
-.source-url{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono)}
-.source-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
-.badge-type{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;background:rgba(14,165,201,.08);color:var(--teal);border:1px solid rgba(14,165,201,.22)}
-.badge-type.scrape{background:rgba(212,54,122,.07);color:var(--pink);border-color:rgba(212,54,122,.22)}
-.btn-del{background:rgba(224,58,90,.06);border:1px solid rgba(224,58,90,.2);color:var(--red);border-radius:4px;padding:4px 9px;font-family:var(--mono);font-size:9px;cursor:pointer}
-.btn-del:hover{background:rgba(224,58,90,.12)}
-.toggle{position:relative;width:34px;height:19px;cursor:pointer;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0;position:absolute}
-.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background .2s}
-.toggle-slider::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
-.toggle input:checked + .toggle-slider{background:var(--teal)}
-.toggle input:checked + .toggle-slider::before{transform:translateX(15px)}
+        /* FILTER BAR */
+        .filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+        .filter-select{background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:5px;cursor:pointer;}
+        .filter-select:focus{outline:none;border-color:var(--teal);}
+        .filter-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto;}
+        .btn-refresh{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:5px;cursor:pointer;font-weight:600;}
+        .btn-refresh:hover{border-color:var(--teal);color:var(--teal);}
 
-/* ── SPINNER ── */
-.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
-.spinner.dark{border-color:var(--border2);border-top-color:var(--teal)}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-.fade-in{animation:fadeIn .13s ease}
-</style>
+        /* ARTICLE CARDS */
+        .article-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:6px;padding:12px 14px;margin-bottom:6px;cursor:pointer;transition:all 0.12s;}
+        .article-card:hover{border-left-color:var(--teal);box-shadow:0 2px 8px rgba(14,165,201,0.08);}
+        .article-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px;}
+        .article-title{font-weight:600;color:var(--text);font-size:13px;line-height:1.4;flex:1;}
+        .article-date{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0;padding-top:2px;}
+        .article-source{font-size:11px;color:var(--text2);margin-bottom:7px;}
+        .article-source span{color:var(--amber);font-weight:600;}
+        .badge-row{display:flex;gap:5px;flex-wrap:wrap;}
+        .badge-client{background:rgba(14,165,201,0.07);color:var(--teal);border:1px solid rgba(14,165,201,0.2);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);font-weight:600;}
+        .badge-kw{background:rgba(212,54,122,0.06);color:var(--magenta);border:1px solid rgba(212,54,122,0.18);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);}
+
+        /* EMPTY */
+        .empty-state{text-align:center;padding:52px 20px;color:var(--text3);}
+        .empty-state .icon{font-size:36px;opacity:0.2;margin-bottom:10px;}
+        .empty-state p{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:1.9;text-transform:uppercase;}
+
+        /* SPINNER */
+        .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.65s linear infinite;display:inline-block;vertical-align:middle;}
+        .spinner.dark{border-color:var(--border2);border-top-color:var(--teal);}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* FONTI TAB */
+        .fonti-layout{display:flex;gap:16px;flex-wrap:wrap;}
+        .fonti-form{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;flex:0 0 340px;}
+        .fonti-form h6{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:12px;}
+        .form-field{margin-bottom:10px;}
+        .form-field label{display:block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+        .form-field input, .form-field select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:7px 10px;border-radius:5px;transition:border-color 0.15s;}
+        .form-field input:focus, .form-field select:focus{outline:none;border-color:var(--teal);}
+        .btn-add{background:var(--teal);color:#fff;border:none;border-radius:5px;padding:8px 20px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.6px;cursor:pointer;width:100%;margin-top:4px;}
+        .btn-add:hover{background:#0891b2;}
+
+        .fonti-list{flex:1;min-width:0;}
+        .source-row{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:11px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;}
+        .source-row.inactive{opacity:0.45;}
+        .source-info{flex:1;min-width:0;}
+        .source-name{font-weight:600;color:var(--text);font-size:12px;}
+        .source-url{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);}
+        .source-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+        .badge-type{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;background:rgba(14,165,201,0.08);color:var(--teal);border:1px solid rgba(14,165,201,0.22);}
+        .badge-type.scrape{background:rgba(212,54,122,0.07);color:var(--magenta);border-color:rgba(212,54,122,0.22);}
+        .btn-del{background:rgba(224,58,90,0.06);border:1px solid rgba(224,58,90,0.2);color:var(--red);border-radius:4px;padding:4px 9px;font-family:var(--mono);font-size:9px;cursor:pointer;}
+        .btn-del:hover{background:rgba(224,58,90,0.12);}
+
+        /* TOGGLE */
+        .toggle{position:relative;width:34px;height:19px;cursor:pointer;flex-shrink:0;}
+        .toggle input{opacity:0;width:0;height:0;position:absolute;}
+        .toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background 0.2s;}
+        .toggle-slider::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s;}
+        .toggle input:checked + .toggle-slider{background:var(--teal);}
+        .toggle input:checked + .toggle-slider::before{transform:translateX(15px);}
+
+        /* MODAL */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:400;align-items:center;justify-content:center;}
+        .modal-overlay.open{display:flex;}
+        .modal{background:var(--bg2);border-radius:10px;padding:22px;max-width:660px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 16px 50px rgba(0,0,0,0.12);}
+        .modal h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.4;}
+        .modal-meta{font-size:10px;color:var(--text2);margin-bottom:14px;font-family:var(--mono);line-height:1.8;}
+        .modal-body{font-size:13px;line-height:1.75;color:var(--text);}
+        .modal-close{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:5px;padding:5px 12px;cursor:pointer;font-family:var(--mono);font-size:9px;font-weight:600;}
+        .modal-close:hover{border-color:var(--red);color:var(--red);}
+        .btn-link{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:7px 16px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;}
+
+        ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+        .fade-in{animation:fadeIn 0.13s ease;}
+
+        @media(max-width:640px){
+            .layout{flex-direction:column;}
+            .sidebar{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--border);display:flex;overflow-x:auto;overflow-y:hidden;flex-direction:row;}
+            .sidebar-head{display:none;}
+            .client-item{flex-direction:column;gap:2px;padding:8px 12px;min-width:100px;border-bottom:none;border-right:1px solid var(--border);}
+            .content-area{padding:12px 14px;}
+            .fonti-layout{flex-direction:column;}
+            .fonti-form{flex:none;}
+        }
+    </style>
 </head>
 <body>
 
-<nav>
-  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
-  <div class="nav-links">
-    <a href="/"        class="nav-link">Home</a>
-    <a href="/press"   class="nav-link">Press</a>
-    <a href="/web"     class="nav-link active">Web</a>
-    <a href="/chat"    class="nav-link">AI Analysis</a>
-    <a href="/pitch"   class="nav-link">Pitch</a>
-    <a href="/clients" class="nav-link">Clienti</a>
-  </div>
+<!-- NAV -->
+<nav class="topnav">
+    <div class="logo-wrap">
+        <img src="/static/logo.png" alt="MAIM" class="logo-img" onerror="this.style.display='none'">
+        <div class="logo-divider"></div>
+        <span class="logo-sub">Web Monitor</span>
+    </div>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/press" class="nav-link">Press</a>
+        <a href="/web" class="nav-link active">Web</a>
+        <a href="/chat" class="nav-link">AI Analysis</a>
+        <a href="/pitch" class="nav-link">AI Pitch</a>
+        <a href="/clients" class="nav-link">Clienti</a>
+        <a href="/giornalisti" class="nav-link">Giornalisti</a>
+    </div>
+    <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+    <div class="nav-mobile-menu" id="mobile-menu">
+        <a href="/">Home</a>
+        <a href="/press">Press</a>
+        <a href="/web">Web</a>
+        <a href="/chat">AI Analysis</a>
+        <a href="/pitch">AI Pitch</a>
+        <a href="/clients">Clienti</a>
+        <a href="/giornalisti">Giornalisti</a>
+    </div>
 </nav>
 
 <!-- ACTION BAR -->
 <div class="action-bar">
-  <button class="btn-action" id="btn-scan" onclick="runScan()">🔍 Scansiona ora</button>
-  <div class="scan-sep"></div>
-  <span class="scan-label">Storica</span>
-  <input type="date" class="scan-date" id="scan-from"/>
-  <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">→</span>
-  <input type="date" class="scan-date" id="scan-to"/>
-  <button class="btn-action secondary" id="btn-historical" onclick="runHistorical()">📅 Scansione storica</button>
-  <div class="scan-info">
-    Ultima giornaliera: <span id="last-daily">--</span><br>
-    Ultima storica: <span id="last-hist">--</span>
-  </div>
+    <button class="btn-action" id="btn-scan" onclick="runScan()">
+        🔍 Scansiona ora
+    </button>
+    <div class="scan-sep"></div>
+    <span class="scan-label">Storica</span>
+    <input type="date" class="scan-date" id="scan-from">
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">→</span>
+    <input type="date" class="scan-date" id="scan-to">
+    <button class="btn-action secondary" id="btn-historical" onclick="runHistorical()">
+        📅 Scansione storica
+    </button>
+    <div class="scan-info" id="scan-info">
+        Ultima giornaliera: <span id="last-daily">--</span><br>
+        Ultima storica: <span id="last-hist">--</span>
+    </div>
 </div>
+
+<!-- SCAN LOG -->
 <div class="scan-log" id="scan-log"></div>
 
 <!-- TABS -->
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-mentions-btn" onclick="switchTab('mentions')">📰 Web Mentions</button>
-  <button class="tab-btn" id="tab-fonti-btn" onclick="switchTab('fonti')">📡 Fonti</button>
+    <button class="tab-btn active" id="tab-mentions-btn" onclick="switchTab('mentions')">📰 Web Mentions</button>
+    <button class="tab-btn" id="tab-fonti-btn" onclick="switchTab('fonti')">📡 Fonti</button>
 </div>
 
-<!-- MENTIONS LAYOUT -->
-<div class="main-layout" id="layout-mentions">
-  <div class="sidebar">
-    <div class="section-header">Clienti</div>
-    <div id="client-list-container"></div>
-  </div>
-  <div class="main-panel">
-    <div class="panel-header">
-      <div class="panel-title">Web Mentions</div>
-      <select class="filter-select" id="filter-limit" onchange="loadMentions()">
-        <option value="50">Ultime 50</option>
-        <option value="100">Ultime 100</option>
-        <option value="200">Ultime 200</option>
-      </select>
-      <span class="filter-count" id="filter-count"></span>
+<!-- LAYOUT -->
+<div class="layout">
+
+    <!-- SIDEBAR CLIENTI -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+            <div class="sidebar-title">Clienti</div>
+        </div>
+        <div id="client-list">
+            <div style="padding:16px;text-align:center;"><div class="spinner dark"></div></div>
+        </div>
     </div>
-    <div class="articles-wrap">
-      <div id="mentions-list">
-        <div class="empty-state"><div class="icon">🌐</div><p>Caricamento...</p></div>
-      </div>
-      <div id="article-detail">
-        <button class="back-btn" onclick="backToList()">← LISTA</button>
-        <div id="detail-content"></div>
-      </div>
+
+    <!-- CONTENT: WEB MENTIONS -->
+    <div class="content-area" id="panel-mentions">
+        <div class="filter-bar">
+            <select class="filter-select" id="filter-limit" onchange="loadMentions()">
+                <option value="50">Ultime 50</option>
+                <option value="100">Ultime 100</option>
+                <option value="200">Ultime 200</option>
+            </select>
+            <button class="btn-refresh" onclick="loadMentions()">↻ Aggiorna</button>
+            <span class="filter-count" id="filter-count"></span>
+        </div>
+        <div id="mentions-list">
+            <div class="empty-state"><div class="icon">🌐</div><p>Caricamento...</p></div>
+        </div>
     </div>
-  </div>
+
+    <!-- CONTENT: FONTI -->
+    <div class="content-area" id="panel-fonti" style="display:none;">
+        <div class="fonti-layout">
+            <div class="fonti-form">
+                <h6>➕ Aggiungi fonte</h6>
+                <div class="form-field">
+                    <label>Nome testata</label>
+                    <input type="text" id="new-name" placeholder="es. ANSA Economia">
+                </div>
+                <div class="form-field">
+                    <label>URL feed</label>
+                    <input type="url" id="new-url" placeholder="https://...">
+                </div>
+                <div class="form-field">
+                    <label>Tipo</label>
+                    <select id="new-type">
+                        <option value="rss">RSS</option>
+                        <option value="scrape">Scraping</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="addSource()">+ Aggiungi fonte</button>
+            </div>
+            <div class="fonti-list" id="sources-list">
+                <div class="empty-state"><div class="icon">📡</div><p>Caricamento fonti...</p></div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<!-- FONTI LAYOUT -->
-<div style="display:none" id="layout-fonti">
-  <div class="fonti-layout">
-    <div class="fonti-form">
-      <h6>➕ Aggiungi fonte</h6>
-      <div class="form-field"><label>Nome testata</label><input type="text" id="new-name" placeholder="es. ANSA Economia"/></div>
-      <div class="form-field"><label>URL feed</label><input type="url" id="new-url" placeholder="https://..."/></div>
-      <div class="form-field"><label>Tipo</label>
-        <select id="new-type"><option value="rss">RSS</option><option value="scrape">Scraping</option></select>
-      </div>
-      <button class="btn-add" onclick="addSource()">+ Aggiungi fonte</button>
+<!-- MODAL DETTAGLIO -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:12px;">
+            <h3 id="modal-title"></h3>
+            <button class="modal-close" onclick="closeModal()">✕ Chiudi</button>
+        </div>
+        <div class="modal-meta" id="modal-meta"></div>
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:14px;">
+        <div class="modal-body" id="modal-body"></div>
+        <div style="margin-top:18px;">
+            <a id="modal-link" href="#" target="_blank" class="btn-link">🔗 Articolo originale</a>
+        </div>
     </div>
-    <div class="fonti-list" id="sources-list">
-      <div class="empty-state"><div class="icon">📡</div><p>Caricamento fonti...</p></div>
-    </div>
-  </div>
 </div>
 
 <script>
-let clients      = [];
-let mentions     = [];
-let sources      = [];
-let activeClient = null;
+// ── STATE ─────────────────────────────────────────────────────────────
+let clients     = [];   // { id, name, keywords_web, count }
+let mentions    = [];   // array web_mentions filtrate
+let allMentions = [];   // tutte le web_mentions non filtrate
+let sources     = [];   // array monitored_sources
+let activeClient = null; // nome cliente selezionato (null = tutti)
+let currentTab  = 'mentions';
+let mobileMenuOpen = false;
 
-// ── TABS ──
+// ── NAV ───────────────────────────────────────────────────────────────
+function toggleMobileMenu() {
+    mobileMenuOpen = !mobileMenuOpen;
+    document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
+}
+document.addEventListener('click', e => {
+    if (!e.target.closest('.hamburger') && !e.target.closest('#mobile-menu')) {
+        document.getElementById('mobile-menu').style.display = 'none';
+        mobileMenuOpen = false;
+    }
+});
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function fmtDate(d) {
+    if (!d) return '--';
+    const dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function todayISO() { return new Date().toISOString().split('T')[0]; }
+function yearAgoISO() {
+    const d = new Date(); d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
+}
+function log(msg, cls='') {
+    const el = document.getElementById('scan-log');
+    el.classList.add('show');
+    el.innerHTML += `<span class="${cls}">» ${msg}  </span>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('tab-mentions-btn').classList.toggle('active', tab==='mentions');
-  document.getElementById('tab-fonti-btn').classList.toggle('active', tab==='fonti');
-  document.getElementById('layout-mentions').style.display = tab==='mentions' ? 'grid' : 'none';
-  document.getElementById('layout-fonti').style.display    = tab==='fonti'    ? 'block' : 'none';
-  if (tab==='fonti') loadSources();
+    currentTab = tab;
+    document.getElementById('tab-mentions-btn').classList.toggle('active', tab === 'mentions');
+    document.getElementById('tab-fonti-btn').classList.toggle('active', tab === 'fonti');
+    document.getElementById('panel-mentions').style.display = tab === 'mentions' ? 'block' : 'none';
+    document.getElementById('panel-fonti').style.display   = tab === 'fonti'    ? 'block' : 'none';
+    document.getElementById('sidebar').style.display       = tab === 'mentions' ? '' : 'none';
+    if (tab === 'fonti') loadSources();
 }
 
-// ── DATE UTILS ──
-function todayISO()   { return new Date().toISOString().split('T')[0]; }
-function yearAgoISO() { const d=new Date(); d.setFullYear(d.getFullYear()-1); return d.toISOString().split('T')[0]; }
-function fmtDate(d)   { if(!d) return '--'; return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
-
-// ── CLIENTS ──
+// ── CLIENTS SIDEBAR ───────────────────────────────────────────────────
 async function loadClients() {
-  try {
-    const data = await fetch('/api/clients').then(r=>r.json());
-    clients = Array.isArray(data) ? data : [];
-    await computeCounts();
-    renderSidebar();
-  } catch(e) {}
+    try {
+        const res  = await fetch('/api/clients');
+        const data = await res.json();
+        clients = (Array.isArray(data) ? data : (data.clients || []));
+        await computeClientCounts();
+        renderSidebar();
+    } catch(e) {
+        document.getElementById('client-list').innerHTML = '<div style="padding:12px;font-size:11px;color:var(--red);">Errore caricamento clienti</div>';
+    }
 }
 
-async function computeCounts() {
-  try {
-    const data = await fetch('/api/web-mentions?limit=500').then(r=>r.json());
-    mentions = Array.isArray(data) ? data : [];
+async function computeClientCounts() {
+    // Carica tutte le mentions per calcolare i count per cliente (usa keywords_web)
+    try {
+        const res  = await fetch('/api/web-mentions?limit=500');
+        const data = await res.json();
+        allMentions = Array.isArray(data) ? data : (data.mentions || []);
+        mentions = allMentions;
+
+        updateClientCounts();
+    } catch(e) {
+        clients.forEach(c => c.count = 0);
+    }
+}
+
+function updateClientCounts() {
     clients.forEach(c => {
-      c.count = mentions.filter(m =>
-        m.matched_client && m.matched_client.toLowerCase().includes(c.name.toLowerCase())
-      ).length;
+        const kws = getClientKeywords(c);
+        if (kws.length === 0) { c.count = 0; return; }
+        c.count = allMentions.filter(m => matchesKeywords(m, kws)).length;
     });
-  } catch(e) { clients.forEach(c=>c.count=0); }
+}
+
+function getClientKeywords(client) {
+    if (!client.keywords_web) return [];
+    return client.keywords_web.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+}
+
+function matchesKeywords(mention, kws) {
+    const mk = (mention.matched_keywords || '').toLowerCase();
+    const title = (mention.title || '').toLowerCase();
+    const summary = (mention.summary || '').toLowerCase();
+    return kws.some(kw => mk.includes(kw) || title.includes(kw) || summary.includes(kw));
 }
 
 function renderSidebar() {
-  const total = mentions.length;
-  const html = `
-    <div class="client-row ${activeClient===null?'active':''}" onclick="selectClient(null)">
-      <span>Tutti</span><span class="client-row-count">${total}</span>
-    </div>` +
-    clients.map(c=>`
-    <div class="client-row ${activeClient===c.name?'active':''}" onclick="selectClient(${JSON.stringify(c.name)})">
-      <span>${c.name}</span><span class="client-row-count">${c.count||0}</span>
-    </div>`).join('');
-  document.getElementById('client-list-container').innerHTML = html;
+    const totalCount = mentions.length;
+    const html = `
+        <div class="client-item ${activeClient === null ? 'active' : ''}" onclick="selectClient(null)">
+            <span class="client-name">Tutti</span>
+            <span class="client-badge">${totalCount}</span>
+        </div>
+        ${clients.map(c => `
+        <div class="client-item ${activeClient === c.name ? 'active' : ''}" onclick="selectClient(${JSON.stringify(c.name)})">
+            <span class="client-name">${c.name}</span>
+            <span class="client-badge">${c.count}</span>
+        </div>`).join('')}
+    `;
+    document.getElementById('client-list').innerHTML = html;
 }
 
 function selectClient(name) {
-  activeClient = name;
-  renderSidebar();
-  loadMentions();
+    activeClient = name;
+    renderSidebar();
+    applyClientFilter();
 }
 
-// ── MENTIONS ──
+// ── MENTIONS ──────────────────────────────────────────────────────────
 async function loadMentions() {
-  const limit  = document.getElementById('filter-limit').value;
-  const params = new URLSearchParams({limit});
-  if (activeClient) params.set('client', activeClient);
+    const limit  = document.getElementById('filter-limit').value;
+    const params = new URLSearchParams({ limit: 500 }); // carica sempre tutto, filtra client-side
 
-  document.getElementById('mentions-list').innerHTML =
-    '<div class="empty-state"><div class="icon"><div class="spinner dark"></div></div></div>';
-  document.getElementById('article-detail').style.display = 'none';
-  document.getElementById('mentions-list').style.display  = 'block';
+    document.getElementById('mentions-list').innerHTML =
+        '<div class="empty-state"><div class="icon"><div class="spinner dark"></div></div></div>';
 
-  try {
-    const data = await fetch('/api/web-mentions?'+params).then(r=>r.json());
-    mentions   = Array.isArray(data) ? data : [];
-    document.getElementById('filter-count').textContent = mentions.length+' risultati';
+    try {
+        const res  = await fetch('/api/web-mentions?' + params);
+        const data = await res.json();
+        allMentions = Array.isArray(data) ? data : [];
+
+        applyClientFilter();
+        updateClientCounts();
+        renderSidebar();
+    } catch(e) {
+        document.getElementById('mentions-list').innerHTML =
+            '<div class="empty-state"><p>Errore caricamento</p></div>';
+    }
+}
+
+function applyClientFilter() {
+    if (!activeClient) {
+        mentions = allMentions;
+    } else {
+        const client = clients.find(c => c.name === activeClient);
+        const kws = client ? getClientKeywords(client) : [];
+        if (kws.length > 0) {
+            mentions = allMentions.filter(m => matchesKeywords(m, kws));
+        } else {
+            // fallback: filtra per nome cliente su matched_client
+            mentions = allMentions.filter(m =>
+                m.matched_client && m.matched_client.toLowerCase().includes(activeClient.toLowerCase())
+            );
+        }
+    }
+    renderMentions();
+}
+
+function renderMentions() {
+    const el = document.getElementById('mentions-list');
+    document.getElementById('filter-count').textContent = mentions.length + ' risultati';
 
     if (!mentions.length) {
-      document.getElementById('mentions-list').innerHTML =
-        '<div class="empty-state"><div class="icon">🔍</div><p>Nessuna mention trovata</p></div>';
-      return;
+        el.innerHTML = `<div class="empty-state">
+            <div class="icon">🔍</div>
+            <p>Nessuna mention trovata<br>Aggiungi fonti e avvia una scansione</p>
+        </div>`;
+        return;
     }
 
-    document.getElementById('mentions-list').innerHTML = mentions.map((m,i) => {
-      const kws = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
-      return `<div class="article-card fade-in" onclick="openDetail(${i})">
-        <div class="article-top">
-          <span class="article-title">${esc(m.title||'Senza titolo')}</span>
-          <span class="article-date">${fmtDate(m.published_at)}</span>
-        </div>
-        <div class="article-source">📡 <span>${esc(m.source_name||'N/D')}</span></div>
-        <div class="badge-row">
-          ${m.matched_client?`<span class="badge-client">👤 ${esc(m.matched_client)}</span>`:''}
-          ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join('')}
-        </div>
-      </div>`;
+    el.innerHTML = mentions.map(m => {
+        const kws = (m.matched_keywords || '').split(',').map(k => k.trim()).filter(Boolean);
+        const kwBadges = kws.map(k => `<span class="badge-kw">${k}</span>`).join('');
+        const dataStr  = encodeURIComponent(JSON.stringify(m));
+        return `<div class="article-card fade-in" onclick="openModal('${dataStr}')">
+            <div class="article-top">
+                <span class="article-title">${m.title || 'Senza titolo'}</span>
+                <span class="article-date">${fmtDate(m.published_at)}</span>
+            </div>
+            <div class="article-source">📡 <span>${m.source_name || 'N/D'}</span></div>
+            <div class="badge-row">
+                ${m.matched_client ? `<span class="badge-client">👤 ${m.matched_client}</span>` : ''}
+                ${kwBadges}
+            </div>
+        </div>`;
     }).join('');
-
-    // Aggiorna contatori sidebar
-    clients.forEach(c => {
-      c.count = mentions.filter(m =>
-        m.matched_client && m.matched_client.toLowerCase().includes(c.name.toLowerCase())
-      ).length;
-    });
-    renderSidebar();
-
-  } catch(e) {
-    document.getElementById('mentions-list').innerHTML =
-      '<div class="empty-state"><p>Errore caricamento</p></div>';
-  }
 }
 
-// ── DETAIL ──
-function openDetail(idx) {
-  const m = mentions[idx];
-  document.getElementById('mentions-list').style.display  = 'none';
-  document.getElementById('article-detail').style.display = 'block';
-
-  const kws = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
-  document.getElementById('detail-content').innerHTML = `
-    <div class="detail-title">${esc(m.title||'Senza titolo')}</div>
-    <div class="detail-meta">
-      <div><strong>${esc(m.source_name||'N/D')}</strong></div>
-      <div>Data: ${fmtDate(m.published_at)}</div>
-      ${m.matched_client?`<div>Cliente: ${esc(m.matched_client)}</div>`:''}
-      ${kws.length?`<div>Keyword: ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join(' ')}</div>`:''}
-    </div>
-    <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-    <div class="detail-body">${esc(m.summary||'Nessun sommario disponibile.')}</div>
-    ${m.url?`<a class="btn-link" href="${esc(m.url)}" target="_blank">🔗 Articolo originale</a>`:''}
-  `;
+// ── MODAL ─────────────────────────────────────────────────────────────
+function openModal(encoded) {
+    const m = JSON.parse(decodeURIComponent(encoded));
+    document.getElementById('modal-title').textContent = m.title || 'Senza titolo';
+    document.getElementById('modal-meta').innerHTML =
+        `📡 ${m.source_name || 'N/D'} &nbsp;·&nbsp; ` +
+        `📅 ${fmtDate(m.published_at)} &nbsp;·&nbsp; ` +
+        `👤 ${m.matched_client || '—'} &nbsp;·&nbsp; ` +
+        `🔑 ${m.matched_keywords || '—'}`;
+    document.getElementById('modal-body').textContent = m.summary || 'Nessun sommario disponibile.';
+    document.getElementById('modal-link').href = m.url || '#';
+    document.getElementById('modal').classList.add('open');
 }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-function backToList() {
-  document.getElementById('article-detail').style.display = 'none';
-  document.getElementById('mentions-list').style.display  = 'block';
-}
-
-// ── FONTI ──
+// ── FONTI ─────────────────────────────────────────────────────────────
 async function loadSources() {
-  try {
-    const data = await fetch('/api/sources').then(r=>r.json());
-    sources = Array.isArray(data) ? data : [];
-    renderSources();
-  } catch(e) {}
+    try {
+        const res = await fetch('/api/sources');
+        const data = await res.json();
+        sources = Array.isArray(data) ? data : [];
+        renderSources();
+    } catch(e) {
+        document.getElementById('sources-list').innerHTML =
+            '<div class="empty-state"><p>Errore caricamento fonti</p></div>';
+    }
 }
 
 function renderSources() {
-  const el = document.getElementById('sources-list');
-  if (!sources.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">📡</div><p>Nessuna fonte configurata</p></div>';
-    return;
-  }
-  el.innerHTML = sources.map(s => {
-    const isOn = s.active !== false;
-    return `<div class="source-row ${isOn?'':'inactive'}">
-      <label class="toggle">
-        <input type="checkbox" ${isOn?'checked':''} onchange="toggleSource('${s.id}',this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
-      <div class="source-info">
-        <div class="source-name">${esc(s.name)}</div>
-        <div class="source-url">${esc(s.url)}</div>
-      </div>
-      <div class="source-actions">
-        <span class="badge-type ${(s.type||'rss')==='scrape'?'scrape':''}">${s.type||'rss'}</span>
-        <button class="btn-del" onclick="deleteSource('${s.id}')">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
+    const el = document.getElementById('sources-list');
+    if (!sources.length) {
+        el.innerHTML = `<div class="empty-state">
+            <div class="icon">📡</div>
+            <p>Nessuna fonte configurata<br>Aggiungine una a sinistra</p>
+        </div>`;
+        return;
+    }
+    el.innerHTML = sources.map(s => {
+        const isOn = s.active !== false;
+        return `<div class="source-row ${isOn ? '' : 'inactive'}">
+            <label class="toggle" title="${isOn ? 'Disattiva' : 'Attiva'}">
+                <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleSource('${s.id}', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+            <div class="source-info">
+                <div class="source-name">${s.name}</div>
+                <div class="source-url">${s.url}</div>
+            </div>
+            <div class="source-actions">
+                <span class="badge-type ${(s.type||'rss') === 'scrape' ? 'scrape' : ''}">${s.type || 'rss'}</span>
+                <button class="btn-del" onclick="deleteSource('${s.id}')">🗑</button>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 async function addSource() {
-  const name = document.getElementById('new-name').value.trim();
-  const url  = document.getElementById('new-url').value.trim();
-  const type = document.getElementById('new-type').value;
-  if (!name||!url) { alert('Inserisci nome e URL.'); return; }
-  try {
-    const r = await fetch('/api/sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,type})}).then(r=>r.json());
-    if (r.error) { alert('Errore: '+r.error); return; }
-    document.getElementById('new-name').value = '';
-    document.getElementById('new-url').value  = '';
-    loadSources();
-  } catch(e) { alert('Errore connessione'); }
+    const name = document.getElementById('new-name').value.trim();
+    const url  = document.getElementById('new-url').value.trim();
+    const type = document.getElementById('new-type').value;
+    if (!name || !url) { alert('Inserisci nome e URL.'); return; }
+    try {
+        const r = await (await fetch('/api/sources', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ name, url, type })
+        })).json();
+        if (r.error) { alert('Errore: ' + r.error); return; }
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-url').value  = '';
+        loadSources();
+    } catch(e) { alert('Errore connessione'); }
 }
 
 async function deleteSource(id) {
-  if (!confirm('Eliminare questa fonte?')) return;
-  await fetch(`/api/sources/${id}`,{method:'DELETE'});
-  loadSources();
+    if (!confirm('Eliminare questa fonte?')) return;
+    try { await fetch(`/api/sources/${id}`, { method: 'DELETE' }); loadSources(); }
+    catch(e) { alert('Errore'); }
 }
 
 async function toggleSource(id, active) {
-  await fetch(`/api/sources/${id}/toggle`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});
-  const s = sources.find(x=>String(x.id)===String(id));
-  if (s) s.active = active;
-  renderSources();
+    try {
+        await fetch(`/api/sources/${id}/toggle`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ active })
+        });
+        const s = sources.find(x => String(x.id) === String(id));
+        if (s) s.active = active;
+        renderSources();
+    } catch(e) { alert('Errore toggle fonte'); }
 }
 
-// ── SCAN ──
-function log(msg,cls='') {
-  const el = document.getElementById('scan-log');
-  el.classList.add('show');
-  el.innerHTML += `<span class="${cls}">» ${msg}  </span>`;
-}
-
+// ── SCAN ──────────────────────────────────────────────────────────────
 async function runScan() {
-  const btn = document.getElementById('btn-scan');
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Scansione...';
-  document.getElementById('scan-log').innerHTML='';
-  log('Avvio scansione fonti attive...');
-  try {
-    const data = await fetch('/api/monitor/run',{method:'POST'}).then(r=>r.json());
-    if (data.error) log('Errore: '+data.error,'log-err');
-    else { log(`Completata — ${data.found||0} nuovi, ${data.duplicates||0} duplicati`,'log-ok'); loadScanInfo(); loadClients(); loadMentions(); }
-  } catch(e) { log('Errore di connessione','log-err'); }
-  finally { btn.disabled=false; btn.innerHTML='🔍 Scansiona ora'; }
+    const btn = document.getElementById('btn-scan');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Scansione...';
+    document.getElementById('scan-log').innerHTML = '';
+    document.getElementById('scan-log').classList.add('show');
+    log('Avvio scansione fonti attive...');
+    try {
+        const data = await (await fetch('/api/monitor/run', { method: 'POST' })).json();
+        if (data.error) { log('Errore: ' + data.error, 'log-err'); }
+        else {
+            log(`Completata — ${data.found || 0} nuovi articoli, ${data.duplicates || 0} duplicati`, 'log-ok');
+            loadScanInfo();
+            await loadClients();
+            loadMentions();
+        }
+    } catch(e) { log('Errore di connessione', 'log-err'); }
+    finally { btn.disabled = false; btn.innerHTML = '🔍 Scansiona ora'; }
 }
 
 async function runHistorical() {
-  const from = document.getElementById('scan-from').value;
-  const to   = document.getElementById('scan-to').value;
-  if (!from||!to) { alert('Seleziona date.'); return; }
-  const btn = document.getElementById('btn-historical');
-  btn.disabled=true; btn.innerHTML='<div class="spinner dark"></div> In corso...';
-  document.getElementById('scan-log').innerHTML='';
-  log(`Storica ${from} → ${to}...`);
-  try {
-    const data = await fetch('/api/monitor/run-historical',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_date:from,to_date:to})}).then(r=>r.json());
-    if (data.error) log('Errore: '+data.error,'log-err');
-    else { log(`Completata — ${data.found||0} nuovi, ${data.duplicates||0} duplicati`,'log-ok'); loadScanInfo(); loadClients(); loadMentions(); }
-  } catch(e) { log('Errore di connessione','log-err'); }
-  finally { btn.disabled=false; btn.innerHTML='📅 Scansione storica'; }
+    const from = document.getElementById('scan-from').value;
+    const to   = document.getElementById('scan-to').value;
+    if (!from || !to) { alert('Seleziona data inizio e fine.'); return; }
+    if (from > to) { alert('Data inizio deve precedere la fine.'); return; }
+    const btn = document.getElementById('btn-historical');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner dark"></div> Scansione storica...';
+    document.getElementById('scan-log').innerHTML = '';
+    document.getElementById('scan-log').classList.add('show');
+    log(`Scansione storica ${from} → ${to}...`);
+    try {
+        const data = await (await fetch('/api/monitor/run-historical', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ from_date: from, to_date: to })
+        })).json();
+        if (data.error) { log('Errore: ' + data.error, 'log-err'); }
+        else {
+            log(`Completata — ${data.found || 0} nuovi articoli, ${data.duplicates || 0} duplicati`, 'log-ok');
+            loadScanInfo();
+            await loadClients();
+            loadMentions();
+        }
+    } catch(e) { log('Errore di connessione', 'log-err'); }
+    finally { btn.disabled = false; btn.innerHTML = '📅 Scansione storica'; }
 }
 
 async function loadScanInfo() {
-  try {
-    const data = await fetch('/api/monitor/scan-info').then(r=>r.json());
-    document.getElementById('last-daily').textContent = data.last_daily      ? fmtDate(data.last_daily)      : 'mai';
-    document.getElementById('last-hist').textContent  = data.last_historical ? fmtDate(data.last_historical) : 'mai';
-  } catch(e) {}
+    try {
+        const data = await (await fetch('/api/monitor/scan-info')).json();
+        document.getElementById('last-daily').textContent = data.last_daily    ? fmtDate(data.last_daily)    : 'mai';
+        document.getElementById('last-hist').textContent  = data.last_historical ? fmtDate(data.last_historical) : 'mai';
+    } catch(e) {}
 }
 
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// ── INIT ──────────────────────────────────────────────────────────────
+(function initDates() {
+    document.getElementById('scan-to').value   = todayISO();
+    document.getElementById('scan-from').value = yearAgoISO();
+})();
 
-// ── INIT ──
-document.getElementById('scan-to').value   = todayISO();
-document.getElementById('scan-from').value = yearAgoISO();
-window.addEventListener('load', () => { loadClients(); loadMentions(); loadScanInfo(); });
+window.addEventListener('load', async () => {
+    await loadClients();
+    loadMentions();
+    loadScanInfo();
+});
 </script>
 </body>
 </html>

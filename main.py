@@ -227,8 +227,8 @@ async def web_page():
     return FileResponse("web/web.html")
 
 @app.get("/monitor")
-async def monitor_page():
-    return FileResponse("web/web.html")  # alias legacy
+async def monitor_redirect():
+    return RedirectResponse(url="/web", status_code=301)
 
 @app.get("/chat")
 async def chat_page():

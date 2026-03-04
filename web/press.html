@@ -84,12 +84,13 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 <nav>
   <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
   <div class="nav-links">
-    <a href="/"         class="nav-link">Home</a>
-    <a href="/press"    class="nav-link active">Press</a>
-    <a href="/chat"     class="nav-link">AI Analysis</a>
-    <a href="/pitch"    class="nav-link">Pitch</a>
-    <a href="/monitor"  class="nav-link">Monitor</a>
-    <a href="/clients"  class="nav-link">Clienti</a>
+    <a href="/"             class="nav-link">Home</a>
+    <a href="/press"        class="nav-link active">Press</a>
+    <a href="/web"          class="nav-link">Web</a>
+    <a href="/chat"         class="nav-link">AI Analysis</a>
+    <a href="/pitch"        class="nav-link">AI Pitch</a>
+    <a href="/clients"      class="nav-link">Clienti</a>
+    <a href="/giornalisti"  class="nav-link">Giornalisti</a>
   </div>
 </nav>
 
@@ -233,7 +234,7 @@ function renderArticlesTable(articles){
   list.innerHTML=articles.map(a=>`
     <div class="article-row" onclick="loadArticleDetail('${a.id}')">
       <div class="art-testata">${a.testata||'N/D'}</div>
-      <div>${a.giornalista||'Anonimo'}</div>
+      <div><a href="/giornalisti?nome=${encodeURIComponent(a.giornalista||'')}" onclick="event.stopPropagation()" style="color:var(--teal);text-decoration:none;font-weight:600;" title="Vedi profilo giornalista">${a.giornalista||'Anonimo'}</a></div>
       <div>${a.titolo||'Senza titolo'}</div>
       <div class="art-date">${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
     </div>`).join("");
@@ -260,7 +261,7 @@ async function loadArticleDetail(id){
     <div class="detail-meta">
       <div><strong>${a.testata||'N/D'}</strong></div>
       ${a.pagina_testata?`<div>Pagina: ${a.pagina_testata}</div>`:""}
-      <div>Giornalista: ${a.giornalista||'Anonimo'}</div>
+      <div>Giornalista: <a href="/giornalisti?nome=${encodeURIComponent(a.giornalista||'')}" style="color:var(--teal);text-decoration:none;font-weight:600;" title="Vedi profilo giornalista">${a.giornalista||'Anonimo'}</a></div>
       <div>Data: ${new Date(a.data+"T12:00:00").toLocaleDateString("it-IT")}</div>
       ${a.tipologia_articolo?`<div>Tipologia: ${a.tipologia_articolo}</div>`:""}
       ${a.macrosettori?`<div><strong>Settori:</strong> ${a.macrosettori}</div>`:""}
