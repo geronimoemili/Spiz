@@ -1,13 +1,11 @@
 """
-api/chat.py - SPIZ AI v11
+api/chat.py - SPIZ AI v12
 ARCHITETTURA:
 - Un solo percorso: intelligence report (map → reduce)
-- Zero routing per intent: la AI è sempre in modalità analista senior
-- Zero riferimenti a settori specifici: funziona per qualsiasi cliente/tema
-- I numeri (conteggi, testate, sentiment %) restano a Python via _stats()
-  e vengono passati al modello come dati già calcolati, mai da calcolare
-- client_name: se fornito, personalizza la sezione "Spazi narrativi"
-  senza bisogno di scriverlo nel messaggio ogni volta
+- Zero routing per intent
+- client_name o topic_name personalizzano la sezione Spazi narrativi
+- I numeri restano a Python via _stats()
+- Restituisce articles_list per la visualizzazione frontend
 """
 
 import os
@@ -57,8 +55,8 @@ def _parse_days(msg: str):
             return days
     return None
 
-def _date_range(context: str, message: str):
-    days = _parse_days(message)
+def _date_range(context: str, message: str = ""):
+    days = _parse_days(message) if message else None
     if days is None:
         days = {"today": 0, "week": 7, "month": 30, "year": 365}.get(context, 30)
     today = date.today()
@@ -71,11 +69,11 @@ def _date_range(context: str, message: str):
 # RICERCA
 # ══════════════════════════════════════════════════════════════════════
 
-def _semantic_search(from_date: str, to_date: str, user_message: str, limit: int = 200):
+def _semantic_search(from_date: str, to_date: str, query: str, limit: int = 200):
     try:
         emb = ai.embeddings.create(
             model="text-embedding-3-small",
-            input=user_message[:8000],
+            input=query[:8000],
         ).data[0].embedding
         res = supabase.rpc(
             "match_articles",
@@ -103,7 +101,7 @@ def _fallback_search(from_date: str, to_date: str, limit: int = 100):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# STATISTICHE  (i numeri li calcola Python, non il modello)
+# STATISTICHE
 # ══════════════════════════════════════════════════════════════════════
 
 def _stats(articles: list) -> dict:
@@ -127,9 +125,6 @@ def _stats(articles: list) -> dict:
 # ══════════════════════════════════════════════════════════════════════
 # DOCX BUILDER
 # ══════════════════════════════════════════════════════════════════════
-
-def _wants_docx(message: str) -> bool:
-    return any(kw in message.lower() for kw in ["word", "docx", "scarica", "download", "file"])
 
 def _build_docx(report_text: str, title: str = "Report SPIZ") -> str | None:
     if not os.path.exists(_BUILDER_JS):
@@ -156,8 +151,7 @@ def _build_docx(report_text: str, title: str = "Report SPIZ") -> str | None:
 
 
 # ══════════════════════════════════════════════════════════════════════
-# MAP — estrazione strutturata per ogni batch di articoli
-# Il modello legge e sintetizza; NON conta, NON calcola percentuali
+# MAP
 # ══════════════════════════════════════════════════════════════════════
 
 _MAP_SYSTEM = """Sei un analista di media monitoring. Leggi gli articoli forniti e
@@ -165,6 +159,7 @@ restituisci un JSON con una lista "articoli". Per ogni articolo includi:
 - testata (string)
 - data (string)
 - titolo (string)
+- giornalista (string, se presente)
 - fatti_chiave: array di max 3 stringhe — i fatti oggettivi riportati
 - angolo: string — l'angolazione giornalistica scelta dalla testata
 - attori: array di stringhe — soggetti citati (aziende, persone, istituzioni)
@@ -178,8 +173,9 @@ def _map_batch(batch: list, idx: int):
     for a in batch:
         testo = (a.get("testo_completo") or "")[:1500]
         lines.append(
-            f"TESTATA: {a.get('testata')}\nDATA: {a.get('data')}\n"
-            f"TITOLO: {a.get('titolo')}\nTESTO: {testo}"
+            f"TESTATA: {a.get('testata','')}\nDATA: {a.get('data','')}\n"
+            f"TITOLO: {a.get('titolo','')}\nGIORNALISTA: {a.get('giornalista','')}\n"
+            f"TESTO: {testo}"
         )
     try:
         resp = ai.chat.completions.create(
@@ -215,10 +211,7 @@ def _map_articles_parallel(articles: list, batch_size: int = 5, max_workers: int
 
 
 # ══════════════════════════════════════════════════════════════════════
-# REDUCE — produzione del report intelligence
-# Sistema universale: nessun riferimento a settori, tecnologie o contesti
-# specifici. Il modello legge il corpus e si adatta al dominio da solo.
-# client_name: se presente, personalizza la sezione Spazi narrativi.
+# REDUCE — prompt v12
 # ══════════════════════════════════════════════════════════════════════
 
 _REPORT_SYSTEM = """Sei SPIZ, analista senior di comunicazione e media intelligence
@@ -239,48 +232,64 @@ REGOLE FONDAMENTALI:
 STRUTTURA OBBLIGATORIA DEL REPORT:
 
 ## 1. CLIMA MEDIATICO
-Sintesi in 5-7 righe del quadro generale del dibattito nei media sul tema/settore
+Sintesi in 10-15 righe del quadro generale del dibattito nei media sul tema/settore
 del corpus: tono prevalente, eventuali fratture narrative, elementi di contesto
 politico, economico o istituzionale rilevanti, dinamiche tra attori.
+Non limitarti a descrivere: interpreta le dinamiche, segnala le tensioni
+sottotraccia, indica dove si sta evolvendo il dibattito.
 
 ## 2. TEMI DOMINANTI
 Individua 3-5 temi principali emersi dal corpus. Per ciascuno:
-- come viene raccontato dai media
+- come viene raccontato dai media (angolazione, tono, registro)
 - quali attori compaiono e con quale ruolo
 - eventuali tensioni o contrapposizioni narrative
+- riferimenti puntuali: indica sempre testata, autore (se presente) e titolo
 
 ## 3. SPAZI NARRATIVI PER IL CLIENTE
-Questa è la sezione più strategica. Individua 4-6 possibili ganci giornalistici
-utilizzabili per posizionare il cliente nel dibattito corrente. Per ciascuno:
+La sezione più strategica. Individua 4-6 possibili ganci giornalistici
+per posizionare il cliente nel dibattito corrente.
+Per ciascuno scrivi almeno 10 righe che includano:
 - titolo sintetico del frame narrativo
-- spiegazione (3-4 righe)
-- perché è coerente con il dibattito attuale
-- come potrebbe essere raccontato da un giornalista
+- descrizione approfondita dello spazio narrativo
+- perché è coerente con il dibattito attuale e con il momento
+- come potrebbe essere raccontato da un giornalista (angolo, registro, format)
+- quali testate o giornalisti del corpus sarebbero più ricettivi
 
 ## 4. ANGOLI GIORNALISTICI IMMEDIATI
-3 spunti editoriali o interviste proponibili rapidamente alle redazioni.
+3 spunti editoriali o interviste proponibili subito alle redazioni.
 Per ciascuno:
-- titolo possibile dell'articolo
-- taglio giornalistico
+- titolo possibile dell'articolo (come uscirebbe su una testata)
+- taglio giornalistico (notizia, analisi, intervista, dossier…)
 - perché potrebbe interessare una redazione oggi
 
-Lunghezza target: 600-800 parole. Sintetico, analitico, orientato all'azione."""
+---
+Chiudi sempre il report con questa riga compilata con i dati reali:
+**CORPUS:** [N] articoli · [TESTATA1, TESTATA2, …top 5] · periodo [DATA_DA] → [DATA_A]
+
+Lunghezza target: 800-1000 parole. Sintetico, analitico, orientato all'azione."""
 
 
 def _reduce_to_report(
-    user_message: str,
+    query: str,
     extracted: list,
     stats: dict,
     client_name: str = "",
+    topic_name: str = "",
 ) -> str:
-    # Contesto cliente: se fornito, personalizza la sezione Spazi narrativi
-    client_block = ""
+    focus_block = ""
     if client_name and client_name.strip():
-        client_block = (
+        focus_block = (
             f"\nCLIENTE: {client_name.strip()}\n"
-            "Nella sezione 'Spazi narrativi per il cliente' costruisci le opportunità "
-            f"specificamente per {client_name.strip()}, usando il suo nome dove pertinente "
-            "e ragionando su come potrebbe inserirsi nel dibattito come voce autorevole.\n"
+            f"Nella sezione 3 (Spazi narrativi) costruisci le opportunità "
+            f"specificamente per {client_name.strip()}, usando il suo nome "
+            f"e ragionando su come potrebbe inserirsi nel dibattito come voce autorevole.\n"
+        )
+    elif topic_name and topic_name.strip():
+        focus_block = (
+            f"\nARGOMENTO FOCUS: {topic_name.strip()}\n"
+            f"Il report deve essere centrato su questo argomento. "
+            f"Nella sezione 3, gli spazi narrativi devono essere pensati per "
+            f"un soggetto che voglia posizionarsi su questo tema.\n"
         )
 
     stats_txt = (
@@ -303,8 +312,8 @@ def _reduce_to_report(
         messages=[
             {"role": "system", "content": _REPORT_SYSTEM},
             {"role": "user", "content": (
-                f"RICHIESTA: {user_message}\n"
-                f"{client_block}\n"
+                f"QUERY: {query}\n"
+                f"{focus_block}\n"
                 f"DATI STATISTICI (calcolati dal sistema, usa solo questi per i numeri):\n"
                 f"{stats_txt}\n\n"
                 f"CORPUS ARTICOLI ANALIZZATI (JSON estratto):\n{extracted_txt}"
@@ -317,28 +326,25 @@ def _reduce_to_report(
 
 
 # ══════════════════════════════════════════════════════════════════════
-# ENTRY POINT UNICO
-# Non c'è più routing per intent. La chat fa sempre e solo intelligence.
-# client_name: opzionale, passato dal frontend quando l'utente seleziona
-#              un cliente dalla dropdown. Personalizza la sezione 3.
+# ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════
 
 def ask_spiz(
-    message: str,
+    message: str = "",
     history: list = None,
-    context: str = "general",
+    context: str = "week",
     client_name: str = "",
+    topic_name: str = "",
 ) -> dict:
-    if not message or len(message.strip()) < 2:
-        return {"error": "Messaggio troppo corto."}
+    # La query semantica: usa client/topic come anchor primario
+    search_query = client_name or topic_name or message
+    if not search_query or len(search_query.strip()) < 2:
+        return {"error": "Nessun cliente, argomento o query specificata."}
 
     from_date, to_date = _date_range(context, message)
-    wants_docx = _wants_docx(message)
+    print(f"[SPIZ v12] from={from_date} to={to_date} query={search_query!r} client={client_name!r} topic={topic_name!r}")
 
-    print(f"[SPIZ v11] from={from_date} to={to_date} docx={wants_docx} client={client_name!r}")
-
-    # Recupero articoli
-    articles = _semantic_search(from_date, to_date, message, limit=200)
+    articles = _semantic_search(from_date, to_date, search_query, limit=200)
     if not articles:
         print("[SPIZ] semantic vuota, uso fallback")
         articles = _fallback_search(from_date, to_date, limit=150)
@@ -349,28 +355,41 @@ def ask_spiz(
             "is_report":     False,
             "docx_path":     None,
             "articles_used": 0,
-            "total_period":  0,
+            "articles_list": [],
+            "period_from":   from_date,
+            "period_to":     to_date,
         }
 
-    # Statistiche: Python conta, il modello non tocca numeri
-    stats = _stats(articles)
+    stats       = _stats(articles)
+    extracted   = _map_articles_parallel(articles[:150])
+    report_text = _reduce_to_report(
+        search_query, extracted, stats,
+        client_name=client_name,
+        topic_name=topic_name,
+    )
 
-    # Map: ogni articolo viene strutturato in parallelo (gpt-4o-mini, veloce)
-    extracted = _map_articles_parallel(articles[:150])
-
-    # Reduce: il modello produce il report intelligence (gpt-4o, qualità)
-    report_text = _reduce_to_report(message, extracted, stats, client_name=client_name)
-
-    # Docx opzionale
-    docx_path = None
-    if wants_docx:
-        title = f"Report SPIZ — {client_name}" if client_name else "Report SPIZ"
-        docx_path = _build_docx(report_text, title=title)
+    # Lista articoli per il frontend
+    articles_list = [
+        {
+            "testata":     a.get("testata", ""),
+            "data":        a.get("data", ""),
+            "titolo":      a.get("titolo", ""),
+            "giornalista": a.get("giornalista", ""),
+            "occhiello":   a.get("occhiello", ""),
+            "tone":        a.get("tone", ""),
+            "ave":         a.get("ave", ""),
+            "url":         a.get("url", ""),
+            "tipo_fonte":  a.get("tipo_fonte", ""),
+        }
+        for a in articles
+    ]
 
     return {
         "response":      report_text,
         "is_report":     True,
-        "docx_path":     docx_path,
+        "docx_path":     None,
         "articles_used": len(articles),
-        "total_period":  len(articles),
+        "period_from":   stats.get("periodo_da", ""),
+        "period_to":     stats.get("periodo_a", ""),
+        "articles_list": articles_list,
     }

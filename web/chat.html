@@ -3,133 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAIM · AI Analysis</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>MAIM · AI Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f5f7fa; --bg2:#ffffff; --bg3:#eef1f6; --border:#dde3ed; --border2:#c8d0e0;
-            --text:#1a2236; --text2:#5a6a84; --text3:#9aabc0;
-            --teal:#0ea5c9; --magenta:#d4367a; --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
-            --green:#059669; --red:#e03a5a; --amber:#d97706;
-            --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+            --bg:#f4f6fa; --bg2:#ffffff; --bg3:#edf0f7; --bg4:#e5e9f2;
+            --border:#dde3ed; --border2:#c8d0e0;
+            --text:#1a2236; --text2:#4a5a74; --text3:#8a9bb8;
+            --teal:#0ea5c9; --teal-dim:rgba(14,165,201,0.1);
+            --magenta:#d4367a; --magenta-dim:rgba(212,54,122,0.08);
+            --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+            --green:#059669; --amber:#d97706; --red:#dc2626;
+            --mono:'IBM Plex Mono',monospace;
+            --sans:'IBM Plex Sans',sans-serif;
+            --serif:'IBM Plex Serif',serif;
+            --sidebar-w:280px;
         }
+
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;}
+        body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 
-        /* NAV */
-        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;flex-shrink:0;z-index:100;gap:12px;position:relative;}
+        /* ── TOPNAV ─────────────────────────────────────────────── */
+        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;flex-shrink:0;z-index:100;gap:12px;}
         .logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
-        .logo-img{height:36px;width:auto;}
-        .logo-divider{width:1px;height:28px;background:var(--border2);}
-        .logo-sub{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
-        .nav-links{display:flex;gap:2px;}
+        .logo-img{height:32px;width:auto;}
+        .logo-divider{width:1px;height:24px;background:var(--border2);}
+        .logo-sub{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
+        .nav-links{display:flex;gap:0;}
         .nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;padding:6px 12px;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
-        .nav-link:hover{color:var(--teal);border-bottom-color:var(--teal);}
+        .nav-link:hover{color:var(--teal);}
         .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta);}
-        .hamburger{display:none;background:none;border:1px solid var(--border2);padding:6px 10px;border-radius:3px;cursor:pointer;font-size:14px;color:var(--text2);}
-        .nav-mobile-menu{display:none;flex-direction:column;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px;position:fixed;top:64px;right:16px;z-index:9999;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
-        .nav-mobile-menu a{padding:8px 12px;color:var(--text2);text-decoration:none;font-size:12px;font-weight:600;border-radius:3px;}
-        .nav-mobile-menu a:hover{background:var(--bg3);color:var(--teal);}
-        @media(max-width:768px){.hamburger{display:block;}.nav-links{display:none;}.logo-sub{display:none;}}
+        @media(max-width:900px){.nav-links .nav-link:not(.active){display:none;}}
 
-        /* LAYOUT */
-        .chat-layout{display:flex;flex:1;overflow:hidden;}
+        /* ── MAIN LAYOUT ─────────────────────────────────────────── */
+        .layout{display:flex;flex:1;overflow:hidden;}
 
-        /* SIDEBAR */
-        .chat-sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
-        .sidebar-header{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;justify-content:space-between;align-items:center;}
-        .sidebar-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
-        .btn-new-chat{background:var(--grad);color:#fff;border:none;border-radius:4px;padding:5px 12px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;letter-spacing:0.3px;}
-        .btn-new-chat:hover{opacity:0.9;}
-        .conv-list{overflow-y:auto;flex:1;}
-        .conv-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
-        .conv-item:hover{background:var(--bg3);}
-        .conv-item.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:11px;}
-        .conv-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .conv-item.active .conv-title{color:var(--teal);}
-        .conv-date{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;}
-        .conv-empty{padding:20px 14px;color:var(--text3);font-family:var(--mono);font-size:10px;text-align:center;}
+        /* ── SIDEBAR ─────────────────────────────────────────────── */
+        .sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
 
-        /* SELETTORI SIDEBAR */
-        .context-bar{padding:10px 14px;border-bottom:1px solid var(--border);}
-        .context-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
-        .context-select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:6px 8px;border-radius:4px;cursor:pointer;}
-        .context-select:focus{outline:none;border-color:var(--teal);}
+        .sb-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+        .sb-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+        .sb-label-dot{width:5px;height:5px;border-radius:50%;background:var(--grad);}
 
-        .client-bar{padding:10px 14px;border-bottom:1px solid var(--border);}
-        .client-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
-        .client-select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;padding:6px 8px;border-radius:4px;cursor:pointer;}
-        .client-select:focus{outline:none;border-color:var(--magenta);}
-        .client-badge{display:none;margin-top:5px;font-family:var(--mono);font-size:10px;color:var(--magenta);font-weight:600;padding:3px 7px;background:rgba(212,54,122,0.08);border:1px solid rgba(212,54,122,0.2);border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        /* Toggle Cliente / Argomento */
+        .focus-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:9px;}
+        .focus-btn{flex:1;padding:6px 8px;font-family:var(--mono);font-size:10px;font-weight:600;text-align:center;cursor:pointer;border:none;background:none;color:var(--text3);transition:all 0.15s;letter-spacing:0.3px;}
+        .focus-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+        .focus-btn.active.cliente{color:var(--magenta);}
+        .focus-btn.active.argomento{color:var(--teal);}
 
-        /* CHAT MAIN */
-        .chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+        .sb-select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 9px;border-radius:5px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9bb8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
+        .sb-select:focus{outline:none;border-color:var(--teal);}
+        .sb-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 9px;border-radius:5px;}
+        .sb-input:focus{outline:none;border-color:var(--teal);}
+        .sb-input::placeholder{color:var(--text3);}
 
-        /* CHAT HEADER */
-        .chat-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-        .chat-header-left{display:flex;flex-direction:column;gap:2px;}
-        .chat-header-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--text2);}
-        .chat-header-client{font-family:var(--mono);font-size:9px;color:var(--magenta);font-weight:600;letter-spacing:0.5px;display:none;}
-        .model-badge{font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 10px;border-radius:3px;background:rgba(14,165,201,0.1);color:var(--teal);border:1px solid rgba(14,165,201,0.25);}
+        /* Formato output */
+        .format-pills{display:flex;flex-direction:column;gap:4px;}
+        .format-pill{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all 0.12s;background:var(--bg3);}
+        .format-pill:hover{border-color:var(--teal-dim);background:var(--bg2);}
+        .format-pill.active{border-color:var(--teal);background:var(--teal-dim);}
+        .format-pill input{display:none;}
+        .format-pill-icon{font-size:14px;flex-shrink:0;}
+        .format-pill-text{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);}
+        .format-pill.active .format-pill-text{color:var(--teal);}
 
-        /* MESSAGES */
-        .messages-wrap{flex:1;overflow-y:auto;padding:20px;}
-        .welcome-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;color:var(--text3);}
-        .welcome-icon{font-size:48px;opacity:0.2;}
-        .welcome-title{font-size:18px;font-weight:700;color:var(--text);opacity:0.7;}
-        .welcome-sub{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:1.8;max-width:440px;}
-        .suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;}
-        .suggestion-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:7px 16px;font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.15s;text-align:left;}
-        .suggestion-btn:hover{border-color:var(--teal);color:var(--teal);background:#f0f9fc;}
+        /* Genera button */
+        .btn-genera{width:100%;padding:12px;background:var(--grad);color:#fff;border:none;border-radius:7px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity 0.15s,transform 0.1s;display:flex;align-items:center;justify-content:center;gap:8px;}
+        .btn-genera:hover:not(:disabled){opacity:0.9;transform:translateY(-1px);}
+        .btn-genera:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
+        .btn-genera .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+        .btn-genera.loading .spinner{display:block;}
+        .btn-genera.loading .btn-label{opacity:0.6;}
+        @keyframes spin{to{transform:rotate(360deg)}}
 
-        /* MESSAGE BUBBLES */
-        .message{display:flex;gap:10px;margin-bottom:16px;animation:fadeIn 0.2s ease;}
-        .message.user{flex-direction:row-reverse;}
-        .msg-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
-        .msg-avatar.ai{background:var(--grad);color:#fff;}
-        .msg-avatar.user{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);}
-        .msg-bubble{max-width:75%;padding:12px 16px;border-radius:12px;font-size:13px;line-height:1.7;}
-        .message.ai   .msg-bubble{background:var(--bg2);border:1px solid var(--border);border-top-left-radius:2px;color:var(--text);}
-        .message.user .msg-bubble{background:var(--grad);color:#fff;border-top-right-radius:2px;}
-        .msg-bubble pre{background:rgba(0,0,0,0.05);border-radius:6px;padding:10px 12px;margin:8px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;}
-        .message.user .msg-bubble pre{background:rgba(0,0,0,0.15);}
-        .msg-bubble h2{font-size:14px;font-weight:700;margin:14px 0 6px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:4px;}
-        .msg-bubble h3{font-size:13px;font-weight:600;margin:10px 0 4px;color:var(--teal);}
-        .msg-bubble strong{font-weight:600;}
-        .msg-bubble em{font-style:italic;color:var(--text2);}
-        .msg-time{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:4px;}
-        .message.user .msg-time{text-align:right;}
+        /* Report salvati */
+        .saved-list{overflow-y:auto;flex:1;}
+        .saved-empty{padding:16px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.7;}
+        .saved-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;position:relative;}
+        .saved-item:hover{background:var(--bg3);}
+        .saved-item.active{background:#eaf7fc;border-left:3px solid var(--teal);padding-left:13px;}
+        .saved-item-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .saved-item.active .saved-item-title{color:var(--teal);}
+        .saved-item-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
+        .saved-item-del{position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:0;font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 5px;}
+        .saved-item:hover .saved-item-del{opacity:1;}
 
-        /* TYPING */
-        .typing{display:flex;align-items:center;gap:4px;padding:12px 16px;}
-        .typing span{width:6px;height:6px;background:var(--text3);border-radius:50%;animation:bounce 1.2s infinite;}
-        .typing span:nth-child(2){animation-delay:0.2s;}
-        .typing span:nth-child(3){animation-delay:0.4s;}
-        @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+        /* ── MAIN CONTENT ────────────────────────────────────────── */
+        .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
-        /* STATS BAR */
-        .stats-bar{font-family:var(--mono);font-size:9px;color:var(--text3);padding:4px 16px 0;display:flex;gap:12px;flex-wrap:wrap;}
-        .stats-bar span{color:var(--teal);}
+        /* Barra superiore del content */
+        .content-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
+        .content-title-wrap{display:flex;flex-direction:column;gap:2px;}
+        .content-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);}
+        .content-subject{font-size:15px;font-weight:700;color:var(--text);display:none;}
+        .content-meta{font-family:var(--mono);font-size:9px;color:var(--text3);display:none;}
+        .header-actions{display:flex;gap:8px;align-items:center;}
+        .btn-copy{padding:6px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.12s;display:flex;align-items:center;gap:5px;}
+        .btn-copy:hover{border-color:var(--teal);color:var(--teal);}
+        .btn-copy.copied{border-color:var(--green);color:var(--green);}
+        .model-tag{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:3px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(14,165,201,0.2);}
 
-        /* INPUT AREA */
-        .input-area{background:var(--bg2);border-top:1px solid var(--border);padding:14px 20px;flex-shrink:0;}
-        .input-wrap{display:flex;gap:10px;align-items:flex-end;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:8px 12px;transition:border-color 0.15s;}
-        .input-wrap:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,201,0.08);}
-        .chat-input{flex:1;background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);resize:none;max-height:120px;line-height:1.5;min-height:20px;}
-        .chat-input::placeholder{color:var(--text3);}
-        .btn-send{background:var(--grad);color:#fff;border:none;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:16px;transition:opacity 0.15s,transform 0.15s;}
-        .btn-send:hover{opacity:0.9;transform:scale(1.05);}
-        .btn-send:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
-        .input-hint{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:6px;text-align:right;}
+        /* ── SCROLL AREA ─────────────────────────────────────────── */
+        .scroll-area{flex:1;overflow-y:auto;padding:28px 32px;}
 
-        /* MOBILE */
+        /* ── EMPTY STATE ─────────────────────────────────────────── */
+        .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center;color:var(--text3);padding:40px;}
+        .empty-icon{font-size:52px;opacity:0.15;}
+        .empty-title{font-size:20px;font-weight:700;color:var(--text);opacity:0.5;font-family:var(--serif);}
+        .empty-hint{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:2;max-width:380px;}
+        .empty-steps{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+        .empty-step{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+        .step-num{width:20px;height:20px;border-radius:50%;background:var(--grad);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+        /* ── LOADING STATE ───────────────────────────────────────── */
+        .loading-state{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:40px;}
+        .loading-ring{width:48px;height:48px;border:3px solid var(--border);border-top:3px solid var(--teal);border-radius:50%;animation:spin 1s linear infinite;}
+        .loading-label{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:0.8px;}
+        .loading-sub{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.5px;}
+
+        /* ── REPORT CONTENT ──────────────────────────────────────── */
+        #report-output{display:none;}
+
+        /* Formato: impaginato (Word-like) */
+        .fmt-word .report-body{max-width:740px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:44px 52px;box-shadow:0 2px 20px rgba(0,0,0,0.05);}
+        .fmt-word .report-body h2{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--border);}
+        .fmt-word .report-body h2:first-child{margin-top:0;}
+        .fmt-word .report-body h3{font-size:13px;font-weight:700;color:var(--teal);margin:16px 0 6px;font-family:var(--sans);}
+        .fmt-word .report-body p{font-family:var(--serif);font-size:13.5px;line-height:1.85;color:var(--text);margin-bottom:10px;}
+        .fmt-word .report-body strong{font-weight:700;color:var(--text);}
+        .fmt-word .report-body em{font-style:italic;color:var(--text2);}
+        .fmt-word .report-body ul,.fmt-word .report-body ol{margin:8px 0 12px 20px;font-family:var(--serif);font-size:13.5px;line-height:1.8;}
+        .fmt-word .report-body li{margin-bottom:4px;}
+        .fmt-word .report-body .corpus-line{margin-top:28px;padding:10px 14px;background:var(--bg3);border-radius:5px;font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border);}
+
+        /* Formato: testo plain */
+        .fmt-text .report-body{max-width:720px;margin:0 auto;}
+        .fmt-text .report-body h2{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin:24px 0 8px;padding:8px 12px;background:var(--bg3);border-left:3px solid var(--magenta);}
+        .fmt-text .report-body h2:first-child{margin-top:0;}
+        .fmt-text .report-body h3{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--magenta);margin:14px 0 5px;}
+        .fmt-text .report-body p{font-size:13px;line-height:1.75;color:var(--text);margin-bottom:9px;}
+        .fmt-text .report-body ul,.fmt-text .report-body ol{margin:6px 0 10px 18px;font-size:13px;line-height:1.7;}
+        .fmt-text .report-body .corpus-line{margin-top:24px;font-family:var(--mono);font-size:10px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px;}
+
+        /* Formato: WhatsApp */
+        .fmt-wa .report-body{max-width:600px;margin:0 auto;background:#e5ddd5;border-radius:12px;padding:16px;font-family:'Segoe UI',system-ui,sans-serif;}
+        .fmt-wa .wa-bubble{background:#fff;border-radius:12px 12px 12px 0;padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.12);font-size:13.5px;line-height:1.6;color:#111;white-space:pre-wrap;word-break:break-word;}
+        .fmt-wa .wa-meta{font-size:10px;color:#667781;text-align:right;margin-top:4px;font-family:'Segoe UI',system-ui,sans-serif;}
+
+        /* ── ARTICLES SECTION ────────────────────────────────────── */
+        #articles-section{display:none;margin-top:32px;}
+        .articles-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);}
+        .articles-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:8px;}
+        .articles-count{font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(14,165,201,0.2);border-radius:3px;}
+        .art-controls{display:flex;gap:6px;}
+        .btn-art-copy{padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.12s;}
+        .btn-art-copy:hover{border-color:var(--teal);color:var(--teal);}
+
+        .press-table{width:100%;border-collapse:collapse;}
+        .press-table th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:8px 12px;text-align:left;background:var(--bg3);border-bottom:1px solid var(--border2);}
+        .press-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:top;}
+        .press-table tr:hover td{background:var(--bg3);}
+        .art-testata{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--teal);}
+        .art-data{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;}
+        .art-titolo{font-weight:500;color:var(--text);line-height:1.4;}
+        .art-titolo a{color:inherit;text-decoration:none;}
+        .art-titolo a:hover{color:var(--teal);}
+        .art-autore{font-family:var(--mono);font-size:10px;color:var(--text2);}
+        .tone-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;}
+        .tone-pos{background:var(--green);}
+        .tone-neg{background:var(--red);}
+        .tone-neu{background:var(--text3);}
+
+        /* Scrollbar */
+        ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
         @media(max-width:768px){
-            .chat-sidebar{display:none;}
-            .chat-sidebar.open{display:flex;position:absolute;top:60px;left:0;bottom:0;z-index:50;}
+            .sidebar{display:none;}
+            .scroll-area{padding:16px;}
+            .fmt-word .report-body{padding:24px 20px;}
         }
-
-        ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
     </style>
 </head>
 <body>
@@ -139,391 +192,570 @@
     <div class="logo-wrap">
         <img src="/static/LogoMAIM_orizzontale.jpg" alt="MAIM" class="logo-img">
         <div class="logo-divider"></div>
-        <span class="logo-sub">AI Analysis</span>
+        <span class="logo-sub">AI Report</span>
     </div>
     <div class="nav-links">
         <a href="/" class="nav-link">Home</a>
         <a href="/press" class="nav-link">Press</a>
         <a href="/web" class="nav-link">Web</a>
-        <a href="/chat" class="nav-link active">AI Analysis</a>
+        <a href="/chat" class="nav-link active">AI Report</a>
         <a href="/pitch" class="nav-link">AI Pitch</a>
         <a href="/clients" class="nav-link">Clienti</a>
         <a href="/giornalisti" class="nav-link">Giornalisti</a>
     </div>
-    <button class="hamburger" onclick="toggleMobileMenu(event)">☰</button>
-    <div class="nav-mobile-menu" id="mobile-menu">
-        <a href="/">Home</a>
-        <a href="/press">Press</a>
-        <a href="/web">Web</a>
-        <a href="/chat">AI Analysis</a>
-        <a href="/pitch">AI Pitch</a>
-        <a href="/clients">Clienti</a>
-        <a href="/giornalisti">Giornalisti</a>
-    </div>
+    <span class="model-tag">GPT-4o</span>
 </nav>
 
-<!-- LAYOUT -->
-<div class="chat-layout">
+<div class="layout">
 
-    <!-- SIDEBAR -->
-    <div class="chat-sidebar" id="chat-sidebar">
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+    <aside class="sidebar">
 
-        <!-- Periodo analisi -->
-        <div class="context-bar">
-            <div class="context-label">Periodo analisi</div>
-            <select class="context-select" id="context-select" onchange="updateContext()">
-                <option value="today">📅 Oggi</option>
-                <option value="week" selected>📆 Ultima settimana</option>
-                <option value="month">🗓️ Ultimo mese</option>
-                <option value="general">📊 Tutti gli articoli</option>
-            </select>
-        </div>
-
-        <!-- Cliente -->
-        <div class="client-bar">
-            <div class="client-label">Cliente</div>
-            <select class="client-select" id="client-select" onchange="updateClient()">
-                <option value="">— Nessun cliente selezionato —</option>
-            </select>
-            <div class="client-badge" id="client-badge"></div>
-        </div>
-
-        <div class="sidebar-header">
-            <span class="sidebar-title">Conversazioni</span>
-            <button class="btn-new-chat" onclick="newConversation()">+ Nuova</button>
-        </div>
-        <div class="conv-list" id="conv-list">
-            <div class="conv-empty">Nessuna conversazione</div>
-        </div>
-    </div>
-
-    <!-- CHAT MAIN -->
-    <div class="chat-main">
-        <div class="chat-header">
-            <div class="chat-header-left">
-                <div class="chat-header-title" id="chat-title">NUOVA ANALISI</div>
-                <div class="chat-header-client" id="chat-header-client"></div>
+        <!-- Focus: Cliente / Argomento -->
+        <div class="sb-section">
+            <div class="sb-label"><span class="sb-label-dot"></span>Focus report</div>
+            <div class="focus-toggle">
+                <button class="focus-btn active cliente" id="btn-focus-cliente" onclick="setFocus('cliente')">CLIENTE</button>
+                <button class="focus-btn argomento" id="btn-focus-argomento" onclick="setFocus('argomento')">ARGOMENTO</button>
             </div>
-            <span class="model-badge">GPT-4o</span>
+            <div id="focus-cliente-wrap">
+                <select class="sb-select" id="client-select">
+                    <option value="">— Seleziona cliente —</option>
+                </select>
+            </div>
+            <div id="focus-argomento-wrap" style="display:none">
+                <input class="sb-input" id="topic-input" type="text" placeholder="es. intelligenza artificiale…">
+            </div>
         </div>
 
-        <div class="messages-wrap" id="messages-wrap">
-            <div class="welcome-state" id="welcome-state">
-                <div class="welcome-icon">🧠</div>
-                <div class="welcome-title">AI Analysis</div>
-                <div class="welcome-sub">SELEZIONA UN CLIENTE E UN PERIODO<br>POI DESCRIVI COSA VUOI ANALIZZARE</div>
-                <div class="suggestions">
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Analisi del clima mediatico di oggi</button>
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Quali temi dominano il dibattito questa settimana?</button>
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Identifica i ganci giornalistici utilizzabili oggi</button>
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Report strategico della settimana per il cliente</button>
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Quali angoli editoriali possiamo proporre alle redazioni?</button>
-                    <button class="suggestion-btn" onclick="useSuggestion(this)">Analizza il tono dei media sul settore del cliente</button>
+        <!-- Periodo -->
+        <div class="sb-section">
+            <div class="sb-label"><span class="sb-label-dot"></span>Periodo</div>
+            <select class="sb-select" id="context-select">
+                <option value="today">Oggi</option>
+                <option value="week" selected>Ultima settimana</option>
+                <option value="month">Ultimo mese</option>
+                <option value="year">Ultimo anno</option>
+            </select>
+        </div>
+
+        <!-- Formato output -->
+        <div class="sb-section">
+            <div class="sb-label"><span class="sb-label-dot"></span>Formato output</div>
+            <div class="format-pills">
+                <label class="format-pill active" data-fmt="word" onclick="setFormat('word')">
+                    <input type="radio" name="fmt" value="word" checked>
+                    <span class="format-pill-icon">📄</span>
+                    <span class="format-pill-text">Impaginato (Word)</span>
+                </label>
+                <label class="format-pill" data-fmt="text" onclick="setFormat('text')">
+                    <input type="radio" name="fmt" value="text">
+                    <span class="format-pill-icon">🔤</span>
+                    <span class="format-pill-text">Solo testo</span>
+                </label>
+                <label class="format-pill" data-fmt="wa" onclick="setFormat('wa')">
+                    <input type="radio" name="fmt" value="wa">
+                    <span class="format-pill-icon">💬</span>
+                    <span class="format-pill-text">WhatsApp</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Genera -->
+        <div class="sb-section">
+            <button class="btn-genera" id="btn-genera" onclick="generateReport()">
+                <div class="spinner"></div>
+                <span class="btn-label">GENERA REPORT</span>
+            </button>
+        </div>
+
+        <!-- Report salvati -->
+        <div class="sb-label" style="padding:14px 16px 0;"><span class="sb-label-dot"></span>Report salvati</div>
+        <div class="saved-list" id="saved-list">
+            <div class="saved-empty">Nessun report salvato.<br>Genera il primo selezionando<br>cliente e periodo.</div>
+        </div>
+
+    </aside>
+
+    <!-- ── MAIN ────────────────────────────────────────────────────── -->
+    <div class="main">
+
+        <div class="content-header">
+            <div class="content-title-wrap">
+                <div class="content-title" id="content-title">AI REPORT INTELLIGENCE</div>
+                <div class="content-subject" id="content-subject"></div>
+                <div class="content-meta" id="content-meta"></div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-copy" id="btn-copy" onclick="copyReport()" style="display:none">
+                    ⎘ Copia
+                </button>
+            </div>
+        </div>
+
+        <div class="scroll-area" id="scroll-area">
+
+            <!-- Empty state -->
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">📊</div>
+                <div class="empty-title">Intelligence Report</div>
+                <div class="empty-hint">SELEZIONA CLIENTE O ARGOMENTO<br>SCEGLI IL PERIODO · PREMI GENERA</div>
+                <div class="empty-steps">
+                    <div class="empty-step"><div class="step-num">1</div>Cliente o argomento</div>
+                    <div class="empty-step"><div class="step-num">2</div>Periodo di analisi</div>
+                    <div class="empty-step"><div class="step-num">3</div>Formato output</div>
+                    <div class="empty-step"><div class="step-num">4</div>Genera</div>
                 </div>
             </div>
-            <div id="messages-list"></div>
-        </div>
 
-        <div class="input-area">
-            <div class="input-wrap">
-                <textarea class="chat-input" id="chat-input"
-                    placeholder="Descrivi cosa vuoi analizzare o il tipo di report che ti serve…"
-                    rows="1"
-                    onkeydown="handleKey(event)"
-                    oninput="autoResize(this)"></textarea>
-                <button class="btn-send" id="send-btn" onclick="sendMessage()">↑</button>
+            <!-- Loading state -->
+            <div class="loading-state" id="loading-state">
+                <div class="loading-ring"></div>
+                <div class="loading-label">Analisi corpus in corso…</div>
+                <div class="loading-sub" id="loading-sub">Ricerca articoli nel database</div>
             </div>
-            <div class="input-hint">INVIO per inviare · SHIFT+INVIO per andare a capo</div>
+
+            <!-- Report output -->
+            <div id="report-output">
+                <div id="report-body-wrap"></div>
+                <div id="articles-section">
+                    <div class="articles-header">
+                        <div class="articles-title">
+                            Articoli nel corpus
+                            <span class="articles-count" id="articles-count">0</span>
+                        </div>
+                        <div class="art-controls">
+                            <button class="btn-art-copy" onclick="copyArticles()">⎘ Copia lista</button>
+                        </div>
+                    </div>
+                    <table class="press-table" id="press-table">
+                        <thead>
+                            <tr>
+                                <th>Testata</th>
+                                <th>Data</th>
+                                <th>Titolo</th>
+                                <th>Autore</th>
+                                <th>Tone</th>
+                            </tr>
+                        </thead>
+                        <tbody id="press-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
 <script>
-    // ─── STATE ───────────────────────────────────────────────────────
-    let conversations  = [];
-    let currentConvId  = null;
-    let currentMessages = [];
-    let isLoading      = false;
-    let mobileMenuOpen = false;
-    let currentContext = 'week';
-    let currentClientName = '';
+// ──────────────────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────────────────
+let currentFocus   = 'cliente';   // 'cliente' | 'argomento'
+let currentFormat  = 'word';      // 'word' | 'text' | 'wa'
+let currentReport  = null;        // { subject, meta, rawText, articlesHtml, articlesTxt, generated }
+let savedReports   = [];
+let currentReportId = null;
+let isLoading      = false;
 
-    // ─── MOBILE MENU ─────────────────────────────────────────────────
-    function toggleMobileMenu(e) {
-        e.stopPropagation();
-        mobileMenuOpen = !mobileMenuOpen;
-        document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
+// ──────────────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────────────
+window.onload = () => {
+    loadClients();
+    loadSaved();
+    // Ripristina ultimo report se esiste
+    if (savedReports.length > 0) {
+        loadReport(savedReports[0].id);
     }
-    document.addEventListener('click', function(e) {
-        if (mobileMenuOpen && !e.target.closest('#mobile-menu')) {
-            document.getElementById('mobile-menu').style.display = 'none';
-            mobileMenuOpen = false;
-        }
+};
+
+// Mantieni lo stato se si naviga via e si torna
+window.addEventListener('pageshow', () => {
+    if (currentReport) renderReport(currentReport, currentFormat);
+});
+
+// ──────────────────────────────────────────────────────────────────
+// CLIENTI
+// ──────────────────────────────────────────────────────────────────
+async function loadClients() {
+    try {
+        const res  = await fetch('/api/clients');
+        const data = await res.json();
+        const sel  = document.getElementById('client-select');
+        (data || []).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.name || c.nome || '';
+            opt.textContent = c.name || c.nome || '';
+            sel.appendChild(opt);
+        });
+    } catch(e) { console.warn('Clienti non caricati:', e); }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// FOCUS TOGGLE
+// ──────────────────────────────────────────────────────────────────
+function setFocus(type) {
+    currentFocus = type;
+    document.getElementById('btn-focus-cliente').className   = 'focus-btn' + (type==='cliente'   ? ' active cliente'   : '');
+    document.getElementById('btn-focus-argomento').className = 'focus-btn' + (type==='argomento' ? ' active argomento' : '');
+    document.getElementById('focus-cliente-wrap').style.display   = type === 'cliente'   ? '' : 'none';
+    document.getElementById('focus-argomento-wrap').style.display = type === 'argomento' ? '' : 'none';
+}
+
+// ──────────────────────────────────────────────────────────────────
+// FORMATO
+// ──────────────────────────────────────────────────────────────────
+function setFormat(fmt) {
+    currentFormat = fmt;
+    document.querySelectorAll('.format-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.fmt === fmt);
     });
+    if (currentReport) renderReport(currentReport, fmt);
+}
 
-    // ─── CONTEXT & CLIENT ────────────────────────────────────────────
-    function updateContext() {
-        currentContext = document.getElementById('context-select').value;
+// ──────────────────────────────────────────────────────────────────
+// GENERA
+// ──────────────────────────────────────────────────────────────────
+async function generateReport() {
+    if (isLoading) return;
+
+    const clientName = currentFocus === 'cliente' ? document.getElementById('client-select').value : '';
+    const topicName  = currentFocus === 'argomento' ? document.getElementById('topic-input').value.trim() : '';
+    const context    = document.getElementById('context-select').value;
+
+    if (!clientName && !topicName) {
+        alert(currentFocus === 'cliente' ? 'Seleziona un cliente.' : 'Inserisci un argomento.');
+        return;
     }
 
-    function updateClient() {
-        const sel = document.getElementById('client-select');
-        currentClientName = sel.value;
-        const badge   = document.getElementById('client-badge');
-        const hdrClient = document.getElementById('chat-header-client');
-        if (currentClientName) {
-            badge.textContent = '● ' + currentClientName;
-            badge.style.display = 'block';
-            hdrClient.textContent = 'CLIENTE: ' + currentClientName.toUpperCase();
-            hdrClient.style.display = 'block';
-        } else {
-            badge.style.display = 'none';
-            hdrClient.style.display = 'none';
-        }
-    }
+    isLoading = true;
+    const btn = document.getElementById('btn-genera');
+    btn.disabled = true;
+    btn.classList.add('loading');
 
-    async function loadClients() {
-        try {
-            const res  = await fetch('/api/clients');
-            const data = await res.json();
-            const sel  = document.getElementById('client-select');
-            (data || []).forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.name || c.nome || '';
-                opt.textContent = c.name || c.nome || '';
-                sel.appendChild(opt);
-            });
-        } catch(e) {
-            console.warn('Impossibile caricare clienti:', e);
-        }
-    }
+    show('loading-state');
+    hide('empty-state');
+    hide('report-output');
+    document.getElementById('btn-copy').style.display = 'none';
 
-    // ─── INPUT ───────────────────────────────────────────────────────
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-    }
+    const loadingMsgs = [
+        'Ricerca articoli nel database…',
+        'Analisi semantica del corpus…',
+        'Map: estrazione strutturata…',
+        'Reduce: produzione del report…',
+        'Finalizzazione in corso…'
+    ];
+    let msgIdx = 0;
+    const loadingInterval = setInterval(() => {
+        msgIdx = (msgIdx + 1) % loadingMsgs.length;
+        document.getElementById('loading-sub').textContent = loadingMsgs[msgIdx];
+    }, 2800);
 
-    function handleKey(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    }
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                message:     clientName || topicName,
+                context:     context,
+                client_name: clientName,
+                topic_name:  topicName,
+                history:     [],
+            })
+        });
+        const data = await res.json();
+        clearInterval(loadingInterval);
 
-    function useSuggestion(btn) {
-        document.getElementById('chat-input').value = btn.innerText;
-        sendMessage();
-    }
-
-    // ─── UTILS ───────────────────────────────────────────────────────
-    function formatTime(d) {
-        return new Date(d).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
-    }
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g,'&amp;')
-            .replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;');
-    }
-
-    function formatMessage(text) {
-        // Blocchi code
-        text = text.replace(/```([\s\S]*?)```/g, (m, c) => '<pre>' + c + '</pre>');
-        // Headings ##
-        text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-        // Headings ###
-        text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-        // Bold
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italic
-        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        // Newlines → <br> (non dentro pre)
-        text = text.replace(/\n/g, '<br>');
-        return text;
-    }
-
-    // ─── RENDER ──────────────────────────────────────────────────────
-    function renderMessages() {
-        const list    = document.getElementById('messages-list');
-        const welcome = document.getElementById('welcome-state');
-
-        if (!currentMessages.length) {
-            welcome.style.display = 'flex';
-            list.innerHTML = '';
+        if (data.error) {
+            showError(data.error);
             return;
         }
 
-        welcome.style.display = 'none';
-        list.innerHTML = currentMessages.map(m => {
-            const isUser = m.role === 'user';
-            const avatar = isUser ? '👤' : '🤖';
-            const cls    = isUser ? 'user' : 'ai';
-            const content = isUser ? escapeHtml(m.content) : formatMessage(m.content);
-            const statsHtml = (!isUser && m.stats) ? buildStatsBar(m.stats) : '';
-            return `<div class="message ${cls}">
-                <div class="msg-avatar ${cls}">${avatar}</div>
-                <div>
-                    <div class="msg-bubble">${content}</div>
-                    ${statsHtml}
-                    <div class="msg-time">${m.time ? formatTime(m.time) : ''}</div>
-                </div>
-            </div>`;
-        }).join('');
+        const subject = clientName || topicName;
+        const periodFrom = data.period_from || '';
+        const periodTo   = data.period_to   || '';
+        const periodLabel = periodFrom && periodTo
+            ? `${fmtDate(periodFrom)} → ${fmtDate(periodTo)}`
+            : context;
 
-        scrollToBottom();
-    }
-
-    function buildStatsBar(stats) {
-        if (!stats) return '';
-        const parts = [];
-        if (stats.articles_used) parts.push(`<span>${stats.articles_used}</span> articoli analizzati`);
-        if (stats.period)        parts.push(`periodo: <span>${stats.period}</span>`);
-        return parts.length
-            ? `<div class="stats-bar">${parts.join(' · ')}</div>`
-            : '';
-    }
-
-    function scrollToBottom() {
-        const wrap = document.getElementById('messages-wrap');
-        wrap.scrollTop = wrap.scrollHeight;
-    }
-
-    function addTypingIndicator() {
-        const list = document.getElementById('messages-list');
-        const el   = document.createElement('div');
-        el.className = 'message ai';
-        el.id = 'typing-indicator';
-        el.innerHTML = `<div class="msg-avatar ai">🤖</div>
-            <div class="msg-bubble">
-                <div class="typing"><span></span><span></span><span></span></div>
-            </div>`;
-        list.appendChild(el);
-        scrollToBottom();
-    }
-
-    function removeTypingIndicator() {
-        const el = document.getElementById('typing-indicator');
-        if (el) el.remove();
-    }
-
-    // ─── SEND ────────────────────────────────────────────────────────
-    async function sendMessage() {
-        const input = document.getElementById('chat-input');
-        const text  = input.value.trim();
-        if (!text || isLoading) return;
-
-        isLoading = true;
-        document.getElementById('send-btn').disabled = true;
-        input.value = '';
-        input.style.height = 'auto';
-
-        currentMessages.push({ role:'user', content:text, time:new Date() });
-        renderMessages();
-        addTypingIndicator();
-
-        if (currentMessages.length === 1) {
-            document.getElementById('chat-title').innerText =
-                text.substring(0, 50).toUpperCase() + (text.length > 50 ? '…' : '');
-        }
-
-        try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({
-                    message:     text,
-                    history:     currentMessages.slice(0,-1).map(m => ({role:m.role, content:m.content})),
-                    context:     currentContext,
-                    client_name: currentClientName,
-                })
-            });
-            const data = await res.json();
-            removeTypingIndicator();
-
-            const reply = data.response || data.error || 'Errore nella risposta.';
-            const stats = data.articles_used ? {
-                articles_used: data.articles_used,
-                period: data.period || '',
-            } : null;
-
-            currentMessages.push({ role:'assistant', content:reply, time:new Date(), stats });
-            renderMessages();
-            saveConversation();
-
-        } catch(e) {
-            removeTypingIndicator();
-            currentMessages.push({ role:'assistant', content:'Errore di connessione. Riprova.', time:new Date() });
-            renderMessages();
-        }
-
-        isLoading = false;
-        document.getElementById('send-btn').disabled = false;
-        input.focus();
-    }
-
-    // ─── CONVERSATIONS ───────────────────────────────────────────────
-    function newConversation() {
-        currentConvId   = Date.now().toString();
-        currentMessages = [];
-        document.getElementById('chat-title').innerText = 'NUOVA ANALISI';
-        renderMessages();
-        renderConvList();
-    }
-
-    function saveConversation() {
-        if (!currentConvId) currentConvId = Date.now().toString();
-        const idx      = conversations.findIndex(c => c.id === currentConvId);
-        const firstMsg = currentMessages.find(m => m.role === 'user');
-        const conv = {
-            id:       currentConvId,
-            title:    firstMsg ? firstMsg.content.substring(0, 40) : 'Nuova analisi',
-            messages: currentMessages,
-            date:     new Date(),
+        const report = {
+            id:           Date.now().toString(),
+            subject:      subject,
+            context:      context,
+            periodLabel:  periodLabel,
+            rawText:      data.response || '',
+            articlesHtml: buildArticlesHtml(data.articles_list || []),
+            articlesTxt:  buildArticlesTxt(data.articles_list || []),
+            articlesCount: data.articles_used || 0,
+            generated:    new Date().toISOString(),
         };
-        if (idx >= 0) conversations[idx] = conv;
-        else          conversations.unshift(conv);
-        renderConvList();
-        try { localStorage.setItem('spiz_conversations', JSON.stringify(conversations.slice(0,20))); } catch(e){}
+
+        currentReport   = report;
+        currentReportId = report.id;
+        savedReports.unshift(report);
+        if (savedReports.length > 30) savedReports.pop();
+        persistSaved();
+        renderReport(report, currentFormat);
+        renderSavedList();
+
+    } catch(e) {
+        clearInterval(loadingInterval);
+        showError('Errore di connessione. Riprova.');
+    } finally {
+        isLoading = false;
+        btn.disabled = false;
+        btn.classList.remove('loading');
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// RENDER REPORT
+// ──────────────────────────────────────────────────────────────────
+function renderReport(report, fmt) {
+    if (!report) return;
+
+    hide('empty-state');
+    hide('loading-state');
+    show('report-output');
+    document.getElementById('btn-copy').style.display = '';
+
+    // Header info
+    document.getElementById('content-title').textContent  = 'INTELLIGENCE REPORT';
+    const subEl = document.getElementById('content-subject');
+    const metaEl = document.getElementById('content-meta');
+    subEl.textContent  = report.subject;
+    metaEl.textContent = `${report.periodLabel} · ${report.articlesCount} articoli`;
+    subEl.style.display  = '';
+    metaEl.style.display = '';
+
+    const wrap = document.getElementById('report-body-wrap');
+
+    if (fmt === 'wa') {
+        wrap.innerHTML = buildWaFormat(report.rawText);
+        wrap.className = 'fmt-wa';
+    } else if (fmt === 'text') {
+        wrap.innerHTML = `<div class="report-body">${markdownToHtml(report.rawText)}</div>`;
+        wrap.className = 'fmt-text';
+    } else {
+        wrap.innerHTML = `<div class="report-body">${markdownToHtml(report.rawText)}</div>`;
+        wrap.className = 'fmt-word';
     }
 
-    function loadConversation(id) {
-        const conv = conversations.find(c => c.id === id);
-        if (!conv) return;
-        currentConvId   = id;
-        currentMessages = conv.messages;
-        document.getElementById('chat-title').innerText = conv.title.toUpperCase();
-        renderMessages();
-        renderConvList();
-    }
+    // Articoli
+    const artSection = document.getElementById('articles-section');
+    const tbody      = document.getElementById('press-tbody');
+    document.getElementById('articles-count').textContent = report.articlesCount;
+    tbody.innerHTML = report.articlesHtml;
+    artSection.style.display = report.articlesCount > 0 ? '' : 'none';
+}
 
-    function renderConvList() {
-        const el = document.getElementById('conv-list');
-        if (!conversations.length) {
-            el.innerHTML = '<div class="conv-empty">Nessuna conversazione</div>';
-            return;
-        }
-        el.innerHTML = conversations.map(c => {
-            const active = c.id === currentConvId ? 'active' : '';
-            const d = new Date(c.date).toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'});
-            return `<div class="conv-item ${active}" onclick="loadConversation('${c.id}')">
-                <div class="conv-title">${c.title}</div>
-                <div class="conv-date">${d}</div>
-            </div>`;
-        }).join('');
-    }
+// ──────────────────────────────────────────────────────────────────
+// MARKDOWN → HTML
+// ──────────────────────────────────────────────────────────────────
+function markdownToHtml(md) {
+    if (!md) return '';
+    let html = escHtml(md);
 
-    // ─── INIT ────────────────────────────────────────────────────────
-    window.onload = () => {
-        try {
-            const saved = localStorage.getItem('spiz_conversations');
-            if (saved) conversations = JSON.parse(saved);
-            renderConvList();
-        } catch(e) {}
-        loadClients();
-        newConversation();
-    };
+    // ## Heading → h2
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    // ### Heading → h3
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    // **bold**
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // *italic*
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Corpus line (last line with **CORPUS:**)
+    html = html.replace(/(<strong>CORPUS:<\/strong>.*)/g, '<div class="corpus-line">$1</div>');
+    // - bullet
+    html = html.replace(/(?:^|\n)- (.+)/g, (m, item) => `\n<li>${item}</li>`);
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    // Paragraphs
+    const lines = html.split('\n');
+    const out = [];
+    for (const line of lines) {
+        const t = line.trim();
+        if (!t) { out.push(''); continue; }
+        if (/^<(h[23]|ul|li|div)/.test(t)) { out.push(t); continue; }
+        out.push(`<p>${t}</p>`);
+    }
+    return out.join('\n');
+}
+
+// ──────────────────────────────────────────────────────────────────
+// WHATSAPP FORMAT
+// ──────────────────────────────────────────────────────────────────
+function buildWaFormat(rawText) {
+    // Converte il markdown in testo WA con bold (*testo*) e bullet (•)
+    const waTxt = rawText
+        .replace(/## (.+)/g, '*📌 $1*')
+        .replace(/### (.+)/g, '*$1*')
+        .replace(/\*\*(.*?)\*\*/g, '*$1*')
+        .replace(/^\- /gm, '• ')
+        .replace(/\*(.*?)\*/g, '_$1_');
+
+    // Spezza in blocchi per sezione (ogni ## diventa una bolla)
+    const blocks = waTxt.split(/(?=\*📌)/).filter(b => b.trim());
+
+    return `<div class="report-body">${blocks.map(b =>
+        `<div class="wa-bubble">${escHtml(b).trim()}</div><div class="wa-meta">✓✓</div>`
+    ).join('')}</div>`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// ARTICOLI
+// ──────────────────────────────────────────────────────────────────
+function buildArticlesHtml(list) {
+    if (!list || !list.length) return '';
+    return list.map(a => {
+        const toneClass = a.tone === 'positive' ? 'tone-pos' : a.tone === 'negative' ? 'tone-neg' : 'tone-neu';
+        const titolo = a.url
+            ? `<a href="${escHtml(a.url)}" target="_blank">${escHtml(a.titolo)}</a>`
+            : escHtml(a.titolo || '—');
+        return `<tr>
+            <td class="art-testata">${escHtml(a.testata||'')}</td>
+            <td class="art-data">${fmtDate(a.data||'')}</td>
+            <td class="art-titolo">${titolo}</td>
+            <td class="art-autore">${escHtml(a.giornalista||'')}</td>
+            <td><span class="tone-dot ${toneClass}"></span>${escHtml(a.tone||'')}</td>
+        </tr>`;
+    }).join('');
+}
+
+function buildArticlesTxt(list) {
+    if (!list || !list.length) return '';
+    return list.map(a =>
+        `${a.testata||''} | ${fmtDate(a.data||'')} | ${a.titolo||''} | ${a.giornalista||''}`
+    ).join('\n');
+}
+
+// ──────────────────────────────────────────────────────────────────
+// COPY
+// ──────────────────────────────────────────────────────────────────
+function copyReport() {
+    if (!currentReport) return;
+    let text = '';
+    if (currentFormat === 'wa') {
+        // WA format: plain text con marcatori WA
+        text = currentReport.rawText
+            .replace(/## (.+)/g, '*📌 $1*')
+            .replace(/### (.+)/g, '*$1*')
+            .replace(/\*\*(.*?)\*\*/g, '*$1*')
+            .replace(/^\- /gm, '• ');
+    } else {
+        text = currentReport.rawText;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btn-copy');
+        btn.textContent = '✓ Copiato';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = '⎘ Copia'; btn.classList.remove('copied'); }, 2000);
+    });
+}
+
+function copyArticles() {
+    if (!currentReport) return;
+    navigator.clipboard.writeText(currentReport.articlesTxt).then(() => {
+        const btns = document.querySelectorAll('.btn-art-copy');
+        btns.forEach(b => { b.textContent = '✓ Copiato'; });
+        setTimeout(() => btns.forEach(b => { b.textContent = '⎘ Copia lista'; }), 2000);
+    });
+}
+
+// ──────────────────────────────────────────────────────────────────
+// SAVED REPORTS (localStorage)
+// ──────────────────────────────────────────────────────────────────
+function loadSaved() {
+    try {
+        const s = localStorage.getItem('spiz_reports_v2');
+        if (s) savedReports = JSON.parse(s);
+        renderSavedList();
+    } catch(e) {}
+}
+
+function persistSaved() {
+    try { localStorage.setItem('spiz_reports_v2', JSON.stringify(savedReports.slice(0,30))); } catch(e) {}
+}
+
+function renderSavedList() {
+    const el = document.getElementById('saved-list');
+    if (!savedReports.length) {
+        el.innerHTML = '<div class="saved-empty">Nessun report salvato.<br>Genera il primo selezionando<br>cliente e periodo.</div>';
+        return;
+    }
+    el.innerHTML = savedReports.map(r => {
+        const active = r.id === currentReportId ? 'active' : '';
+        const d = fmtDateShort(r.generated);
+        return `<div class="saved-item ${active}" onclick="loadReport('${r.id}')">
+            <div class="saved-item-title">${escHtml(r.subject)}</div>
+            <div class="saved-item-meta">
+                <span>${d}</span>
+                <span>${r.periodLabel}</span>
+                <span>${r.articlesCount} art.</span>
+            </div>
+            <button class="saved-item-del" onclick="deleteReport(event,'${r.id}')" title="Elimina">✕</button>
+        </div>`;
+    }).join('');
+}
+
+function loadReport(id) {
+    const r = savedReports.find(x => x.id === id);
+    if (!r) return;
+    currentReport   = r;
+    currentReportId = id;
+    renderReport(r, currentFormat);
+    renderSavedList();
+}
+
+function deleteReport(e, id) {
+    e.stopPropagation();
+    savedReports = savedReports.filter(r => r.id !== id);
+    persistSaved();
+    if (currentReportId === id) {
+        currentReport   = null;
+        currentReportId = null;
+        show('empty-state');
+        hide('report-output');
+        document.getElementById('btn-copy').style.display = 'none';
+        document.getElementById('content-subject').style.display = 'none';
+        document.getElementById('content-meta').style.display = 'none';
+    }
+    renderSavedList();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).style.display = 'flex'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+function showError(msg) {
+    hide('loading-state');
+    show('empty-state');
+    document.querySelector('.empty-icon').textContent = '⚠️';
+    document.querySelector('.empty-title').textContent = 'Errore';
+    document.querySelector('.empty-hint').textContent = msg;
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+function fmtDateShort(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'}) + ' ' +
+           d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+}
 </script>
 </body>
 </html>
