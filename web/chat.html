@@ -1,760 +1,762 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAIM · AI Report</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg:#f4f6fa; --bg2:#ffffff; --bg3:#edf0f7; --bg4:#e5e9f2;
-            --border:#dde3ed; --border2:#c8d0e0;
-            --text:#1a2236; --text2:#4a5a74; --text3:#8a9bb8;
-            --teal:#0ea5c9; --teal-dim:rgba(14,165,201,0.1);
-            --magenta:#d4367a; --magenta-dim:rgba(212,54,122,0.08);
-            --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
-            --green:#059669; --amber:#d97706; --red:#dc2626;
-            --mono:'IBM Plex Mono',monospace;
-            --sans:'IBM Plex Sans',sans-serif;
-            --serif:'IBM Plex Serif',serif;
-            --sidebar-w:280px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAIM · AI Report</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--bg4:#e5e9f2;
+  --border:#dde3ed;--border2:#c8d0e0;
+  --text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;
+  --teal:#0ea5c9;--magenta:#d4367a;
+  --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --green:#059669;--red:#dc2626;--amber:#d97706;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+  --serif:'IBM Plex Serif',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+/* ── NAV ── */
+nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:100}
+.logo-img{height:34px;width:auto;flex-shrink:0}
+.nav-links{display:flex;gap:0;margin-left:auto}
+.nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 12px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta)}
 
-        /* ── TOPNAV ─────────────────────────────────────────────── */
-        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;flex-shrink:0;z-index:100;gap:12px;}
-        .logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
-        .logo-img{height:32px;width:auto;}
-        .logo-divider{width:1px;height:24px;background:var(--border2);}
-        .logo-sub{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
-        .nav-links{display:flex;gap:0;}
-        .nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;padding:6px 12px;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
-        .nav-link:hover{color:var(--teal);}
-        .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta);}
-        @media(max-width:900px){.nav-links .nav-link:not(.active){display:none;}}
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:260px 1fr;flex:1;overflow:hidden}
 
-        /* ── MAIN LAYOUT ─────────────────────────────────────────── */
-        .layout{display:flex;flex:1;overflow:hidden;}
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 
-        /* ── SIDEBAR ─────────────────────────────────────────────── */
-        .sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.sb-block{padding:12px 14px;border-bottom:1px solid var(--border)}
+.sb-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
 
-        .sb-section{padding:14px 16px;border-bottom:1px solid var(--border);}
-        .sb-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:7px;display:flex;align-items:center;gap:6px;}
-        .sb-label-dot{width:5px;height:5px;border-radius:50%;background:var(--grad);}
+/* Toggle focus */
+.focus-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.focus-btn{flex:1;padding:6px 8px;font-family:var(--mono);font-size:10px;font-weight:600;text-align:center;cursor:pointer;border:none;background:none;color:var(--text3);transition:all .12s}
+.focus-btn.active{background:var(--bg2);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.focus-btn.active.c{color:var(--magenta)}
+.focus-btn.active.a{color:var(--teal)}
 
-        /* Toggle Cliente / Argomento */
-        .focus-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:9px;}
-        .focus-btn{flex:1;padding:6px 8px;font-family:var(--mono);font-size:10px;font-weight:600;text-align:center;cursor:pointer;border:none;background:none;color:var(--text3);transition:all 0.15s;letter-spacing:0.3px;}
-        .focus-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
-        .focus-btn.active.cliente{color:var(--magenta);}
-        .focus-btn.active.argomento{color:var(--teal);}
+.sb-select,.sb-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 9px;border-radius:5px;margin-top:6px}
+.sb-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9bb8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer}
+.sb-select:focus,.sb-input:focus{outline:none;border-color:var(--teal)}
+.sb-input::placeholder{color:var(--text3)}
 
-        .sb-select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 9px;border-radius:5px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a9bb8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
-        .sb-select:focus{outline:none;border-color:var(--teal);}
-        .sb-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 9px;border-radius:5px;}
-        .sb-input:focus{outline:none;border-color:var(--teal);}
-        .sb-input::placeholder{color:var(--text3);}
+/* Cerca articoli */
+.btn-cerca{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text2);cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-cerca:hover:not(:disabled){border-color:var(--teal);color:var(--teal);background:#f0f9fc}
+.btn-cerca:disabled{opacity:.4;cursor:not-allowed}
 
-        /* Formato output */
-        .format-pills{display:flex;flex-direction:column;gap:4px;}
-        .format-pill{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all 0.12s;background:var(--bg3);}
-        .format-pill:hover{border-color:var(--teal-dim);background:var(--bg2);}
-        .format-pill.active{border-color:var(--teal);background:var(--teal-dim);}
-        .format-pill input{display:none;}
-        .format-pill-icon{font-size:14px;flex-shrink:0;}
-        .format-pill-text{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);}
-        .format-pill.active .format-pill-text{color:var(--teal);}
+/* Genera report */
+.btn-genera-wrap{padding:12px 14px;border-bottom:1px solid var(--border)}
+.btn-genera{width:100%;padding:12px;background:var(--grad);color:#fff;border:none;border-radius:7px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-genera:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-genera:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-genera .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-genera.loading .spin{display:block}
+.btn-genera.loading .lbl{opacity:.6}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-        /* Genera button */
-        .btn-genera{width:100%;padding:12px;background:var(--grad);color:#fff;border:none;border-radius:7px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity 0.15s,transform 0.1s;display:flex;align-items:center;justify-content:center;gap:8px;}
-        .btn-genera:hover:not(:disabled){opacity:0.9;transform:translateY(-1px);}
-        .btn-genera:disabled{opacity:0.45;cursor:not-allowed;transform:none;}
-        .btn-genera .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
-        .btn-genera.loading .spinner{display:block;}
-        .btn-genera.loading .btn-label{opacity:0.6;}
-        @keyframes spin{to{transform:rotate(360deg)}}
+/* Formato */
+.fmt-pills{display:flex;flex-direction:column;gap:3px}
+.fmt-pill{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--bg3);transition:all .1s}
+.fmt-pill:hover{border-color:var(--border2);background:var(--bg2)}
+.fmt-pill.active{border-color:var(--teal);background:rgba(14,165,201,.08)}
+.fmt-pill-ico{font-size:13px}
+.fmt-pill-txt{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2)}
+.fmt-pill.active .fmt-pill-txt{color:var(--teal)}
 
-        /* Report salvati */
-        .saved-list{overflow-y:auto;flex:1;}
-        .saved-empty{padding:16px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.7;}
-        .saved-item{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;position:relative;}
-        .saved-item:hover{background:var(--bg3);}
-        .saved-item.active{background:#eaf7fc;border-left:3px solid var(--teal);padding-left:13px;}
-        .saved-item-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .saved-item.active .saved-item-title{color:var(--teal);}
-        .saved-item-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
-        .saved-item-del{position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:0;font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 5px;}
-        .saved-item:hover .saved-item-del{opacity:1;}
+/* Report salvati */
+.saved-list{flex:1;overflow-y:auto}
+.saved-empty{padding:14px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.8}
+.saved-item{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
+.saved-item:hover{background:var(--bg3)}
+.saved-item.active{background:#eaf7fc;border-left:3px solid var(--teal);padding-left:11px}
+.saved-ttl{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-item.active .saved-ttl{color:var(--teal)}
+.saved-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap}
+.saved-del{position:absolute;right:8px;top:50%;transform:translateY(-50%);opacity:0;font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:2px 5px}
+.saved-item:hover .saved-del{opacity:1}
 
-        /* ── MAIN CONTENT ────────────────────────────────────────── */
-        .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;overflow:hidden}
 
-        /* Barra superiore del content */
-        .content-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
-        .content-title-wrap{display:flex;flex-direction:column;gap:2px;}
-        .content-title{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);}
-        .content-subject{font-size:15px;font-weight:700;color:var(--text);display:none;}
-        .content-meta{font-family:var(--mono);font-size:9px;color:var(--text3);display:none;}
-        .header-actions{display:flex;gap:8px;align-items:center;}
-        .btn-copy{padding:6px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.12s;display:flex;align-items:center;gap:5px;}
-        .btn-copy:hover{border-color:var(--teal);color:var(--teal);}
-        .btn-copy.copied{border-color:var(--green);color:var(--green);}
-        .model-tag{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:3px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(14,165,201,0.2);}
+/* Barra top main */
+.main-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.main-bar-info{display:flex;flex-direction:column;gap:1px}
+.main-bar-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.main-bar-sub{font-size:14px;font-weight:700;color:var(--text);display:none}
+.main-bar-meta{font-family:var(--mono);font-size:9px;color:var(--text3);display:none}
+.bar-actions{display:flex;gap:6px;align-items:center}
+.btn-action{padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s;display:none}
+.btn-action:hover{border-color:var(--teal);color:var(--teal)}
+.btn-action.ok{border-color:var(--green);color:var(--green)}
+.model-tag{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:3px;background:rgba(14,165,201,.1);color:var(--teal);border:1px solid rgba(14,165,201,.2)}
 
-        /* ── SCROLL AREA ─────────────────────────────────────────── */
-        .scroll-area{flex:1;overflow-y:auto;padding:28px 32px;}
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;padding:24px 28px}
 
-        /* ── EMPTY STATE ─────────────────────────────────────────── */
-        .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center;color:var(--text3);padding:40px;}
-        .empty-icon{font-size:52px;opacity:0.15;}
-        .empty-title{font-size:20px;font-weight:700;color:var(--text);opacity:0.5;font-family:var(--serif);}
-        .empty-hint{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:2;max-width:380px;}
-        .empty-steps{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
-        .empty-step{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:8px;}
-        .step-num{width:20px;height:20px;border-radius:50%;background:var(--grad);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* ── STATI ── */
+.state-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center;color:var(--text3);padding:40px}
+.state-empty-ico{font-size:48px;opacity:.15}
+.state-empty-title{font-size:18px;font-weight:700;color:var(--text);opacity:.5;font-family:var(--serif)}
+.state-empty-hint{font-family:var(--mono);font-size:10px;letter-spacing:.8px;line-height:2}
+.steps{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.step{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:7px}
+.step-n{width:18px;height:18px;border-radius:50%;background:var(--grad);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-        /* ── LOADING STATE ───────────────────────────────────────── */
-        .loading-state{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:40px;}
-        .loading-ring{width:48px;height:48px;border:3px solid var(--border);border-top:3px solid var(--teal);border-radius:50%;animation:spin 1s linear infinite;}
-        .loading-label{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:0.8px;}
-        .loading-sub{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.5px;}
+.state-loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;text-align:center}
+.ring{width:44px;height:44px;border:3px solid var(--border);border-top:3px solid var(--teal);border-radius:50%;animation:spin 1s linear infinite}
+.loading-lbl{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.8px}
+.loading-sub{font-family:var(--mono);font-size:9px;color:var(--text3)}
 
-        /* ── REPORT CONTENT ──────────────────────────────────────── */
-        #report-output{display:none;}
+/* ── ARTICOLI LISTA (step 1) ── */
+#articles-panel{display:none}
+.art-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border)}
+.art-panel-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:8px}
+.art-count-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;background:rgba(14,165,201,.1);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px}
+.art-count-selected{font-family:var(--mono);font-size:9px;padding:2px 8px;background:rgba(212,54,122,.08);color:var(--magenta);border:1px solid rgba(212,54,122,.2);border-radius:3px}
+.art-panel-actions{display:flex;gap:6px}
+.btn-sel{padding:5px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s}
+.btn-sel:hover{background:var(--bg4)}
 
-        /* Formato: impaginato (Word-like) */
-        .fmt-word .report-body{max-width:740px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:44px 52px;box-shadow:0 2px 20px rgba(0,0,0,0.05);}
-        .fmt-word .report-body h2{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--text);margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--border);}
-        .fmt-word .report-body h2:first-child{margin-top:0;}
-        .fmt-word .report-body h3{font-size:13px;font-weight:700;color:var(--teal);margin:16px 0 6px;font-family:var(--sans);}
-        .fmt-word .report-body p{font-family:var(--serif);font-size:13.5px;line-height:1.85;color:var(--text);margin-bottom:10px;}
-        .fmt-word .report-body strong{font-weight:700;color:var(--text);}
-        .fmt-word .report-body em{font-style:italic;color:var(--text2);}
-        .fmt-word .report-body ul,.fmt-word .report-body ol{margin:8px 0 12px 20px;font-family:var(--serif);font-size:13.5px;line-height:1.8;}
-        .fmt-word .report-body li{margin-bottom:4px;}
-        .fmt-word .report-body .corpus-line{margin-top:28px;padding:10px 14px;background:var(--bg3);border-radius:5px;font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border);}
+.art-table{width:100%;border-collapse:collapse}
+.art-table th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:7px 10px;text-align:left;background:var(--bg3);border-bottom:1px solid var(--border2);position:sticky;top:0}
+.art-table th:first-child{width:36px}
+.art-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.art-table tr:hover td{background:var(--bg3)}
+.art-table tr.deselected td{opacity:.45}
+.art-chk{width:15px;height:15px;cursor:pointer;accent-color:var(--teal)}
+.art-testata{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--amber);white-space:nowrap}
+.art-autore{font-family:var(--mono);font-size:10px;color:var(--text2)}
+.art-titolo{font-size:12px;font-weight:500;color:var(--text);line-height:1.4}
+.art-data{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
 
-        /* Formato: testo plain */
-        .fmt-text .report-body{max-width:720px;margin:0 auto;}
-        .fmt-text .report-body h2{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin:24px 0 8px;padding:8px 12px;background:var(--bg3);border-left:3px solid var(--magenta);}
-        .fmt-text .report-body h2:first-child{margin-top:0;}
-        .fmt-text .report-body h3{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--magenta);margin:14px 0 5px;}
-        .fmt-text .report-body p{font-size:13px;line-height:1.75;color:var(--text);margin-bottom:9px;}
-        .fmt-text .report-body ul,.fmt-text .report-body ol{margin:6px 0 10px 18px;font-size:13px;line-height:1.7;}
-        .fmt-text .report-body .corpus-line{margin-top:24px;font-family:var(--mono);font-size:10px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px;}
+/* ── REPORT OUTPUT (step 2) ── */
+#report-panel{display:none}
+.fmt-word .report-body{max-width:720px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:42px 50px;box-shadow:0 2px 16px rgba(0,0,0,.05)}
+.fmt-word .report-body h2{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--text);margin:26px 0 9px;padding-bottom:5px;border-bottom:2px solid var(--border)}
+.fmt-word .report-body h2:first-child{margin-top:0}
+.fmt-word .report-body h3{font-size:12px;font-weight:700;color:var(--teal);margin:13px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+.fmt-word .report-body p{font-family:var(--serif);font-size:13.5px;line-height:1.85;color:var(--text);margin-bottom:9px}
+.fmt-word .report-body strong{font-weight:700}
+.fmt-word .report-body em{font-style:italic;color:var(--text2)}
+.fmt-word .report-body ul{margin:6px 0 10px 20px;font-family:var(--serif);font-size:13.5px;line-height:1.8}
+.fmt-word .report-body li{margin-bottom:3px}
+.fmt-word .corpus-line{margin-top:26px;padding:9px 13px;background:var(--bg3);border-radius:4px;font-family:var(--mono);font-size:10px;color:var(--text2);border:1px solid var(--border)}
 
-        /* Formato: WhatsApp */
-        .fmt-wa .report-body{max-width:600px;margin:0 auto;background:#e5ddd5;border-radius:12px;padding:16px;font-family:'Segoe UI',system-ui,sans-serif;}
-        .fmt-wa .wa-bubble{background:#fff;border-radius:12px 12px 12px 0;padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.12);font-size:13.5px;line-height:1.6;color:#111;white-space:pre-wrap;word-break:break-word;}
-        .fmt-wa .wa-meta{font-size:10px;color:#667781;text-align:right;margin-top:4px;font-family:'Segoe UI',system-ui,sans-serif;}
+.fmt-text .report-body{max-width:700px;margin:0 auto}
+.fmt-text .report-body h2{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:7px 11px;background:var(--bg3);border-left:3px solid var(--magenta);margin:22px 0 7px}
+.fmt-text .report-body h2:first-child{margin-top:0}
+.fmt-text .report-body h3{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--magenta);margin:12px 0 4px}
+.fmt-text .report-body p{font-size:13px;line-height:1.75;margin-bottom:8px}
+.fmt-text .report-body ul{margin:5px 0 9px 18px;font-size:13px;line-height:1.7}
+.fmt-text .corpus-line{margin-top:20px;font-family:var(--mono);font-size:10px;color:var(--text3);border-top:1px solid var(--border);padding-top:9px}
 
-        /* ── ARTICLES SECTION ────────────────────────────────────── */
-        #articles-section{display:none;margin-top:32px;}
-        .articles-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);}
-        .articles-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:8px;}
-        .articles-count{font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(14,165,201,0.2);border-radius:3px;}
-        .art-controls{display:flex;gap:6px;}
-        .btn-art-copy{padding:5px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.12s;}
-        .btn-art-copy:hover{border-color:var(--teal);color:var(--teal);}
+.fmt-wa .report-body{max-width:580px;margin:0 auto;background:#e5ddd5;border-radius:12px;padding:14px}
+.wa-bubble{background:#fff;border-radius:12px 12px 12px 0;padding:12px 15px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.12);font-size:13.5px;line-height:1.6;color:#111;white-space:pre-wrap;word-break:break-word;font-family:'Segoe UI',system-ui,sans-serif}
+.wa-tick{font-size:10px;color:#667781;text-align:right;margin-top:3px;font-family:'Segoe UI',system-ui,sans-serif}
 
-        .press-table{width:100%;border-collapse:collapse;}
-        .press-table th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:8px 12px;text-align:left;background:var(--bg3);border-bottom:1px solid var(--border2);}
-        .press-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:top;}
-        .press-table tr:hover td{background:var(--bg3);}
-        .art-testata{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--teal);}
-        .art-data{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;}
-        .art-titolo{font-weight:500;color:var(--text);line-height:1.4;}
-        .art-titolo a{color:inherit;text-decoration:none;}
-        .art-titolo a:hover{color:var(--teal);}
-        .art-autore{font-family:var(--mono);font-size:10px;color:var(--text2);}
-        .tone-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;}
-        .tone-pos{background:var(--green);}
-        .tone-neg{background:var(--red);}
-        .tone-neu{background:var(--text3);}
+/* ── ARTICOLI USATI (sotto al report) ── */
+.used-articles{margin-top:28px;display:none}
+.used-header{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.used-count{font-family:var(--mono);font-size:9px;padding:2px 7px;background:rgba(14,165,201,.1);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px}
+.used-table{width:100%;border-collapse:collapse}
+.used-table th{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border2);text-align:left}
+.used-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
+.used-table tr:hover td{background:var(--bg3)}
+.ut-testata{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--amber)}
+.ut-data{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
+.ut-autore{font-family:var(--mono);font-size:10px;color:var(--text2)}
 
-        /* Scrollbar */
-        ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-
-        @media(max-width:768px){
-            .sidebar{display:none;}
-            .scroll-area{padding:16px;}
-            .fmt-word .report-body{padding:24px 20px;}
-        }
-    </style>
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="topnav">
-    <div class="logo-wrap">
-        <img src="/static/LogoMAIM_orizzontale.jpg" alt="MAIM" class="logo-img">
-        <div class="logo-divider"></div>
-        <span class="logo-sub">AI Report</span>
-    </div>
-    <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/press" class="nav-link">Press</a>
-        <a href="/web" class="nav-link">Web</a>
-        <a href="/chat" class="nav-link active">AI Report</a>
-        <a href="/pitch" class="nav-link">AI Pitch</a>
-        <a href="/clients" class="nav-link">Clienti</a>
-        <a href="/giornalisti" class="nav-link">Giornalisti</a>
-    </div>
-    <span class="model-tag">GPT-4o</span>
+<nav>
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
+  <div class="nav-links">
+    <a href="/"        class="nav-link">Home</a>
+    <a href="/press"   class="nav-link">Press</a>
+    <a href="/web"     class="nav-link">Web</a>
+    <a href="/chat"    class="nav-link active">AI Report</a>
+    <a href="/pitch"   class="nav-link">Pitch</a>
+    <a href="/clients" class="nav-link">Clienti</a>
+  </div>
 </nav>
 
 <div class="layout">
 
-    <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
-    <aside class="sidebar">
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
 
-        <!-- Focus: Cliente / Argomento -->
-        <div class="sb-section">
-            <div class="sb-label"><span class="sb-label-dot"></span>Focus report</div>
-            <div class="focus-toggle">
-                <button class="focus-btn active cliente" id="btn-focus-cliente" onclick="setFocus('cliente')">CLIENTE</button>
-                <button class="focus-btn argomento" id="btn-focus-argomento" onclick="setFocus('argomento')">ARGOMENTO</button>
-            </div>
-            <div id="focus-cliente-wrap">
-                <select class="sb-select" id="client-select">
-                    <option value="">— Seleziona cliente —</option>
-                </select>
-            </div>
-            <div id="focus-argomento-wrap" style="display:none">
-                <input class="sb-input" id="topic-input" type="text" placeholder="es. intelligenza artificiale…">
-            </div>
-        </div>
-
-        <!-- Periodo -->
-        <div class="sb-section">
-            <div class="sb-label"><span class="sb-label-dot"></span>Periodo</div>
-            <select class="sb-select" id="context-select">
-                <option value="today">Oggi</option>
-                <option value="week" selected>Ultima settimana</option>
-                <option value="month">Ultimo mese</option>
-                <option value="year">Ultimo anno</option>
-            </select>
-        </div>
-
-        <!-- Formato output -->
-        <div class="sb-section">
-            <div class="sb-label"><span class="sb-label-dot"></span>Formato output</div>
-            <div class="format-pills">
-                <label class="format-pill active" data-fmt="word" onclick="setFormat('word')">
-                    <input type="radio" name="fmt" value="word" checked>
-                    <span class="format-pill-icon">📄</span>
-                    <span class="format-pill-text">Impaginato (Word)</span>
-                </label>
-                <label class="format-pill" data-fmt="text" onclick="setFormat('text')">
-                    <input type="radio" name="fmt" value="text">
-                    <span class="format-pill-icon">🔤</span>
-                    <span class="format-pill-text">Solo testo</span>
-                </label>
-                <label class="format-pill" data-fmt="wa" onclick="setFormat('wa')">
-                    <input type="radio" name="fmt" value="wa">
-                    <span class="format-pill-icon">💬</span>
-                    <span class="format-pill-text">WhatsApp</span>
-                </label>
-            </div>
-        </div>
-
-        <!-- Genera -->
-        <div class="sb-section">
-            <button class="btn-genera" id="btn-genera" onclick="generateReport()">
-                <div class="spinner"></div>
-                <span class="btn-label">GENERA REPORT</span>
-            </button>
-        </div>
-
-        <!-- Report salvati -->
-        <div class="sb-label" style="padding:14px 16px 0;"><span class="sb-label-dot"></span>Report salvati</div>
-        <div class="saved-list" id="saved-list">
-            <div class="saved-empty">Nessun report salvato.<br>Genera il primo selezionando<br>cliente e periodo.</div>
-        </div>
-
-    </aside>
-
-    <!-- ── MAIN ────────────────────────────────────────────────────── -->
-    <div class="main">
-
-        <div class="content-header">
-            <div class="content-title-wrap">
-                <div class="content-title" id="content-title">AI REPORT INTELLIGENCE</div>
-                <div class="content-subject" id="content-subject"></div>
-                <div class="content-meta" id="content-meta"></div>
-            </div>
-            <div class="header-actions">
-                <button class="btn-copy" id="btn-copy" onclick="copyReport()" style="display:none">
-                    ⎘ Copia
-                </button>
-            </div>
-        </div>
-
-        <div class="scroll-area" id="scroll-area">
-
-            <!-- Empty state -->
-            <div class="empty-state" id="empty-state">
-                <div class="empty-icon">📊</div>
-                <div class="empty-title">Intelligence Report</div>
-                <div class="empty-hint">SELEZIONA CLIENTE O ARGOMENTO<br>SCEGLI IL PERIODO · PREMI GENERA</div>
-                <div class="empty-steps">
-                    <div class="empty-step"><div class="step-num">1</div>Cliente o argomento</div>
-                    <div class="empty-step"><div class="step-num">2</div>Periodo di analisi</div>
-                    <div class="empty-step"><div class="step-num">3</div>Formato output</div>
-                    <div class="empty-step"><div class="step-num">4</div>Genera</div>
-                </div>
-            </div>
-
-            <!-- Loading state -->
-            <div class="loading-state" id="loading-state">
-                <div class="loading-ring"></div>
-                <div class="loading-label">Analisi corpus in corso…</div>
-                <div class="loading-sub" id="loading-sub">Ricerca articoli nel database</div>
-            </div>
-
-            <!-- Report output -->
-            <div id="report-output">
-                <div id="report-body-wrap"></div>
-                <div id="articles-section">
-                    <div class="articles-header">
-                        <div class="articles-title">
-                            Articoli nel corpus
-                            <span class="articles-count" id="articles-count">0</span>
-                        </div>
-                        <div class="art-controls">
-                            <button class="btn-art-copy" onclick="copyArticles()">⎘ Copia lista</button>
-                        </div>
-                    </div>
-                    <table class="press-table" id="press-table">
-                        <thead>
-                            <tr>
-                                <th>Testata</th>
-                                <th>Data</th>
-                                <th>Titolo</th>
-                                <th>Autore</th>
-                                <th>Tone</th>
-                            </tr>
-                        </thead>
-                        <tbody id="press-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-        </div>
+    <!-- Focus: Cliente / Argomento -->
+    <div class="sb-block">
+      <div class="sb-label">Focus report</div>
+      <div class="focus-toggle">
+        <button class="focus-btn active c" id="btn-fc" onclick="setFocus('c')">CLIENTE</button>
+        <button class="focus-btn a"         id="btn-fa" onclick="setFocus('a')">ARGOMENTO</button>
+      </div>
+      <div id="wrap-c">
+        <select class="sb-select" id="client-select">
+          <option value="">— Seleziona —</option>
+        </select>
+      </div>
+      <div id="wrap-a" style="display:none">
+        <input class="sb-input" id="topic-input" type="text" placeholder="es. transizione energetica…">
+      </div>
     </div>
+
+    <!-- Periodo -->
+    <div class="sb-block">
+      <div class="sb-label">Periodo</div>
+      <select class="sb-select" id="period-select" style="margin-top:0">
+        <option value="today">Oggi</option>
+        <option value="week" selected>Ultima settimana</option>
+        <option value="month">Ultimo mese</option>
+        <option value="year">Ultimo anno</option>
+      </select>
+    </div>
+
+    <!-- Cerca -->
+    <div class="sb-block">
+      <button class="btn-cerca" id="btn-cerca" onclick="cercaArticoli()">
+        🔍 <span>CERCA ARTICOLI</span>
+      </button>
+    </div>
+
+    <!-- Genera (visibile solo dopo ricerca) -->
+    <div class="btn-genera-wrap" id="genera-wrap" style="display:none">
+      <button class="btn-genera" id="btn-genera" onclick="generaReport()">
+        <div class="spin"></div>
+        <span class="lbl">✦ GENERA REPORT</span>
+      </button>
+    </div>
+
+    <!-- Formato output (visibile solo dopo generazione) -->
+    <div class="sb-block" id="fmt-block" style="display:none">
+      <div class="sb-label">Formato</div>
+      <div class="fmt-pills">
+        <div class="fmt-pill active" data-fmt="word" onclick="setFmt('word')">
+          <span class="fmt-pill-ico">📄</span><span class="fmt-pill-txt">Impaginato</span>
+        </div>
+        <div class="fmt-pill" data-fmt="text" onclick="setFmt('text')">
+          <span class="fmt-pill-ico">🔤</span><span class="fmt-pill-txt">Solo testo</span>
+        </div>
+        <div class="fmt-pill" data-fmt="wa" onclick="setFmt('wa')">
+          <span class="fmt-pill-ico">💬</span><span class="fmt-pill-txt">WhatsApp</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report salvati -->
+    <div class="sb-block" style="padding-bottom:6px">
+      <div class="sb-label">Report salvati</div>
+    </div>
+    <div class="saved-list" id="saved-list">
+      <div class="saved-empty">Nessun report.<br>Cerca articoli e genera.</div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <div class="main-bar">
+      <div class="main-bar-info">
+        <div class="main-bar-title" id="bar-title">AI REPORT INTELLIGENCE</div>
+        <div class="main-bar-sub"  id="bar-sub"></div>
+        <div class="main-bar-meta" id="bar-meta"></div>
+      </div>
+      <div class="bar-actions">
+        <button class="btn-action" id="btn-copy" onclick="copyReport()">⎘ Copia</button>
+        <span class="model-tag">GPT-4o</span>
+      </div>
+    </div>
+
+    <div class="scroll" id="scroll">
+
+      <!-- Empty -->
+      <div class="state-empty" id="st-empty">
+        <div class="state-empty-ico">📊</div>
+        <div class="state-empty-title">Intelligence Report</div>
+        <div class="state-empty-hint">SELEZIONA CLIENTE O ARGOMENTO<br>SCEGLI IL PERIODO · CERCA · GENERA</div>
+        <div class="steps">
+          <div class="step"><div class="step-n">1</div>Cliente o argomento</div>
+          <div class="step"><div class="step-n">2</div>Periodo</div>
+          <div class="step"><div class="step-n">3</div>Cerca articoli</div>
+          <div class="step"><div class="step-n">4</div>Seleziona &amp; Genera</div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="state-loading" id="st-loading">
+        <div class="ring"></div>
+        <div class="loading-lbl" id="loading-lbl">Caricamento…</div>
+        <div class="loading-sub" id="loading-sub"></div>
+      </div>
+
+      <!-- Step 1: lista articoli -->
+      <div id="articles-panel">
+        <div class="art-panel-header">
+          <div class="art-panel-title">
+            Articoli trovati
+            <span class="art-count-badge" id="art-total-badge">0</span>
+            <span class="art-count-selected" id="art-sel-badge">0 selezionati</span>
+          </div>
+          <div class="art-panel-actions">
+            <button class="btn-sel" onclick="selAll(true)">Seleziona tutti</button>
+            <button class="btn-sel" onclick="selAll(false)">Deseleziona tutti</button>
+          </div>
+        </div>
+        <table class="art-table" id="art-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Testata</th>
+              <th>Giornalista</th>
+              <th>Titolo</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="art-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Step 2: report -->
+      <div id="report-panel">
+        <div id="report-body-wrap"></div>
+        <div class="used-articles" id="used-articles">
+          <div class="used-header">
+            Articoli analizzati
+            <span class="used-count" id="used-count">0</span>
+          </div>
+          <table class="used-table">
+            <thead>
+              <tr><th>Testata</th><th>Data</th><th>Titolo</th><th>Autore</th></tr>
+            </thead>
+            <tbody id="used-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <script>
-// ──────────────────────────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────────────────────────
-let currentFocus   = 'cliente';   // 'cliente' | 'argomento'
-let currentFormat  = 'word';      // 'word' | 'text' | 'wa'
-let currentReport  = null;        // { subject, meta, rawText, articlesHtml, articlesTxt, generated }
-let savedReports   = [];
-let currentReportId = null;
-let isLoading      = false;
+// ── STATE ─────────────────────────────────────────────────────────────
+let focus        = 'c';       // 'c' cliente | 'a' argomento
+let fmt          = 'word';
+let allArticles  = [];        // articoli dal fetch
+let currentReport = null;
+let savedReports  = [];
+let currentId     = null;
+let isLoading     = false;
 
-// ──────────────────────────────────────────────────────────────────
-// INIT
-// ──────────────────────────────────────────────────────────────────
+const PERIODS = {today:0, week:7, month:30, year:365};
+
+// ── INIT ──────────────────────────────────────────────────────────────
 window.onload = () => {
-    loadClients();
-    loadSaved();
-    // Ripristina ultimo report se esiste
-    if (savedReports.length > 0) {
-        loadReport(savedReports[0].id);
-    }
+  loadClients();
+  loadSaved();
+  if (savedReports.length) loadReport(savedReports[0].id);
 };
 
-// Mantieni lo stato se si naviga via e si torna
-window.addEventListener('pageshow', () => {
-    if (currentReport) renderReport(currentReport, currentFormat);
-});
-
-// ──────────────────────────────────────────────────────────────────
-// CLIENTI
-// ──────────────────────────────────────────────────────────────────
-async function loadClients() {
-    try {
-        const res  = await fetch('/api/clients');
-        const data = await res.json();
-        const sel  = document.getElementById('client-select');
-        (data || []).forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.name || c.nome || '';
-            opt.textContent = c.name || c.nome || '';
-            sel.appendChild(opt);
-        });
-    } catch(e) { console.warn('Clienti non caricati:', e); }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// FOCUS TOGGLE
-// ──────────────────────────────────────────────────────────────────
-function setFocus(type) {
-    currentFocus = type;
-    document.getElementById('btn-focus-cliente').className   = 'focus-btn' + (type==='cliente'   ? ' active cliente'   : '');
-    document.getElementById('btn-focus-argomento').className = 'focus-btn' + (type==='argomento' ? ' active argomento' : '');
-    document.getElementById('focus-cliente-wrap').style.display   = type === 'cliente'   ? '' : 'none';
-    document.getElementById('focus-argomento-wrap').style.display = type === 'argomento' ? '' : 'none';
-}
-
-// ──────────────────────────────────────────────────────────────────
-// FORMATO
-// ──────────────────────────────────────────────────────────────────
-function setFormat(fmt) {
-    currentFormat = fmt;
-    document.querySelectorAll('.format-pill').forEach(p => {
-        p.classList.toggle('active', p.dataset.fmt === fmt);
+// ── CLIENTS ───────────────────────────────────────────────────────────
+async function loadClients(){
+  try{
+    const r = await fetch('/api/clients');
+    const d = await r.json();
+    const sel = document.getElementById('client-select');
+    (d||[]).forEach(c=>{
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.dataset.name = c.name||c.nome||'';
+      o.textContent = c.name||c.nome||'';
+      sel.appendChild(o);
     });
-    if (currentReport) renderReport(currentReport, fmt);
+  }catch(e){console.warn('clienti:',e)}
 }
 
-// ──────────────────────────────────────────────────────────────────
-// GENERA
-// ──────────────────────────────────────────────────────────────────
-async function generateReport() {
-    if (isLoading) return;
-
-    const clientName = currentFocus === 'cliente' ? document.getElementById('client-select').value : '';
-    const topicName  = currentFocus === 'argomento' ? document.getElementById('topic-input').value.trim() : '';
-    const context    = document.getElementById('context-select').value;
-
-    if (!clientName && !topicName) {
-        alert(currentFocus === 'cliente' ? 'Seleziona un cliente.' : 'Inserisci un argomento.');
-        return;
-    }
-
-    isLoading = true;
-    const btn = document.getElementById('btn-genera');
-    btn.disabled = true;
-    btn.classList.add('loading');
-
-    show('loading-state');
-    hide('empty-state');
-    hide('report-output');
-    document.getElementById('btn-copy').style.display = 'none';
-
-    const loadingMsgs = [
-        'Ricerca articoli nel database…',
-        'Analisi semantica del corpus…',
-        'Map: estrazione strutturata…',
-        'Reduce: produzione del report…',
-        'Finalizzazione in corso…'
-    ];
-    let msgIdx = 0;
-    const loadingInterval = setInterval(() => {
-        msgIdx = (msgIdx + 1) % loadingMsgs.length;
-        document.getElementById('loading-sub').textContent = loadingMsgs[msgIdx];
-    }, 2800);
-
-    try {
-        const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-                message:     clientName || topicName,
-                context:     context,
-                client_name: clientName,
-                topic_name:  topicName,
-                history:     [],
-            })
-        });
-        const data = await res.json();
-        clearInterval(loadingInterval);
-
-        if (data.error) {
-            showError(data.error);
-            return;
-        }
-
-        const subject = clientName || topicName;
-        const periodFrom = data.period_from || '';
-        const periodTo   = data.period_to   || '';
-        const periodLabel = periodFrom && periodTo
-            ? `${fmtDate(periodFrom)} → ${fmtDate(periodTo)}`
-            : context;
-
-        const report = {
-            id:           Date.now().toString(),
-            subject:      subject,
-            context:      context,
-            periodLabel:  periodLabel,
-            rawText:      data.response || '',
-            articlesHtml: buildArticlesHtml(data.articles_list || []),
-            articlesTxt:  buildArticlesTxt(data.articles_list || []),
-            articlesCount: data.articles_used || 0,
-            generated:    new Date().toISOString(),
-        };
-
-        currentReport   = report;
-        currentReportId = report.id;
-        savedReports.unshift(report);
-        if (savedReports.length > 30) savedReports.pop();
-        persistSaved();
-        renderReport(report, currentFormat);
-        renderSavedList();
-
-    } catch(e) {
-        clearInterval(loadingInterval);
-        showError('Errore di connessione. Riprova.');
-    } finally {
-        isLoading = false;
-        btn.disabled = false;
-        btn.classList.remove('loading');
-    }
+// ── FOCUS ─────────────────────────────────────────────────────────────
+function setFocus(f){
+  focus = f;
+  document.getElementById('btn-fc').className = 'focus-btn'+(f==='c'?' active c':'');
+  document.getElementById('btn-fa').className = 'focus-btn'+(f==='a'?' active a':'');
+  document.getElementById('wrap-c').style.display = f==='c'?'':'none';
+  document.getElementById('wrap-a').style.display = f==='a'?'':'none';
 }
 
-// ──────────────────────────────────────────────────────────────────
-// RENDER REPORT
-// ──────────────────────────────────────────────────────────────────
-function renderReport(report, fmt) {
-    if (!report) return;
+// ── CERCA ARTICOLI ────────────────────────────────────────────────────
+async function cercaArticoli(){
+  if(isLoading) return;
 
-    hide('empty-state');
-    hide('loading-state');
-    show('report-output');
-    document.getElementById('btn-copy').style.display = '';
+  const period = document.getElementById('period-select').value;
+  let clientId='', clientName='', topicName='';
 
-    // Header info
-    document.getElementById('content-title').textContent  = 'INTELLIGENCE REPORT';
-    const subEl = document.getElementById('content-subject');
-    const metaEl = document.getElementById('content-meta');
-    subEl.textContent  = report.subject;
-    metaEl.textContent = `${report.periodLabel} · ${report.articlesCount} articoli`;
-    subEl.style.display  = '';
-    metaEl.style.display = '';
+  if(focus==='c'){
+    const sel = document.getElementById('client-select');
+    clientId   = sel.value;
+    clientName = sel.selectedOptions[0]?.dataset.name || '';
+    if(!clientId){ alert('Seleziona un cliente.'); return; }
+  } else {
+    topicName = document.getElementById('topic-input').value.trim();
+    if(!topicName){ alert('Inserisci un argomento.'); return; }
+  }
 
-    const wrap = document.getElementById('report-body-wrap');
+  isLoading = true;
+  showState('loading');
+  setLoadingMsg('Ricerca articoli…','Interrogazione database in corso');
 
-    if (fmt === 'wa') {
-        wrap.innerHTML = buildWaFormat(report.rawText);
-        wrap.className = 'fmt-wa';
-    } else if (fmt === 'text') {
-        wrap.innerHTML = `<div class="report-body">${markdownToHtml(report.rawText)}</div>`;
-        wrap.className = 'fmt-text';
+  try{
+    const {start, end} = getDateRange(period);
+    let articles = [];
+
+    if(focus==='c'){
+      // Stessa meccanica di Press: /api/articles-filtered con client_id
+      const params = new URLSearchParams({from_date:start, to_date:end, client_id:clientId});
+      const r = await fetch('/api/articles-filtered?'+params);
+      const d = await r.json();
+      articles = d.articles || [];
     } else {
-        wrap.innerHTML = `<div class="report-body">${markdownToHtml(report.rawText)}</div>`;
-        wrap.className = 'fmt-word';
+      // Argomento: ricerca ilike su titolo (+ fallback server-side)
+      const params = new URLSearchParams({from_date:start, to_date:end, topic:topicName});
+      const r = await fetch('/api/articles-filtered?'+params);
+      const d = await r.json();
+      articles = d.articles || [];
     }
 
-    // Articoli
-    const artSection = document.getElementById('articles-section');
-    const tbody      = document.getElementById('press-tbody');
-    document.getElementById('articles-count').textContent = report.articlesCount;
-    tbody.innerHTML = report.articlesHtml;
-    artSection.style.display = report.articlesCount > 0 ? '' : 'none';
+    allArticles = articles;
+    renderArticlesList(articles);
+    showState('articles');
+
+    // Aggiorna barra
+    document.getElementById('bar-title').textContent = 'ARTICOLI TROVATI';
+    const sub = document.getElementById('bar-sub');
+    sub.textContent = clientName || topicName;
+    sub.style.display = '';
+    const meta = document.getElementById('bar-meta');
+    meta.textContent = `${articles.length} articoli · ${fmtDate(start)} → ${fmtDate(end)}`;
+    meta.style.display = '';
+
+    // Mostra bottone genera
+    document.getElementById('genera-wrap').style.display = articles.length ? '' : 'none';
+
+  }catch(e){
+    showState('empty');
+    alert('Errore nel recupero articoli.');
+  }
+
+  isLoading = false;
 }
 
-// ──────────────────────────────────────────────────────────────────
-// MARKDOWN → HTML
-// ──────────────────────────────────────────────────────────────────
-function markdownToHtml(md) {
-    if (!md) return '';
-    let html = escHtml(md);
-
-    // ## Heading → h2
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    // ### Heading → h3
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    // **bold**
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // *italic*
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    // Corpus line (last line with **CORPUS:**)
-    html = html.replace(/(<strong>CORPUS:<\/strong>.*)/g, '<div class="corpus-line">$1</div>');
-    // - bullet
-    html = html.replace(/(?:^|\n)- (.+)/g, (m, item) => `\n<li>${item}</li>`);
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-    // Paragraphs
-    const lines = html.split('\n');
-    const out = [];
-    for (const line of lines) {
-        const t = line.trim();
-        if (!t) { out.push(''); continue; }
-        if (/^<(h[23]|ul|li|div)/.test(t)) { out.push(t); continue; }
-        out.push(`<p>${t}</p>`);
-    }
-    return out.join('\n');
+// ── RENDER ARTICOLI ───────────────────────────────────────────────────
+function renderArticlesList(articles){
+  const tbody = document.getElementById('art-tbody');
+  tbody.innerHTML = articles.map((a,i)=>`
+    <tr id="art-row-${i}" class="">
+      <td><input type="checkbox" class="art-chk" data-idx="${i}" checked onchange="onChkChange()"></td>
+      <td class="art-testata">${esc(a.testata||'')}</td>
+      <td class="art-autore">${esc(a.giornalista||'—')}</td>
+      <td class="art-titolo">${esc(a.titolo||'Senza titolo')}</td>
+      <td class="art-data">${fmtDateShort(a.data||'')}</td>
+    </tr>`).join('');
+  updateSelBadge();
+  document.getElementById('art-total-badge').textContent = articles.length;
 }
 
-// ──────────────────────────────────────────────────────────────────
-// WHATSAPP FORMAT
-// ──────────────────────────────────────────────────────────────────
-function buildWaFormat(rawText) {
-    // Converte il markdown in testo WA con bold (*testo*) e bullet (•)
-    const waTxt = rawText
-        .replace(/## (.+)/g, '*📌 $1*')
-        .replace(/### (.+)/g, '*$1*')
-        .replace(/\*\*(.*?)\*\*/g, '*$1*')
-        .replace(/^\- /gm, '• ')
-        .replace(/\*(.*?)\*/g, '_$1_');
-
-    // Spezza in blocchi per sezione (ogni ## diventa una bolla)
-    const blocks = waTxt.split(/(?=\*📌)/).filter(b => b.trim());
-
-    return `<div class="report-body">${blocks.map(b =>
-        `<div class="wa-bubble">${escHtml(b).trim()}</div><div class="wa-meta">✓✓</div>`
-    ).join('')}</div>`;
+function onChkChange(){
+  updateSelBadge();
+  document.querySelectorAll('#art-tbody tr').forEach((tr,i)=>{
+    const chk = tr.querySelector('.art-chk');
+    tr.classList.toggle('deselected', chk && !chk.checked);
+  });
 }
 
-// ──────────────────────────────────────────────────────────────────
-// ARTICOLI
-// ──────────────────────────────────────────────────────────────────
-function buildArticlesHtml(list) {
-    if (!list || !list.length) return '';
-    return list.map(a => {
-        const toneClass = a.tone === 'positive' ? 'tone-pos' : a.tone === 'negative' ? 'tone-neg' : 'tone-neu';
-        const titolo = a.url
-            ? `<a href="${escHtml(a.url)}" target="_blank">${escHtml(a.titolo)}</a>`
-            : escHtml(a.titolo || '—');
-        return `<tr>
-            <td class="art-testata">${escHtml(a.testata||'')}</td>
-            <td class="art-data">${fmtDate(a.data||'')}</td>
-            <td class="art-titolo">${titolo}</td>
-            <td class="art-autore">${escHtml(a.giornalista||'')}</td>
-            <td><span class="tone-dot ${toneClass}"></span>${escHtml(a.tone||'')}</td>
-        </tr>`;
-    }).join('');
+function updateSelBadge(){
+  const n = document.querySelectorAll('.art-chk:checked').length;
+  const b = document.getElementById('art-sel-badge');
+  b.textContent = n + ' selezionati';
+  b.style.background  = n > 0 ? 'rgba(212,54,122,.08)' : 'var(--bg3)';
+  b.style.color       = n > 0 ? 'var(--magenta)' : 'var(--text3)';
+  b.style.borderColor = n > 0 ? 'rgba(212,54,122,.2)' : 'var(--border)';
+  document.getElementById('btn-genera').disabled = n === 0;
 }
 
-function buildArticlesTxt(list) {
-    if (!list || !list.length) return '';
-    return list.map(a =>
-        `${a.testata||''} | ${fmtDate(a.data||'')} | ${a.titolo||''} | ${a.giornalista||''}`
-    ).join('\n');
+function selAll(state){
+  document.querySelectorAll('.art-chk').forEach(c=>c.checked=state);
+  onChkChange();
 }
 
-// ──────────────────────────────────────────────────────────────────
-// COPY
-// ──────────────────────────────────────────────────────────────────
-function copyReport() {
-    if (!currentReport) return;
-    let text = '';
-    if (currentFormat === 'wa') {
-        // WA format: plain text con marcatori WA
-        text = currentReport.rawText
-            .replace(/## (.+)/g, '*📌 $1*')
-            .replace(/### (.+)/g, '*$1*')
-            .replace(/\*\*(.*?)\*\*/g, '*$1*')
-            .replace(/^\- /gm, '• ');
-    } else {
-        text = currentReport.rawText;
-    }
-    navigator.clipboard.writeText(text).then(() => {
-        const btn = document.getElementById('btn-copy');
-        btn.textContent = '✓ Copiato';
-        btn.classList.add('copied');
-        setTimeout(() => { btn.innerHTML = '⎘ Copia'; btn.classList.remove('copied'); }, 2000);
+// ── GENERA REPORT ─────────────────────────────────────────────────────
+async function generaReport(){
+  if(isLoading) return;
+
+  // Raccogli solo gli articoli selezionati
+  const selected = [];
+  document.querySelectorAll('.art-chk:checked').forEach(c=>{
+    selected.push(allArticles[parseInt(c.dataset.idx)]);
+  });
+  if(!selected.length){ alert('Seleziona almeno un articolo.'); return; }
+
+  const clientSel  = document.getElementById('client-select');
+  const clientName = focus==='c' ? (clientSel.selectedOptions[0]?.dataset.name||'') : '';
+  const topicName  = focus==='a' ? document.getElementById('topic-input').value.trim() : '';
+  const period     = document.getElementById('period-select').value;
+
+  isLoading = true;
+  const btn = document.getElementById('btn-genera');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  showState('loading');
+
+  const msgs = [
+    'Analisi del corpus in corso…',
+    'Map: estrazione strutturata…',
+    'Reduce: analisi strategica…',
+    'Produzione del report…',
+    'Finalizzazione…'
+  ];
+  let mi = 0;
+  const iv = setInterval(()=>{
+    mi = (mi+1)%msgs.length;
+    setLoadingMsg(msgs[mi], `${selected.length} articoli · modello GPT-4o`);
+  }, 2800);
+
+  try{
+    const r = await fetch('/api/generate-report', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        client_name:  clientName,
+        topic_name:   topicName,
+        article_ids:  selected.map(a=>a.id),
+      })
     });
-}
+    const d = await r.json();
+    clearInterval(iv);
 
-function copyArticles() {
-    if (!currentReport) return;
-    navigator.clipboard.writeText(currentReport.articlesTxt).then(() => {
-        const btns = document.querySelectorAll('.btn-art-copy');
-        btns.forEach(b => { b.textContent = '✓ Copiato'; });
-        setTimeout(() => btns.forEach(b => { b.textContent = '⎘ Copia lista'; }), 2000);
-    });
-}
+    if(d.error){ alert(d.error); showState('articles'); return; }
 
-// ──────────────────────────────────────────────────────────────────
-// SAVED REPORTS (localStorage)
-// ──────────────────────────────────────────────────────────────────
-function loadSaved() {
-    try {
-        const s = localStorage.getItem('spiz_reports_v2');
-        if (s) savedReports = JSON.parse(s);
-        renderSavedList();
-    } catch(e) {}
-}
+    const {start,end} = getDateRange(period);
+    const rep = {
+      id:           Date.now().toString(),
+      subject:      clientName||topicName,
+      periodLabel:  `${fmtDate(start)} → ${fmtDate(end)}`,
+      rawText:      d.response||'',
+      usedArticles: selected,
+      count:        selected.length,
+      generated:    new Date().toISOString(),
+    };
 
-function persistSaved() {
-    try { localStorage.setItem('spiz_reports_v2', JSON.stringify(savedReports.slice(0,30))); } catch(e) {}
-}
-
-function renderSavedList() {
-    const el = document.getElementById('saved-list');
-    if (!savedReports.length) {
-        el.innerHTML = '<div class="saved-empty">Nessun report salvato.<br>Genera il primo selezionando<br>cliente e periodo.</div>';
-        return;
-    }
-    el.innerHTML = savedReports.map(r => {
-        const active = r.id === currentReportId ? 'active' : '';
-        const d = fmtDateShort(r.generated);
-        return `<div class="saved-item ${active}" onclick="loadReport('${r.id}')">
-            <div class="saved-item-title">${escHtml(r.subject)}</div>
-            <div class="saved-item-meta">
-                <span>${d}</span>
-                <span>${r.periodLabel}</span>
-                <span>${r.articlesCount} art.</span>
-            </div>
-            <button class="saved-item-del" onclick="deleteReport(event,'${r.id}')" title="Elimina">✕</button>
-        </div>`;
-    }).join('');
-}
-
-function loadReport(id) {
-    const r = savedReports.find(x => x.id === id);
-    if (!r) return;
-    currentReport   = r;
-    currentReportId = id;
-    renderReport(r, currentFormat);
-    renderSavedList();
-}
-
-function deleteReport(e, id) {
-    e.stopPropagation();
-    savedReports = savedReports.filter(r => r.id !== id);
+    currentReport = rep;
+    currentId     = rep.id;
+    savedReports.unshift(rep);
+    if(savedReports.length>30) savedReports.pop();
     persistSaved();
-    if (currentReportId === id) {
-        currentReport   = null;
-        currentReportId = null;
-        show('empty-state');
-        hide('report-output');
-        document.getElementById('btn-copy').style.display = 'none';
-        document.getElementById('content-subject').style.display = 'none';
-        document.getElementById('content-meta').style.display = 'none';
+    renderReport(rep, fmt);
+    renderSaved();
+
+  }catch(e){
+    clearInterval(iv);
+    alert('Errore di connessione.');
+    showState('articles');
+  }
+
+  isLoading = false;
+  btn.disabled = false;
+  btn.classList.remove('loading');
+}
+
+// ── RENDER REPORT ─────────────────────────────────────────────────────
+function renderReport(rep, f){
+  if(!rep) return;
+  showState('report');
+
+  document.getElementById('bar-title').textContent = 'INTELLIGENCE REPORT';
+  const sub = document.getElementById('bar-sub');
+  sub.textContent = rep.subject;
+  sub.style.display = '';
+  const meta = document.getElementById('bar-meta');
+  meta.textContent = `${rep.count} articoli · ${rep.periodLabel}`;
+  meta.style.display = '';
+
+  const copy = document.getElementById('btn-copy');
+  copy.style.display = '';
+
+  const wrap = document.getElementById('report-body-wrap');
+  if(f==='wa'){
+    wrap.className = 'fmt-wa';
+    wrap.innerHTML = buildWa(rep.rawText);
+  } else if(f==='text'){
+    wrap.className = 'fmt-text';
+    wrap.innerHTML = `<div class="report-body">${md2html(rep.rawText)}</div>`;
+  } else {
+    wrap.className = 'fmt-word';
+    wrap.innerHTML = `<div class="report-body">${md2html(rep.rawText)}</div>`;
+  }
+
+  // Articoli usati sotto
+  const used = document.getElementById('used-articles');
+  const tbody = document.getElementById('used-tbody');
+  document.getElementById('used-count').textContent = rep.count;
+  tbody.innerHTML = (rep.usedArticles||[]).map(a=>`
+    <tr>
+      <td class="ut-testata">${esc(a.testata||'')}</td>
+      <td class="ut-data">${fmtDateShort(a.data||'')}</td>
+      <td>${esc(a.titolo||'')}</td>
+      <td class="ut-autore">${esc(a.giornalista||'')}</td>
+    </tr>`).join('');
+  used.style.display = rep.count>0 ? '' : 'none';
+
+  document.getElementById('fmt-block').style.display = '';
+  document.getElementById('genera-wrap').style.display = '';
+}
+
+// ── FORMATO ───────────────────────────────────────────────────────────
+function setFmt(f){
+  fmt = f;
+  document.querySelectorAll('.fmt-pill').forEach(p=>p.classList.toggle('active', p.dataset.fmt===f));
+  if(currentReport) renderReport(currentReport, f);
+}
+
+// ── MARKDOWN → HTML ───────────────────────────────────────────────────
+function md2html(md){
+  if(!md) return '';
+  let h = esc(md);
+  h = h.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  h = h.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  h = h.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  h = h.replace(/\*(.*?)\*/g,'<em>$1</em>');
+  // Corpus line
+  h = h.replace(/(<strong>CORPUS:<\/strong>.*)/g,'<div class="corpus-line">$1</div>');
+  // Bullet
+  const lines = h.split('\n');
+  const out = [];
+  let inUl = false;
+  for(const ln of lines){
+    const t = ln.trim();
+    if(t.startsWith('- ')){
+      if(!inUl){ out.push('<ul>'); inUl=true; }
+      out.push(`<li>${t.slice(2)}</li>`);
+    } else {
+      if(inUl){ out.push('</ul>'); inUl=false; }
+      if(!t){ out.push(''); continue; }
+      if(/^<(h[23]|ul|li|div)/.test(t)){ out.push(t); continue; }
+      out.push(`<p>${t}</p>`);
     }
-    renderSavedList();
+  }
+  if(inUl) out.push('</ul>');
+  return out.join('\n');
 }
 
-// ──────────────────────────────────────────────────────────────────
-// HELPERS
-// ──────────────────────────────────────────────────────────────────
-function show(id) { document.getElementById(id).style.display = 'flex'; }
-function hide(id) { document.getElementById(id).style.display = 'none'; }
-
-function showError(msg) {
-    hide('loading-state');
-    show('empty-state');
-    document.querySelector('.empty-icon').textContent = '⚠️';
-    document.querySelector('.empty-title').textContent = 'Errore';
-    document.querySelector('.empty-hint').textContent = msg;
+// ── WHATSAPP ──────────────────────────────────────────────────────────
+function buildWa(raw){
+  const wa = raw
+    .replace(/## (.+)/g,'*📌 $1*')
+    .replace(/### (.+)/g,'*$1*')
+    .replace(/\*\*(.*?)\*\*/g,'*$1*')
+    .replace(/^\- /gm,'• ');
+  const blocks = wa.split(/(?=\*📌)/).filter(b=>b.trim());
+  return `<div class="report-body">${blocks.map(b=>`
+    <div class="wa-bubble">${esc(b).trim()}</div>
+    <div class="wa-tick">✓✓</div>`).join('')}</div>`;
 }
 
-function escHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// ── COPIA ─────────────────────────────────────────────────────────────
+function copyReport(){
+  if(!currentReport) return;
+  let t = currentReport.rawText;
+  if(fmt==='wa') t = t.replace(/## (.+)/g,'*📌 $1*').replace(/### (.+)/g,'*$1*').replace(/\*\*(.*?)\*\*/g,'*$1*').replace(/^\- /gm,'• ');
+  navigator.clipboard.writeText(t).then(()=>{
+    const b = document.getElementById('btn-copy');
+    b.textContent='✓ Copiato'; b.classList.add('ok');
+    setTimeout(()=>{ b.textContent='⎘ Copia'; b.classList.remove('ok'); },2000);
+  });
 }
 
-function fmtDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d)) return iso;
-    return d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'});
+// ── SAVED ─────────────────────────────────────────────────────────────
+function loadSaved(){
+  try{
+    const s = localStorage.getItem('spiz_v13');
+    if(s) savedReports = JSON.parse(s);
+    renderSaved();
+  }catch(e){}
+}
+function persistSaved(){
+  try{ localStorage.setItem('spiz_v13', JSON.stringify(savedReports.slice(0,30))); }catch(e){}
+}
+function renderSaved(){
+  const el = document.getElementById('saved-list');
+  if(!savedReports.length){ el.innerHTML='<div class="saved-empty">Nessun report.<br>Cerca articoli e genera.</div>'; return; }
+  el.innerHTML = savedReports.map(r=>`
+    <div class="saved-item${r.id===currentId?' active':''}" onclick="loadReport('${r.id}')">
+      <div class="saved-ttl">${esc(r.subject)}</div>
+      <div class="saved-meta">
+        <span>${fmtDateShort(r.generated)}</span>
+        <span>${r.count} art.</span>
+      </div>
+      <button class="saved-del" onclick="delReport(event,'${r.id}')">✕</button>
+    </div>`).join('');
+}
+function loadReport(id){
+  const r = savedReports.find(x=>x.id===id);
+  if(!r) return;
+  currentReport=r; currentId=id;
+  renderReport(r, fmt);
+  renderSaved();
+  document.getElementById('genera-wrap').style.display='';
+  document.getElementById('fmt-block').style.display='';
+}
+function delReport(e,id){
+  e.stopPropagation();
+  savedReports = savedReports.filter(r=>r.id!==id);
+  persistSaved();
+  if(currentId===id){ currentReport=null; currentId=null; showState('empty'); document.getElementById('btn-copy').style.display='none'; document.getElementById('bar-sub').style.display='none'; document.getElementById('bar-meta').style.display='none'; }
+  renderSaved();
 }
 
-function fmtDateShort(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    if (isNaN(d)) return '';
-    return d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'}) + ' ' +
-           d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+// ── STATI ─────────────────────────────────────────────────────────────
+function showState(s){
+  document.getElementById('st-empty').style.display      = s==='empty'?'flex':'none';
+  document.getElementById('st-loading').style.display    = s==='loading'?'flex':'none';
+  document.getElementById('articles-panel').style.display= s==='articles'?'':'none';
+  document.getElementById('report-panel').style.display  = s==='report'?'':'none';
+}
+function setLoadingMsg(lbl,sub){
+  document.getElementById('loading-lbl').textContent = lbl;
+  document.getElementById('loading-sub').textContent = sub;
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function getDateRange(period){
+  const today=new Date(), iso=d=>d.toISOString().split('T')[0];
+  const days = PERIODS[period]||7;
+  if(days===0) return {start:iso(today), end:iso(today)};
+  const s = new Date(today); s.setDate(today.getDate()-days);
+  return {start:iso(s), end:iso(today)};
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  return new Date(iso+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function fmtDateShort(iso){
+  if(!iso) return '';
+  const d = new Date(iso.length===10 ? iso+'T12:00:00' : iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});
+}
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

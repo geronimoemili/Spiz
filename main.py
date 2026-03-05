@@ -4,16 +4,13 @@ import uvicorn
 import json
 import uuid
 import time
-import hashlib
-import secrets
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
-from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, timedelta, datetime, timezone
@@ -40,56 +37,6 @@ except Exception as e:
 
 app = FastAPI(title="MAIM Intelligence")
 app.mount("/static", StaticFiles(directory="web"), name="static")
-
-# ══════════════════════════════════════════════════════════════════════
-# AUTENTICAZIONE
-# ══════════════════════════════════════════════════════════════════════
-
-LOGIN_USERNAME = os.environ.get("LOGIN_USERNAME", "admin")
-LOGIN_PASSWORD = os.environ.get("LOGIN_PASSWORD", "!?!19481948")
-SESSION_COOKIE = "maim_session"
-
-# Sessioni attive in memoria: token -> expiry timestamp
-_SESSIONS: dict = {}
-SESSION_DURATION = 8 * 3600  # 8 ore
-
-def _create_session() -> str:
-    token = secrets.token_hex(32)
-    _SESSIONS[token] = time.time() + SESSION_DURATION
-    return token
-
-def _is_valid_session(token: str | None) -> bool:
-    if not token:
-        return False
-    expiry = _SESSIONS.get(token)
-    if not expiry:
-        return False
-    if time.time() > expiry:
-        del _SESSIONS[token]
-        return False
-    # Rinnova la sessione ad ogni richiesta
-    _SESSIONS[token] = time.time() + SESSION_DURATION
-    return True
-
-# Route pubbliche (non richiedono login)
-PUBLIC_PATHS = {"/login", "/api/login", "/health", "/healthcheck"}
-
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        path = request.url.path
-        # Permettiamo sempre static files e route pubbliche
-        if path.startswith("/static") or path in PUBLIC_PATHS:
-            return await call_next(request)
-        # Controlliamo il cookie di sessione
-        token = request.cookies.get(SESSION_COOKIE)
-        if not _is_valid_session(token):
-            # Se è una chiamata API restituiamo 401, altrimenti redirect al login
-            if path.startswith("/api/"):
-                return JSONResponse({"error": "Non autenticato"}, status_code=401)
-            return RedirectResponse(url="/login", status_code=302)
-        return await call_next(request)
-
-app.add_middleware(AuthMiddleware)
 
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
@@ -119,9 +66,16 @@ def _cleanup_expired_docx():
 
 # ── MODELLI ────────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
-    message: str
-    context: Optional[str] = "general"
-    history: Optional[list] = []
+    message:     Optional[str]  = ""
+    context:     Optional[str]  = "week"
+    history:     Optional[list] = []
+    client_name: Optional[str]  = ""
+    topic_name:  Optional[str]  = ""
+
+class GenerateReportRequest(BaseModel):
+    client_name:  Optional[str]       = ""
+    topic_name:   Optional[str]       = ""
+    article_ids:  Optional[List[str]] = []
 
 class ArticleUpdateSimple(BaseModel):
     titolo:             Optional[str]   = None
@@ -166,43 +120,6 @@ class ShareRequest(BaseModel):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# LOGIN / LOGOUT
-# ══════════════════════════════════════════════════════════════════════
-
-@app.get("/login")
-async def login_page():
-    return FileResponse("web/login.html")
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-@app.post("/api/login")
-async def api_login(data: LoginRequest):
-    if data.username == LOGIN_USERNAME and data.password == LOGIN_PASSWORD:
-        token = _create_session()
-        response = JSONResponse({"success": True})
-        response.set_cookie(
-            key=SESSION_COOKIE,
-            value=token,
-            httponly=True,
-            samesite="lax",
-            max_age=SESSION_DURATION,
-        )
-        return response
-    return JSONResponse({"success": False, "error": "Credenziali non valide"}, status_code=401)
-
-@app.post("/api/logout")
-async def api_logout(request: Request):
-    token = request.cookies.get(SESSION_COOKIE)
-    if token and token in _SESSIONS:
-        del _SESSIONS[token]
-    response = RedirectResponse(url="/login", status_code=302)
-    response.delete_cookie(SESSION_COOKIE)
-    return response
-
-
-# ══════════════════════════════════════════════════════════════════════
 # NAVIGAZIONE
 # ══════════════════════════════════════════════════════════════════════
 
@@ -220,7 +137,7 @@ async def press_page():
 
 @app.get("/dashboard")
 async def dashboard_page():
-    return FileResponse("web/press.html")  # alias legacy
+    return FileResponse("web/press.html")
 
 @app.get("/web")
 async def web_page():
@@ -228,7 +145,7 @@ async def web_page():
 
 @app.get("/monitor")
 async def monitor_page():
-    return FileResponse("web/web.html")  # alias legacy
+    return FileResponse("web/web.html")
 
 @app.get("/chat")
 async def chat_page():
@@ -237,10 +154,6 @@ async def chat_page():
 @app.get("/clients")
 async def clients_page():
     return FileResponse("web/clienti.html")
-
-@app.get("/giornalisti")
-async def giornalisti_page():
-    return FileResponse("web/giornalisti.html")
 
 @app.get("/pitch")
 async def pitch_page():
@@ -277,16 +190,18 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# CHAT
+# CHAT / AI REPORT
 # ══════════════════════════════════════════════════════════════════════
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
         result = ask_spiz(
-            message=req.message,
+            message=req.message or "",
             history=req.history or [],
-            context=req.context or "general",
+            context=req.context or "week",
+            client_name=req.client_name or "",
+            topic_name=req.topic_name or "",
         )
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -302,9 +217,53 @@ async def chat_endpoint(req: ChatRequest):
         "response":      result.get("response", ""),
         "is_report":     result.get("is_report", False),
         "articles_used": result.get("articles_used", 0),
-        "total_period":  result.get("total_period", 0),
+        "period_from":   result.get("period_from", ""),
+        "period_to":     result.get("period_to", ""),
+        "articles_list": result.get("articles_list", []),
         "has_docx":      docx_token is not None,
         "docx_token":    docx_token,
+    }
+
+
+@app.post("/api/generate-report")
+async def generate_report_endpoint(req: GenerateReportRequest):
+    """
+    Genera un report partendo da article_ids pre-selezionati dalla UI.
+    Recupera gli articoli completi dal DB, poi chiama ask_spiz con preloaded_articles.
+    """
+    try:
+        if not req.article_ids:
+            return {"success": False, "error": "Nessun articolo selezionato."}
+
+        DB_COLS = (
+            "id, testata, data, giornalista, occhiello, titolo, sottotitolo, "
+            "testo_completo, macrosettori, tipologia_articolo, tone, "
+            "dominant_topic, reputational_risk, political_risk, ave, tipo_fonte"
+        )
+        res = supabase.table("articles").select(DB_COLS).in_("id", req.article_ids).execute()
+        articles = res.data or []
+
+        if not articles:
+            return {"success": False, "error": "Articoli non trovati nel database."}
+
+        result = ask_spiz(
+            client_name=req.client_name or "",
+            topic_name=req.topic_name or "",
+            preloaded_articles=articles,
+        )
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+    if "error" in result:
+        return {"success": False, "error": result["error"]}
+
+    return {
+        "success":       True,
+        "response":      result.get("response", ""),
+        "articles_used": result.get("articles_used", 0),
+        "period_from":   result.get("period_from", ""),
+        "period_to":     result.get("period_to", ""),
     }
 
 
@@ -462,52 +421,6 @@ async def top_giornalisti(
         return []
 
 
-
-@app.get("/api/top-giornalisti-ave")
-async def top_giornalisti_ave(
-    period: str = Query("today"),
-    limit:  int = Query(15),
-):
-    """Top giornalisti per AVE del loro articolo più importante nel periodo."""
-    try:
-        today = date.today()
-        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
-        days = days_map.get(period, 0)
-        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
-        to_date = today.isoformat()
-
-        res = supabase.table("articles").select(
-            "giornalista, testata, ave, titolo"
-        ).gte("data", from_date).lte("data", to_date).execute()
-
-        articles = res.data or []
-        SKIP = {"", "N.D.", "N/D", "Redazione", "Autore non indicato", "redazione"}
-
-        from collections import defaultdict
-        # Per ogni giornalista teniamo l'articolo con AVE massima
-        best = {}
-        for a in articles:
-            g = (a.get("giornalista") or "").strip()
-            if not g or g in SKIP:
-                continue
-            ave = float(a.get("ave") or 0)
-            if g not in best or ave > best[g]["ave"]:
-                best[g] = {
-                    "ave":     ave,
-                    "testata": a.get("testata") or "",
-                    "titolo":  (a.get("titolo") or "")[:80],
-                }
-
-        result = [
-            {"nome": nome, "ave": round(v["ave"], 0), "testata": v["testata"], "titolo": v["titolo"]}
-            for nome, v in best.items()
-            if v["ave"] > 0
-        ]
-        result.sort(key=lambda x: x["ave"], reverse=True)
-        return result[:limit]
-    except Exception as e:
-        return []
-
 @app.get("/api/giornalista-articoli")
 async def giornalista_articoli(
     nome:   str = Query(...),
@@ -602,15 +515,15 @@ async def get_macro_group_articles(
 
 @app.get("/api/articles-filtered")
 async def get_articles_filtered(
-    from_date: str,
-    to_date: str,
-    client_id: str | None = None,
-    macro_group_id: str | None = None,
-    sort: str | None = None,
+    from_date:      str,
+    to_date:        str,
+    client_id:      Optional[str] = None,
+    macro_group_id: Optional[str] = None,
+    topic:          Optional[str] = None,
 ):
     try:
         articles_res = supabase.table("articles") \
-            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello, ave") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello") \
             .gte("data", from_date) \
             .lte("data", to_date) \
             .order("data", desc=True) \
@@ -639,6 +552,15 @@ async def get_articles_filtered(
                         )
                     ]
 
+        elif topic:
+            tl = topic.lower()
+            articles = [
+                a for a in articles
+                if tl in (a.get("titolo") or "").lower()
+                or tl in (a.get("testo_completo") or "").lower()
+                or tl in (a.get("occhiello") or "").lower()
+            ]
+
         if macro_group_id:
             links = supabase.table("macro_group_links") \
                 .select("official_macro_id") \
@@ -659,13 +581,10 @@ async def get_articles_filtered(
                     )
                 ]
 
-        if sort == "ave":
-            articles = sorted(articles, key=lambda a: float(a.get("ave") or 0), reverse=True)
-        articles = articles[:50]  # max 50 after filtering
         return {"articles": articles}
 
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "articles": []}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -810,19 +729,15 @@ async def get_articles(
     to_date:   Optional[str] = None,
     testata:   Optional[str] = None,
     limit:     int           = 50,
-    sort:      Optional[str] = None,
 ):
     try:
         query = supabase.table("articles").select(
-            "id, titolo, testata, data, occhiello, giornalista, tone, dominant_topic, macrosettori, ave"
+            "id, titolo, testata, data, occhiello, giornalista, tone, dominant_topic, macrosettori"
         )
         if from_date: query = query.gte("data", from_date)
         if to_date:   query = query.lte("data", to_date)
         if testata:   query = query.eq("testata", testata)
-        if sort == "ave":
-            res = query.order("ave", desc=True).limit(limit).execute()
-        else:
-            res = query.order("data", desc=True).limit(limit).execute()
+        res = query.order("data", desc=True).limit(limit).execute()
         return {"articles": res.data or [], "total": len(res.data or [])}
     except Exception as e:
         return {"error": str(e)}
@@ -862,35 +777,6 @@ async def delete_article(article_id: str):
     try:
         supabase.table("articles").delete().eq("id", article_id).execute()
         return {"success": True}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.post("/api/article/{article_id}/split-giornalista")
-async def split_giornalista(article_id: str):
-    """Duplica un articolo con doppia firma, uno per ogni giornalista separato da virgola."""
-    try:
-        res = supabase.table("articles").select("*").eq("id", article_id).execute()
-        if not res.data:
-            raise HTTPException(status_code=404, detail="Articolo non trovato")
-        original = res.data[0]
-        giornalista = original.get("giornalista", "") or ""
-        nomi = [n.strip() for n in giornalista.split(",") if n.strip()]
-        if len(nomi) < 2:
-            raise HTTPException(status_code=400, detail="Il campo giornalista non contiene più di un nome separato da virgola")
-        # Aggiorna originale col primo nome
-        supabase.table("articles").update({"giornalista": nomi[0]}).eq("id", article_id).execute()
-        # Crea copie per gli altri nomi
-        created = []
-        for nome in nomi[1:]:
-            copy = {k: v for k, v in original.items() if k != "id"}
-            copy["giornalista"] = nome
-            r = supabase.table("articles").insert(copy).execute()
-            if r.data:
-                created.append(r.data[0].get("id"))
-        return {"success": True, "nomi": nomi, "created_ids": created}
-    except HTTPException:
-        raise
     except Exception as e:
         return {"error": str(e)}
 
