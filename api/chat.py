@@ -1,10 +1,13 @@
 """
-api/chat.py - SPIZ AI v10
-FIXED:
-- Report genera testo strutturato vero (non JSON grezzo)
-- docx_path prodotto realmente via docx_builder.js
-- Intent "quantitative" ora gestisce lista giornalisti correttamente
-- Fallback robusto se embedding fallisce
+api/chat.py - SPIZ AI v11
+ARCHITETTURA:
+- Un solo percorso: intelligence report (map → reduce)
+- Zero routing per intent: la AI è sempre in modalità analista senior
+- Zero riferimenti a settori specifici: funziona per qualsiasi cliente/tema
+- I numeri (conteggi, testate, sentiment %) restano a Python via _stats()
+  e vengono passati al modello come dati già calcolati, mai da calcolare
+- client_name: se fornito, personalizza la sezione "Spazi narrativi"
+  senza bisogno di scriverlo nel messaggio ogni volta
 """
 
 import os
@@ -31,20 +34,21 @@ DB_COLS = (
     "dominant_topic, reputational_risk, political_risk, ave, tipo_fonte"
 )
 
+
 # ══════════════════════════════════════════════════════════════════════
 # PARSING TEMPORALE
 # ══════════════════════════════════════════════════════════════════════
 
 _TIME_RULES = [
-    (r"oggi|odiern",                                               0),
-    (r"ultime?\s*24.?ore|ieri",                                    1),
-    (r"ultim[ie]\s*(?:[23]\s*(?:giorn|gg\b|g\b))",                3),
+    (r"oggi|odiern",                                                0),
+    (r"ultime?\s*24.?ore|ieri",                                     1),
+    (r"ultim[ie]\s*(?:[23]\s*(?:giorn|gg\b|g\b))",                 3),
     (r"ultim[ie]\s*(?:[67]\s*(?:giorn|gg\b|g\b)|settiman|7\s*(?:giorn|gg))", 7),
-    (r"ultim[ie]\s*(?:15\s*(?:giorn|gg\b)|due\s*settiman)",       15),
+    (r"ultim[ie]\s*(?:15\s*(?:giorn|gg\b)|due\s*settiman)",        15),
     (r"ultim[ie]\s*(?:30\s*(?:giorn|gg\b|g\b)?)\b|ultimo\s*mese|mese\s*scors", 30),
-    (r"ultim[ie]\s*(?:[23]\s*mesi|[69]0\s*giorn)",                90),
-    (r"ultim[ie]\s*(?:[46]\s*mesi)",                              180),
-    (r"ultimo\s*anno|ultim[ie]\s*12\s*mesi",                     365),
+    (r"ultim[ie]\s*(?:[23]\s*mesi|[69]0\s*giorn)",                 90),
+    (r"ultim[ie]\s*(?:[46]\s*mesi)",                               180),
+    (r"ultimo\s*anno|ultim[ie]\s*12\s*mesi",                      365),
 ]
 
 def _parse_days(msg: str):
@@ -64,7 +68,7 @@ def _date_range(context: str, message: str):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# SEMANTIC SEARCH (pgvector)
+# RICERCA
 # ══════════════════════════════════════════════════════════════════════
 
 def _semantic_search(from_date: str, to_date: str, user_message: str, limit: int = 200):
@@ -73,24 +77,17 @@ def _semantic_search(from_date: str, to_date: str, user_message: str, limit: int
             model="text-embedding-3-small",
             input=user_message[:8000],
         ).data[0].embedding
-
         res = supabase.rpc(
             "match_articles",
-            {
-                "query_embedding": emb,
-                "match_from":      from_date,
-                "match_to":        to_date,
-                "match_count":     limit,
-            }
+            {"query_embedding": emb, "match_from": from_date,
+             "match_to": to_date, "match_count": limit},
         ).execute()
         return res.data or []
     except Exception as e:
         print(f"[SPIZ] semantic search error: {e}")
         return []
 
-
 def _fallback_search(from_date: str, to_date: str, limit: int = 100):
-    """Ricerca senza embedding quando pgvector non è disponibile."""
     try:
         res = (supabase.table("articles")
                .select(DB_COLS)
@@ -106,140 +103,75 @@ def _fallback_search(from_date: str, to_date: str, limit: int = 100):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# INTENT DETECTION
-# ══════════════════════════════════════════════════════════════════════
-
-_QUANT_PATTERNS = [
-    r"giornalist[ie]",
-    r"chi\s+ha\s+scritto",
-    r"quant[ie]\s+(articol|testat|giornalist)",
-    r"top\s+\d",
-    r"classifica",
-    r"più\s+(citati?|attivi?|presenti?)",
-]
-
-_REPORT_KW = [
-    "report", "profilo mediatico", "sintesi strategica", "analisi completa",
-    "criticita", "reputazion", "relazione", "redigi", "elabora", "documento",
-]
-
-_DOCX_KW = ["word", "docx", "scarica", "download", "file"]
-
-def _detect_intent(message: str) -> str:
-    msg = message.lower()
-    if any(kw in msg for kw in _REPORT_KW):
-        return "report"
-    for pat in _QUANT_PATTERNS:
-        if re.search(pat, msg):
-            return "quantitative"
-    return "quick"
-
-def _wants_docx(message: str) -> bool:
-    return any(kw in message.lower() for kw in _DOCX_KW)
-
-
-# ══════════════════════════════════════════════════════════════════════
-# STATISTICHE
+# STATISTICHE  (i numeri li calcola Python, non il modello)
 # ══════════════════════════════════════════════════════════════════════
 
 def _stats(articles: list) -> dict:
     if not articles:
         return {}
-    testate     = Counter(a.get("testata","")      for a in articles if a.get("testata"))
-    giornalisti = Counter(a.get("giornalista","")  for a in articles if a.get("giornalista"))
-    tones       = Counter(a.get("tone","")         for a in articles if a.get("tone"))
+    testate     = Counter(a.get("testata", "")     for a in articles if a.get("testata"))
+    giornalisti = Counter(a.get("giornalista", "") for a in articles if a.get("giornalista"))
+    tones       = Counter(a.get("tone", "")        for a in articles if a.get("tone"))
     tone_tot    = sum(tones.values()) or 1
-    dates       = [a.get("data","") for a in articles if a.get("data")]
+    dates       = [a.get("data", "") for a in articles if a.get("data")]
     return {
         "totale":      len(articles),
         "periodo_da":  min(dates) if dates else "",
         "periodo_a":   max(dates) if dates else "",
         "testate":     dict(testate.most_common(20)),
         "giornalisti": dict(giornalisti.most_common(50)),
-        "sentiment":   {k: round(v/tone_tot*100) for k,v in tones.items() if k},
+        "sentiment":   {k: round(v / tone_tot * 100) for k, v in tones.items() if k},
     }
 
 
 # ══════════════════════════════════════════════════════════════════════
-# QUICK ANSWER
+# DOCX BUILDER
 # ══════════════════════════════════════════════════════════════════════
 
-_QUICK_SYSTEM = """Sei SPIZ, analista mediatico senior di MAIM Public Diplomacy & Media Relations.
+def _wants_docx(message: str) -> bool:
+    return any(kw in message.lower() for kw in ["word", "docx", "scarica", "download", "file"])
 
-REGOLE ASSOLUTE:
-1. Rispondi ESCLUSIVAMENTE usando gli articoli forniti nel corpus.
-2. Non usare MAI la tua conoscenza generale o inventare fatti.
-3. Ogni affermazione deve citare testata e data dell'articolo.
-4. Se un'informazione non è nel corpus: "Non ho articoli su questo nel periodo."
-5. Italiano professionale corporate. Nessuna emoji.
-"""
-
-def _quick_answer(user_message: str, articles: list, stats: dict, history: list = None) -> str:
-    lines = []
-    for a in articles[:30]:
-        testo = (a.get("testo_completo") or "")[:600]
-        lines.append(
-            f"[{a.get('data','')}] {a.get('testata','')} | {a.get('giornalista','')}\n"
-            f"TITOLO: {a.get('titolo','')}\n"
-            f"TESTO: {testo}"
+def _build_docx(report_text: str, title: str = "Report SPIZ") -> str | None:
+    if not os.path.exists(_BUILDER_JS):
+        print(f"[DOCX] builder non trovato: {_BUILDER_JS}")
+        return None
+    try:
+        tmp = tempfile.NamedTemporaryFile(suffix=".docx", delete=False, prefix="spiz_report_")
+        out_path = tmp.name
+        tmp.close()
+        payload = json.dumps({"title": title, "content": report_text})
+        result = subprocess.run(
+            ["node", _BUILDER_JS, out_path],
+            input=payload, capture_output=True, text=True, timeout=30,
         )
-    corpus_txt = "\n---\n".join(lines)
-
-    messages = [{"role": "system", "content": f"{_QUICK_SYSTEM}\n\nCORPUS ({len(articles)} articoli):\n{corpus_txt}"}]
-    for msg in (history or [])[-10:]:
-        if msg.get("role") in ("user","assistant") and msg.get("content"):
-            messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": user_message})
-
-    resp = ai.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        temperature=0.1,
-        max_tokens=2000,
-    )
-    return resp.choices[0].message.content.strip()
+        if result.returncode != 0:
+            print(f"[DOCX] node error: {result.stderr}")
+            return None
+        if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+            return out_path
+        return None
+    except Exception as e:
+        print(f"[DOCX] build error: {e}")
+        return None
 
 
 # ══════════════════════════════════════════════════════════════════════
-# QUANTITATIVE ANSWER (giornalisti, testate, conteggi)
+# MAP — estrazione strutturata per ogni batch di articoli
+# Il modello legge e sintetizza; NON conta, NON calcola percentuali
 # ══════════════════════════════════════════════════════════════════════
 
-def _quantitative_answer(user_message: str, articles: list, stats: dict) -> str:
-    stats_txt = (
-        f"TOTALE ARTICOLI: {stats.get('totale',0)}\n"
-        f"PERIODO: {stats.get('periodo_da','')} → {stats.get('periodo_a','')}\n"
-        f"TOP TESTATE: {', '.join(f'{k}({v})' for k,v in list(stats.get('testate',{}).items())[:15])}\n"
-        f"TOP GIORNALISTI: {', '.join(f'{k}({v})' for k,v in list(stats.get('giornalisti',{}).items())[:30])}\n"
-        f"SENTIMENT: {', '.join(f'{k}: {v}%' for k,v in stats.get('sentiment',{}).items())}\n"
-    )
+_MAP_SYSTEM = """Sei un analista di media monitoring. Leggi gli articoli forniti e
+restituisci un JSON con una lista "articoli". Per ogni articolo includi:
+- testata (string)
+- data (string)
+- titolo (string)
+- fatti_chiave: array di max 3 stringhe — i fatti oggettivi riportati
+- angolo: string — l'angolazione giornalistica scelta dalla testata
+- attori: array di stringhe — soggetti citati (aziende, persone, istituzioni)
+- tensione: string o null — eventuale contrapposizione narrativa presente
+- rilevanza: intero 1-5 rispetto al tema della richiesta
 
-    resp = ai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": (
-                "Sei SPIZ, analista mediatico. Rispondi con dati precisi basandoti SOLO sulle "
-                "statistiche fornite. Italiano professionale, nessuna emoji."
-            )},
-            {"role": "user", "content": f"STATISTICHE:\n{stats_txt}\n\nDOMANDA: {user_message}"},
-        ],
-        temperature=0.0,
-        max_tokens=1500,
-    )
-    return resp.choices[0].message.content.strip()
-
-
-# ══════════════════════════════════════════════════════════════════════
-# REPORT STRUTTURATO (MAP + REDUCE)
-# ══════════════════════════════════════════════════════════════════════
-
-_MAP_SYSTEM = """Analizza gli articoli e restituisci un JSON con una lista "articoli", 
-dove ogni elemento ha:
-- testata, data, titolo
-- fatti_chiave (array di stringhe, max 3)
-- angolo (stringa, angolazione giornalistica)
-- criticita (stringa o null)
-- rilevanza (1-5)
-Rispondi SOLO con JSON valido."""
+Rispondi SOLO con JSON valido, nessun testo fuori dal JSON."""
 
 def _map_batch(batch: list, idx: int):
     lines = []
@@ -254,21 +186,21 @@ def _map_batch(batch: list, idx: int):
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": _MAP_SYSTEM},
-                {"role": "user", "content": "\n\n".join(lines)},
+                {"role": "user",   "content": "\n\n".join(lines)},
             ],
             temperature=0.0,
             max_tokens=3000,
             response_format={"type": "json_object"},
         )
         parsed = json.loads(resp.choices[0].message.content)
-        items = parsed.get("articoli", parsed) if isinstance(parsed, dict) else parsed
+        items  = parsed.get("articoli", parsed) if isinstance(parsed, dict) else parsed
         return idx, items if isinstance(items, list) else []
     except Exception as e:
         print(f"[MAP] batch {idx} error: {e}")
         return idx, []
 
 def _map_articles_parallel(articles: list, batch_size: int = 5, max_workers: int = 4) -> list:
-    batches = [articles[i:i+batch_size] for i in range(0, len(articles), batch_size)]
+    batches = [articles[i:i + batch_size] for i in range(0, len(articles), batch_size)]
     results = [None] * len(batches)
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = {ex.submit(_map_batch, b, i): i for i, b in enumerate(batches)}
@@ -281,107 +213,137 @@ def _map_articles_parallel(articles: list, batch_size: int = 5, max_workers: int
             out.extend(r)
     return out
 
-_REPORT_SYSTEM = """Sei SPIZ, analista senior di MAIM Public Diplomacy & Media Relations.
-Produci un report mediatico professionale strutturato con ESATTAMENTE queste sezioni:
 
-## 1. PROFILO MEDIATICO
-## 2. INTERVISTE E PRESENZA VERTICI
-## 3. TEMI LONGEVI
-## 4. NOTIZIE FINANZIARIE E CORPORATE
-## 5. GOVERNANCE E MANAGEMENT
-## 6. FOCUS TERRITORIALE
-## 7. CRITICITÀ REPUTAZIONALI
-## 8. ANALISI DEL SENTIMENT
-## 9. COMUNICAZIONE ISTITUZIONALE
-## 10. SINTESI STRATEGICA
+# ══════════════════════════════════════════════════════════════════════
+# REDUCE — produzione del report intelligence
+# Sistema universale: nessun riferimento a settori, tecnologie o contesti
+# specifici. Il modello legge il corpus e si adatta al dominio da solo.
+# client_name: se presente, personalizza la sezione Spazi narrativi.
+# ══════════════════════════════════════════════════════════════════════
 
-Per ogni sezione cita articoli specifici con testata e data.
-Se una sezione non ha dati rilevanti scrivere: "Nessun elemento rilevante nel periodo."
-Usa SOLO i dati forniti. Italiano professionale corporate."""
+_REPORT_SYSTEM = """Sei SPIZ, analista senior di comunicazione e media intelligence
+di MAIM Public Diplomacy & Media Relations.
 
-def _reduce_to_report(user_message: str, extracted: list, stats: dict) -> str:
+Il tuo compito è produrre report strategici di media intelligence destinati
+a professionisti della comunicazione che devono supportare i loro clienti
+nelle relazioni con i media.
+
+REGOLE FONDAMENTALI:
+1. Usa ESCLUSIVAMENTE i dati e gli articoli forniti. Mai la tua conoscenza generale.
+2. Ogni affermazione deve essere ricavabile dal corpus ricevuto.
+3. Se un elemento non è presente nel corpus: "Non emergono elementi su questo punto."
+4. Italiano professionale da advisor di comunicazione. Nessuna emoji.
+5. Sii analitico e orientato all'azione: ogni osservazione deve avere
+   un'implicazione pratica per chi fa media relations.
+
+STRUTTURA OBBLIGATORIA DEL REPORT:
+
+## 1. CLIMA MEDIATICO
+Sintesi in 5-7 righe del quadro generale del dibattito nei media sul tema/settore
+del corpus: tono prevalente, eventuali fratture narrative, elementi di contesto
+politico, economico o istituzionale rilevanti, dinamiche tra attori.
+
+## 2. TEMI DOMINANTI
+Individua 3-5 temi principali emersi dal corpus. Per ciascuno:
+- come viene raccontato dai media
+- quali attori compaiono e con quale ruolo
+- eventuali tensioni o contrapposizioni narrative
+
+## 3. SPAZI NARRATIVI PER IL CLIENTE
+Questa è la sezione più strategica. Individua 4-6 possibili ganci giornalistici
+utilizzabili per posizionare il cliente nel dibattito corrente. Per ciascuno:
+- titolo sintetico del frame narrativo
+- spiegazione (3-4 righe)
+- perché è coerente con il dibattito attuale
+- come potrebbe essere raccontato da un giornalista
+
+## 4. ANGOLI GIORNALISTICI IMMEDIATI
+3 spunti editoriali o interviste proponibili rapidamente alle redazioni.
+Per ciascuno:
+- titolo possibile dell'articolo
+- taglio giornalistico
+- perché potrebbe interessare una redazione oggi
+
+Lunghezza target: 600-800 parole. Sintetico, analitico, orientato all'azione."""
+
+
+def _reduce_to_report(
+    user_message: str,
+    extracted: list,
+    stats: dict,
+    client_name: str = "",
+) -> str:
+    # Contesto cliente: se fornito, personalizza la sezione Spazi narrativi
+    client_block = ""
+    if client_name and client_name.strip():
+        client_block = (
+            f"\nCLIENTE: {client_name.strip()}\n"
+            "Nella sezione 'Spazi narrativi per il cliente' costruisci le opportunità "
+            f"specificamente per {client_name.strip()}, usando il suo nome dove pertinente "
+            "e ragionando su come potrebbe inserirsi nel dibattito come voce autorevole.\n"
+        )
+
     stats_txt = (
-        f"TOTALE ARTICOLI ANALIZZATI: {stats.get('totale',0)}\n"
-        f"PERIODO: {stats.get('periodo_da','')} → {stats.get('periodo_a','')}\n"
-        f"TESTATE PRINCIPALI: {', '.join(f'{k}({v})' for k,v in list(stats.get('testate',{}).items())[:10])}\n"
-        f"SENTIMENT: {', '.join(f'{k}: {v}%' for k,v in stats.get('sentiment',{}).items())}\n"
+        f"TOTALE ARTICOLI NEL CORPUS: {stats.get('totale', 0)}\n"
+        f"PERIODO: {stats.get('periodo_da', '')} → {stats.get('periodo_a', '')}\n"
+        f"TESTATE (per numero di articoli): "
+        f"{', '.join(f'{k}({v})' for k, v in list(stats.get('testate', {}).items())[:12])}\n"
+        f"SENTIMENT COMPLESSIVO: "
+        f"{', '.join(f'{k}: {v}%' for k, v in stats.get('sentiment', {}).items())}\n"
+        f"GIORNALISTI PIÙ ATTIVI: "
+        f"{', '.join(f'{k}({v})' for k, v in list(stats.get('giornalisti', {}).items())[:10])}\n"
     )
 
-    # Trunca estratto se troppo lungo
-    extracted_txt = json.dumps(extracted[:80], ensure_ascii=False, indent=None)
-    if len(extracted_txt) > 15000:
-        extracted_txt = extracted_txt[:15000] + "...]"
+    extracted_txt = json.dumps(extracted[:100], ensure_ascii=False, indent=None)
+    if len(extracted_txt) > 18000:
+        extracted_txt = extracted_txt[:18000] + "...]"
 
     resp = ai.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": _REPORT_SYSTEM},
             {"role": "user", "content": (
-                f"RICHIESTA: {user_message}\n\n"
-                f"STATISTICHE:\n{stats_txt}\n\n"
-                f"ARTICOLI ESTRATTI (JSON):\n{extracted_txt}"
+                f"RICHIESTA: {user_message}\n"
+                f"{client_block}\n"
+                f"DATI STATISTICI (calcolati dal sistema, usa solo questi per i numeri):\n"
+                f"{stats_txt}\n\n"
+                f"CORPUS ARTICOLI ANALIZZATI (JSON estratto):\n{extracted_txt}"
             )},
         ],
-        temperature=0.1,
+        temperature=0.15,
         max_tokens=8000,
     )
     return resp.choices[0].message.content.strip()
 
 
 # ══════════════════════════════════════════════════════════════════════
-# DOCX BUILDER
+# ENTRY POINT UNICO
+# Non c'è più routing per intent. La chat fa sempre e solo intelligence.
+# client_name: opzionale, passato dal frontend quando l'utente seleziona
+#              un cliente dalla dropdown. Personalizza la sezione 3.
 # ══════════════════════════════════════════════════════════════════════
 
-def _build_docx(report_text: str, title: str = "Report SPIZ") -> str | None:
-    """Chiama docx_builder.js e restituisce il path del file .docx generato."""
-    if not os.path.exists(_BUILDER_JS):
-        print(f"[DOCX] builder non trovato: {_BUILDER_JS}")
-        return None
-    try:
-        tmp = tempfile.NamedTemporaryFile(suffix=".docx", delete=False, prefix="spiz_report_")
-        out_path = tmp.name
-        tmp.close()
-
-        payload = json.dumps({"title": title, "content": report_text})
-        result = subprocess.run(
-            ["node", _BUILDER_JS, out_path],
-            input=payload,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode != 0:
-            print(f"[DOCX] node error: {result.stderr}")
-            return None
-        if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
-            return out_path
-        return None
-    except Exception as e:
-        print(f"[DOCX] build error: {e}")
-        return None
-
-
-# ══════════════════════════════════════════════════════════════════════
-# MAIN ENTRY POINT
-# ══════════════════════════════════════════════════════════════════════
-
-def ask_spiz(message: str, history: list = None, context: str = "general") -> dict:
+def ask_spiz(
+    message: str,
+    history: list = None,
+    context: str = "general",
+    client_name: str = "",
+) -> dict:
     if not message or len(message.strip()) < 2:
         return {"error": "Messaggio troppo corto."}
 
     from_date, to_date = _date_range(context, message)
-    intent = _detect_intent(message)
     wants_docx = _wants_docx(message)
 
-    print(f"[SPIZ] intent={intent} from={from_date} to={to_date} docx={wants_docx}")
+    print(f"[SPIZ v11] from={from_date} to={to_date} docx={wants_docx} client={client_name!r}")
 
-    # Ricerca semantica con fallback
-    filtered = _semantic_search(from_date, to_date, message, limit=200)
-    if not filtered:
+    # Recupero articoli
+    articles = _semantic_search(from_date, to_date, message, limit=200)
+    if not articles:
         print("[SPIZ] semantic vuota, uso fallback")
-        filtered = _fallback_search(from_date, to_date, limit=100)
+        articles = _fallback_search(from_date, to_date, limit=150)
 
-    if not filtered:
+    if not articles:
         return {
             "response":      "Nessun articolo trovato nel periodo richiesto.",
             "is_report":     False,
@@ -390,43 +352,25 @@ def ask_spiz(message: str, history: list = None, context: str = "general") -> di
             "total_period":  0,
         }
 
-    stats = _stats(filtered)
+    # Statistiche: Python conta, il modello non tocca numeri
+    stats = _stats(articles)
 
-    # ── REPORT ──
-    if intent == "report":
-        extracted   = _map_articles_parallel(filtered[:150])
-        report_text = _reduce_to_report(message, extracted, stats)
+    # Map: ogni articolo viene strutturato in parallelo (gpt-4o-mini, veloce)
+    extracted = _map_articles_parallel(articles[:150])
 
-        docx_path = None
-        if wants_docx:
-            docx_path = _build_docx(report_text)
+    # Reduce: il modello produce il report intelligence (gpt-4o, qualità)
+    report_text = _reduce_to_report(message, extracted, stats, client_name=client_name)
 
-        return {
-            "response":      report_text,
-            "is_report":     True,
-            "docx_path":     docx_path,
-            "articles_used": len(filtered),
-            "total_period":  len(filtered),
-        }
+    # Docx opzionale
+    docx_path = None
+    if wants_docx:
+        title = f"Report SPIZ — {client_name}" if client_name else "Report SPIZ"
+        docx_path = _build_docx(report_text, title=title)
 
-    # ── QUANTITATIVO ──
-    elif intent == "quantitative":
-        response_text = _quantitative_answer(message, filtered, stats)
-        return {
-            "response":      response_text,
-            "is_report":     False,
-            "docx_path":     None,
-            "articles_used": len(filtered),
-            "total_period":  len(filtered),
-        }
-
-    # ── QUICK ──
-    else:
-        response_text = _quick_answer(message, filtered, stats, history)
-        return {
-            "response":      response_text,
-            "is_report":     False,
-            "docx_path":     None,
-            "articles_used": len(filtered),
-            "total_period":  len(filtered),
-        }
+    return {
+        "response":      report_text,
+        "is_report":     True,
+        "docx_path":     docx_path,
+        "articles_used": len(articles),
+        "total_period":  len(articles),
+    }
