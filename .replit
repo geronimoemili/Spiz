@@ -5,6 +5,10 @@ modules = ["nodejs-20", "python-3.11"]
 packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "python37", "rustc", "zip", "lsof", "tree"]
 
 [[ports]]
+localPort = 5904
+externalPort = 3000
+
+[[ports]]
 localPort = 8080
 externalPort = 80
 
