@@ -525,8 +525,10 @@ async function generaReport(){
 
   }catch(e){
     clearInterval(iv);
-    setLoadingTxt('⚠ '+(e.message||'Errore'), 'Torna indietro e riprova');
-    setTimeout(()=>showState('articles'),4000);
+    const msg = e.message||'Errore sconosciuto';
+    setLoadingTxt('⚠ Errore generazione', msg);
+    // Dopo 6 secondi torna alla lista articoli
+    setTimeout(()=>showState('articles'),6000);
   }
   isLoading=false; btn.disabled=false; btn.classList.remove('loading');
 }

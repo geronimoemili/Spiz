@@ -220,8 +220,16 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
 
 def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: list):
     """Eseguito in un thread separato. Non blocca FastAPI."""
+    import traceback
     try:
-        result = ask_spiz(
+        # Import esplicito dentro il thread: se il modulo ha problemi
+        # l'errore diventa visibile invece di un NameError silenzioso.
+        try:
+            from api.chat import ask_spiz as _ask
+        except ImportError:
+            from chat import ask_spiz as _ask
+
+        result = _ask(
             client_name=client_name,
             topic_name=topic_name,
             preloaded_articles=articles,
@@ -231,7 +239,7 @@ def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: li
         else:
             _set_job(job_id, "done", result=result)
     except Exception as e:
-        _set_job(job_id, "error", error=str(e))
+        _set_job(job_id, "error", error=str(e) + " | " + traceback.format_exc().splitlines()[-1])
 
 
 @app.post("/api/generate-report")
