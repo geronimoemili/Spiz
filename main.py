@@ -102,6 +102,8 @@ class GenerateReportRequest(BaseModel):
     client_name:  Optional[str]       = ""
     topic_name:   Optional[str]       = ""
     article_ids:  Optional[List[str]] = []
+    report_type:  Optional[str]       = "posizionamento_giornalisti"  # posizionamento_giornalisti | analisi_narrazione
+    refinement:   Optional[str]       = ""
 
 class ArticleUpdateSimple(BaseModel):
     titolo:             Optional[str]   = None
@@ -218,12 +220,11 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
 # AI REPORT — JOB ASINCRONO
 # ══════════════════════════════════════════════════════════════════════
 
-def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: list):
+def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: list,
+                    report_type: str = "posizionamento_giornalisti", refinement: str = ""):
     """Eseguito in un thread separato. Non blocca FastAPI."""
     import traceback
     try:
-        # Import esplicito dentro il thread: se il modulo ha problemi
-        # l'errore diventa visibile invece di un NameError silenzioso.
         try:
             from api.chat import ask_spiz as _ask
         except ImportError:
@@ -233,6 +234,8 @@ def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: li
             client_name=client_name,
             topic_name=topic_name,
             preloaded_articles=articles,
+            report_type=report_type,
+            refinement=refinement,
         )
         if "error" in result:
             _set_job(job_id, "error", error=result["error"])
@@ -271,10 +274,10 @@ async def generate_report_endpoint(req: GenerateReportRequest):
     job_id = str(uuid.uuid4())[:12]
     _set_job(job_id, "pending")
 
-    # Avvia in thread separato — non blocca FastAPI
     t = threading.Thread(
         target=_run_report_job,
-        args=(job_id, req.client_name or "", req.topic_name or "", articles),
+        args=(job_id, req.client_name or "", req.topic_name or "", articles,
+              req.report_type or "posizionamento_giornalisti", req.refinement or ""),
         daemon=True,
     )
     t.start()
@@ -437,6 +440,80 @@ async def today_mentions():
         return []
 
 
+
+@app.get("/api/period-mentions")
+async def period_mentions(from_date: Optional[str] = None, to_date: Optional[str] = None):
+    try:
+        if not from_date: from_date = date.today().isoformat()
+        if not to_date:   to_date   = date.today().isoformat()
+        clients_res = supabase.table("clients").select("*").execute()
+        clients     = clients_res.data or []
+        arts_res    = supabase.table("articles").select(
+            "id, titolo, testo_completo, occhiello"
+        ).gte("data", from_date).lte("data", to_date).execute()
+        articles = arts_res.data or []
+        result = []
+        for cl in clients:
+            raw_keywords = cl.get("keywords_press") or cl.get("keywords") or ""
+            keywords = [k.strip().lower() for k in raw_keywords.split(",") if k.strip()]
+            count = 0
+            if keywords:
+                count = sum(
+                    1 for a in articles
+                    if any(
+                        kw in (a.get("testo_completo") or "").lower() or
+                        kw in (a.get("titolo") or "").lower() or
+                        kw in (a.get("occhiello") or "").lower()
+                        for kw in keywords
+                    )
+                )
+            result.append({"id": cl["id"], "name": cl.get("name",""), "keywords": raw_keywords, "count": count})
+        return result
+    except Exception as e:
+        return []
+
+
+@app.get("/api/macro-groups-count")
+async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[str] = None):
+    try:
+        if not from_date: from_date = date.today().isoformat()
+        if not to_date:   to_date   = date.today().isoformat()
+        groups_res = supabase.table("macro_groups").select("id, name").eq("active", True).order("name").execute()
+        groups = groups_res.data or []
+        if not groups:
+            return {"groups": []}
+        all_links = supabase.table("macro_group_links").select("macro_group_id, official_macro_id").execute()
+        links_by_group: dict = {}
+        for lnk in (all_links.data or []):
+            gid = lnk["macro_group_id"]
+            links_by_group.setdefault(gid, []).append(lnk["official_macro_id"])
+        all_official_ids = list({oid for ids in links_by_group.values() for oid in ids})
+        macro_names_map: dict = {}
+        if all_official_ids:
+            macros_res = supabase.table("official_macrosectors").select("id, name").in_("id", all_official_ids).execute()
+            for m in (macros_res.data or []):
+                macro_names_map[m["id"]] = m["name"]
+        arts_res = supabase.table("articles").select("id, macrosettori")\
+            .gte("data", from_date).lte("data", to_date).execute()
+        articles = arts_res.data or []
+        result = []
+        for g in groups:
+            gid = g["id"]
+            official_ids = links_by_group.get(gid, [])
+            names_set = {macro_names_map[oid] for oid in official_ids if oid in macro_names_map}
+            count = 0
+            if names_set:
+                count = sum(
+                    1 for a in articles
+                    if a.get("macrosettori") and any(
+                        m.strip() in names_set for m in a["macrosettori"].split(",")
+                    )
+                )
+            result.append({"id": gid, "name": g["name"], "count": count})
+        return {"groups": result}
+    except Exception as e:
+        return {"groups": [], "error": str(e)}
+
 # ══════════════════════════════════════════════════════════════════════
 # TOP GIORNALISTI
 # ══════════════════════════════════════════════════════════════════════
@@ -517,9 +594,9 @@ async def get_articles_filtered(
 ):
     try:
         articles_res = supabase.table("articles") \
-            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello") \
+            .select("id, titolo, testata, data, giornalista, macrosettori, testo_completo, occhiello, ave") \
             .gte("data", from_date).lte("data", to_date) \
-            .order("data", desc=True).limit(500).execute()
+            .order("ave", desc=True).limit(500).execute()
         articles = articles_res.data or []
 
         if client_id:
