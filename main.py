@@ -1005,6 +1005,7 @@ def _run_digest_job(job_id: str):
             .execute()
         )
         articles_today = res_art.data or []
+        print(f"[DIGEST DEBUG] today={today} | articoli trovati: {len(articles_today)}")
 
         # Lista clienti
         res_cli = supabase.table("clients").select("id, name").execute()
