@@ -685,6 +685,9 @@ def _digest_article_block(a: dict, max_chars: int = 500) -> str:
 def generate_digest(articles_today: list, clients: list) -> dict:
     """
     Genera il digest mattutino in testo piano per WhatsApp.
+    Architettura a due chiamate separate:
+      - Chiamata 1: temi del giorno (solo titoli → token minimi)
+      - Chiamata 2: citazioni clienti (testo completo, batch da 10)
 
     articles_today : tutti gli articoli di oggi da Supabase
     clients        : lista di dict con campo 'name'
@@ -701,8 +704,7 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     n_art        = len(articles_today)
     client_names = [c.get("name", "").strip() for c in (clients or []) if c.get("name")]
 
-    # ── Match clienti in Python (nessuna AI) ─────────────────────────
-    # Un articolo può citare più clienti: lo duplichiamo per ciascuno.
+    # ── Match clienti in Python ───────────────────────────────────────
     client_hits = []
     for a in articles_today:
         haystack = (
@@ -717,82 +719,118 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     n_clienti = len(client_hits)
     print(f"[DIGEST] {n_art} articoli oggi | {n_clienti} citazioni clienti")
 
-    # ── Corpus temi (testo breve, solo per identificare i temi) ──────
-    all_blocks = "\n\n---\n\n".join(
-        _digest_article_block(a, max_chars=400) for a in articles_today
+    _SYS = (
+        "Sei il sistema MAIM Intelligence. Produci contenuto per il digest "
+        "mattutino interno dell'agenzia, da condividere su WhatsApp.\n"
+        "FORMATO: testo semplice, *grassetto* solo per titoli/nomi, "
+        "separatori ————————————————————, italiano professionale, no emoji eccessive."
     )
 
-    # ── Blocco citazioni clienti (testo più lungo per la sintesi) ────
+    # ══════════════════════════════════════════════════════════════════
+    # CHIAMATA 1 — TEMI DEL GIORNO
+    # Input: solo [Testata] Titolo — ~15 token/riga × n_art
+    # ══════════════════════════════════════════════════════════════════
+    elenco_titoli = "\n".join(
+        f"[{a.get('testata', '')}] {a.get('titolo', '')}"
+        for a in articles_today
+    )
+
+    msg_temi = (
+        f"Data: {today_str} | Totale articoli: {n_art}\n\n"
+        f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
+        f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
+        f"*TEMI DEL GIORNO*\n\n"
+        f"Identifica 4-6 temi ricorrenti. "
+        f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
+        f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
+    )
+
+    print("[DIGEST] Chiamata 1 — temi del giorno")
+    resp1 = ai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": _SYS},
+            {"role": "user",   "content": msg_temi},
+        ],
+        temperature=0.1,
+        max_tokens=1200,
+    )
+    sezione_temi = resp1.choices[0].message.content.strip()
+
+    # ══════════════════════════════════════════════════════════════════
+    # CHIAMATA 2 — CLIENTI SUI MEDIA
+    # Input: testo completo di ogni articolo che cita un cliente.
+    # Batch da 10 citazioni per stare dentro i limiti TPM.
+    # I risultati vengono concatenati.
+    # ══════════════════════════════════════════════════════════════════
+    def _client_block(ch: dict) -> str:
+        a = ch["article"]
+        return (
+            f"CLIENTE: {ch['client']}\n"
+            f"Testata: {a.get('testata', '')}\n"
+            f"Data: {a.get('data', '')}\n"
+            f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
+            f"Titolo: {a.get('titolo', '')}\n"
+            f"Testo:\n{a.get('testo_completo') or ''}"
+        )
+
+    _ISTR_CLIENTI = (
+        "Per ogni voce produci:\n"
+        "- Prima riga: *NOME CLIENTE* — Testata — Giornalista — Data\n"
+        "- Seconda riga: titolo articolo\n"
+        "- 2-3 righe: cosa dice l'articolo sul cliente, tono (positivo/neutro/critico).\n"
+        "Separa ogni voce con una riga vuota.\n"
+        "Produci SOLO le voci, nessun titolo di sezione."
+    )
+
+    sezione_clienti = ""
     if client_hits:
-        client_blocks = "\n\n---\n\n".join(
-            f"CLIENTE: {ch['client']}\n{_digest_article_block(ch['article'], max_chars=1200)}"
-            for ch in client_hits
-        )
-        parte2_instruction = (
-            "Per ogni voce nel blocco CITAZIONI CLIENTI produci:\n"
-            "- Prima riga: *NOME CLIENTE* — Testata — Giornalista — Data\n"
-            "- Seconda riga: titolo articolo\n"
-            "- 2-3 righe: cosa dice l'articolo sul cliente, tono (positivo/neutro/critico).\n"
-            "Separa ogni voce con una riga vuota."
-        )
-        parte2_placeholder = ""
+        BATCH = 10
+        parti_clienti = []
+        for i in range(0, len(client_hits), BATCH):
+            batch = client_hits[i:i + BATCH]
+            n_batch = len(client_hits)
+            batch_num = i // BATCH + 1
+            total_batches = (n_clienti + BATCH - 1) // BATCH
+            print(f"[DIGEST] Chiamata 2 — clienti batch {batch_num}/{total_batches}")
+
+            blocchi = "\n\n---\n\n".join(_client_block(ch) for ch in batch)
+            msg_clienti = (
+                f"Analizza le seguenti citazioni di clienti MAIM trovate oggi:\n\n"
+                f"{blocchi}\n\n"
+                f"{_ISTR_CLIENTI}"
+            )
+
+            resp2 = ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": _SYS},
+                    {"role": "user",   "content": msg_clienti},
+                ],
+                temperature=0.0,
+                max_tokens=1500,
+            )
+            parti_clienti.append(resp2.choices[0].message.content.strip())
+
+        sezione_clienti = "\n\n".join(parti_clienti)
     else:
-        client_blocks = ""
-        parte2_instruction = ""
-        parte2_placeholder = "Nessun cliente citato oggi nei media monitorati."
+        sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
-    # ── Prompt ────────────────────────────────────────────────────────
-    system = (
-        "Sei il sistema MAIM Intelligence. Produci il digest mattutino interno "
-        "dell'agenzia di comunicazione MAIM, da condividere su WhatsApp.\n\n"
-        "REGOLE DI FORMATO:\n"
-        "- Testo semplice. Niente tabelle. Niente markdown pesante.\n"
-        "- Usa *testo* solo per titoli di sezione, nomi clienti, nomi tema.\n"
-        "- Separatori con ————————————————————\n"
-        "- Conciso: si legge in 2 minuti su smartphone.\n"
-        "- Italiano professionale. Niente emoji eccessive."
-    )
-
-    user_msg = (
-        f"Data: {today_str} | Articoli oggi: {n_art} | Citazioni clienti: {n_clienti}\n\n"
-        f"══ TUTTI GLI ARTICOLI DI OGGI ══\n\n{all_blocks}\n\n"
-    )
-    if client_blocks:
-        user_msg += f"══ CITAZIONI CLIENTI ══\n\n{client_blocks}\n\n"
-
-    user_msg += (
-        f"══ ISTRUZIONI ══\n\n"
-        f"Produci il digest in questo formato:\n\n"
-        f"📰 *MAIM DIGEST — {today_str}*\n"
+    # ── Assemblaggio finale (nessuna AI) ─────────────────────────────
+    text = (
+        f"*MAIM DIGEST — {today_str}*\n"
         f"{n_art} articoli raccolti oggi\n\n"
         f"————————————————————\n\n"
-        f"*TEMI DEL GIORNO*\n\n"
-        f"Identifica 4-6 temi ricorrenti negli articoli di oggi. "
-        f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
-        f"Testo fluente, non elenchi puntati. "
-        f"Cita testata e giornalista quando rilevante.\n\n"
+        f"{sezione_temi}\n\n"
         f"————————————————————\n\n"
         f"*I TUOI CLIENTI SUI MEDIA*\n\n"
-        f"{parte2_placeholder}\n"
-        f"{parte2_instruction}\n\n"
+        f"{sezione_clienti}\n\n"
         f"————————————————————\n"
         f"_MAIM Intelligence — uso interno_"
     )
 
-    resp = ai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user",   "content": user_msg},
-        ],
-        temperature=0.1,
-        max_tokens=3000,
-    )
-
-    text = resp.choices[0].message.content.strip()
-
     return {
-        "text":             text,
-        "articles_today":   n_art,
-        "client_mentions":  n_clienti,
+        "text":            text,
+        "articles_today":  n_art,
+        "client_mentions": n_clienti,
     }
