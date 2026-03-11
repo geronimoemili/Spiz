@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAIM &middot; AI Report</title>
+<title>MAIM · AI Report</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -33,14 +33,6 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 .sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
 .sb-block{padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .sb-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
-
-/* DIGEST BUTTON */
-.btn-digest-wrap{padding:10px 14px;border-bottom:2px solid var(--border);flex-shrink:0}
-.btn-digest{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px}
-.btn-digest:hover:not(:disabled){background:#fff9f0;border-color:var(--amber);color:var(--amber)}
-.btn-digest:disabled{opacity:.35;cursor:not-allowed}
-.btn-digest .dspin{width:11px;height:11px;border:2px solid rgba(217,119,6,.25);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;display:none;flex-shrink:0}
-.btn-digest.loading .dspin{display:block}
 
 .focus-toggle{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden}
 .focus-btn{flex:1;padding:5px 3px;font-family:var(--mono);font-size:9px;font-weight:700;text-align:center;cursor:pointer;border:none;background:none;color:var(--text3);letter-spacing:.3px;transition:all .12s}
@@ -203,18 +195,6 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 .btn-lancia:disabled{opacity:.3;cursor:not-allowed}
 .cfg-warn{font-family:var(--mono);font-size:10px;color:var(--magenta);margin-top:8px;display:none}
 
-/* DIGEST STATE */
-.st-digest{display:none;max-width:640px;margin:0 auto;padding:4px 0}
-.digest-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid var(--border);gap:12px}
-.digest-title{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px}
-.digest-meta{font-family:var(--mono);font-size:9px;color:var(--text3);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
-.btn-copy-digest{padding:7px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .12s;white-space:nowrap;flex-shrink:0}
-.btn-copy-digest:hover{border-color:var(--amber);color:var(--amber)}
-.btn-copy-digest.ok{border-color:var(--green);color:var(--green)}
-.digest-wa{background:#e5ddd5;border-radius:14px;padding:14px 12px}
-.digest-wa .wa-bubble{background:#fff;border-radius:12px 12px 12px 0;padding:11px 14px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.10);font-size:13px;line-height:1.65;color:#111;white-space:pre-wrap;word-break:break-word;font-family:'Segoe UI',system-ui,sans-serif}
-.digest-wa .wa-tick{font-size:10px;color:#667781;text-align:right;margin-top:1px;margin-bottom:5px}
-
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
 </head>
@@ -236,14 +216,6 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
   <aside class="sidebar">
 
-    <!-- DIGEST GIORNALIERO -->
-    <div class="btn-digest-wrap">
-      <button class="btn-digest" id="btn-digest" onclick="generaDigest()">
-        <div class="dspin"></div>
-        <span>&#128240; DIGEST GIORNALIERO</span>
-      </button>
-    </div>
-
     <!-- 3-way toggle -->
     <div class="sb-block">
       <div class="sb-label">Focus report</div>
@@ -256,19 +228,19 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
     <!-- CLIENTE rows -->
     <div id="wrap-c">
-      <div id="client-rows"><div class="pick-empty">Caricamento&hellip;</div></div>
+      <div id="client-rows"><div class="pick-empty">Caricamento…</div></div>
     </div>
 
     <!-- MACRO rows -->
     <div id="wrap-m" style="display:none">
-      <div id="macro-rows"><div class="pick-empty">Caricamento&hellip;</div></div>
+      <div id="macro-rows"><div class="pick-empty">Caricamento…</div></div>
     </div>
 
     <!-- KEYWORD input -->
     <div id="wrap-k" style="display:none">
       <div class="sb-block">
         <input class="sb-input" id="kw-input" type="text"
-          placeholder="es. intelligenza artificiale&hellip;"
+          placeholder="es. intelligenza artificiale…"
           onkeydown="if(event.key==='Enter')cercaArticoli()">
       </div>
     </div>
@@ -287,7 +259,7 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
     <!-- CERCA -->
     <div class="sb-block">
       <button class="btn-cerca" id="btn-cerca" onclick="cercaArticoli()">
-        &#128269; <span>CERCA ARTICOLI</span>
+        🔍 <span>CERCA ARTICOLI</span>
       </button>
     </div>
 
@@ -295,7 +267,7 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
     <div class="btn-genera-wrap" id="genera-wrap" style="display:none">
       <button class="btn-genera" id="btn-genera" onclick="apriConfig()" disabled>
         <div class="spin"></div>
-        <span class="lbl">&#9881; CONFIGURA REPORT</span>
+        <span class="lbl">⚙ CONFIGURA REPORT</span>
       </button>
     </div>
 
@@ -304,13 +276,13 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
       <div class="sb-label">Formato</div>
       <div class="fmt-pills">
         <div class="fmt-pill active" data-fmt="word" onclick="setFmt('word')">
-          <span class="fmt-pill-ico">&#128196;</span><div class="fmt-pill-txt">DOC</div>
+          <span class="fmt-pill-ico">📄</span><div class="fmt-pill-txt">DOC</div>
         </div>
         <div class="fmt-pill" data-fmt="text" onclick="setFmt('text')">
-          <span class="fmt-pill-ico">&#128304;</span><div class="fmt-pill-txt">TESTO</div>
+          <span class="fmt-pill-ico">🔤</span><div class="fmt-pill-txt">TESTO</div>
         </div>
         <div class="fmt-pill" data-fmt="wa" onclick="setFmt('wa')">
-          <span class="fmt-pill-ico">&#128172;</span><div class="fmt-pill-txt">WA</div>
+          <span class="fmt-pill-ico">💬</span><div class="fmt-pill-txt">WA</div>
         </div>
       </div>
     </div>
@@ -336,7 +308,7 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
         <div class="bar-meta-txt" id="bar-meta"  style="display:none"></div>
       </div>
       <div class="bar-actions">
-        <button class="btn-copy" id="btn-copy" onclick="copyReport()" style="display:none">&#8856; Copia</button>
+        <button class="btn-copy" id="btn-copy" onclick="copyReport()" style="display:none">⎘ Copia</button>
         <span class="model-tag">GPT-4o</span>
       </div>
     </div>
@@ -345,9 +317,9 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
       <!-- EMPTY -->
       <div class="st-empty" id="st-empty">
-        <div class="st-empty-ico">&#128202;</div>
+        <div class="st-empty-ico">📊</div>
         <div class="st-empty-title">Intelligence Report</div>
-        <div class="st-empty-hint">CLIENTE &middot; MACRO &middot; KEYWORD<br>PERIODO &middot; CERCA &middot; SELEZIONA &middot; CONFIGURA &middot; LANCIA</div>
+        <div class="st-empty-hint">CLIENTE · MACRO · KEYWORD<br>PERIODO · CERCA · SELEZIONA · CONFIGURA · LANCIA</div>
         <div class="steps">
           <div class="step"><div class="step-n">1</div>Focus</div>
           <div class="step"><div class="step-n">2</div>Periodo</div>
@@ -360,7 +332,7 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
       <!-- LOADING -->
       <div class="st-loading" id="st-loading">
         <div class="ring"></div>
-        <div class="loading-lbl" id="loading-lbl">Caricamento&hellip;</div>
+        <div class="loading-lbl" id="loading-lbl">Caricamento…</div>
         <div class="loading-sub" id="loading-sub"></div>
       </div>
 
@@ -387,32 +359,32 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
         </table>
       </div>
 
-      <!-- CONFIG REPORT -->
+      <!-- CONFIG REPORT (Step B) -->
       <div class="st-config" id="st-config">
         <div class="cfg-title">Configura Report</div>
         <div class="cfg-sub" id="cfg-sub">0 articoli selezionati</div>
         <div class="cfg-types">
           <div class="cfg-type active" id="cfg-pos" onclick="setCfgType('posizionamento_giornalisti')">
-            <div class="cfg-type-ico">&#128101;</div>
+            <div class="cfg-type-ico">👥</div>
             <div class="cfg-type-name">Posizionamento Giornalisti</div>
             <div class="cfg-type-desc">Mappa amici / neutrali / critici rispetto alla tua tesi. Raccomandazioni su chi approcciare e come. Benchmark MAIM.</div>
           </div>
           <div class="cfg-type" id="cfg-nar" onclick="setCfgType('analisi_narrazione')">
-            <div class="cfg-type-ico">&#128225;</div>
+            <div class="cfg-type-ico">📡</div>
             <div class="cfg-type-name">Analisi Narrazione</div>
             <div class="cfg-type-desc">Paesaggio mediatico, temi dominanti, frame narrativi, spazi di posizionamento e pitch pronti.</div>
           </div>
         </div>
         <div class="cfg-refine-label">
           Contesto e tesi del cliente
-          <span class="cfg-refine-req" id="cfg-req">&mdash; obbligatorio per questo tipo di report</span>
+          <span class="cfg-refine-req" id="cfg-req">— obbligatorio per questo tipo di report</span>
         </div>
         <textarea class="cfg-textarea" id="cfg-refinement"
-          placeholder="Es: Questione MPS sul rinnovo CDA. La nostra posizione e' che la lista non appartiene a nessuna corrente azionaria, non rappresenta nessun azionista specifico, ma si tratta di una lista della banca che ha seguito l'iter e risponde alle richieste legittime di BCE."></textarea>
-        <div class="cfg-warn" id="cfg-warn">&#9888; Per l'analisi del posizionamento giornalisti e' necessario indicare la tesi del cliente.</div>
+          placeholder="Es: Questione MPS sul rinnovo CDA. La nostra posizione è che la lista non appartiene a nessuna corrente azionaria, non rappresenta nessun azionista specifico, ma si tratta di una lista della banca che ha seguito l'iter e risponde alle richieste legittime di BCE."></textarea>
+        <div class="cfg-warn" id="cfg-warn">⚠ Per l'analisi del posizionamento giornalisti è necessario indicare la tesi del cliente.</div>
         <div class="cfg-footer">
-          <button class="btn-back" onclick="showState('articles')">&larr; Torna agli articoli</button>
-          <button class="btn-lancia" id="btn-lancia" onclick="lanciaReport()">&#10022; LANCIA ANALISI</button>
+          <button class="btn-back" onclick="showState('articles')">← Torna agli articoli</button>
+          <button class="btn-lancia" id="btn-lancia" onclick="lanciaReport()">✦ LANCIA ANALISI</button>
         </div>
       </div>
 
@@ -431,31 +403,15 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
         </div>
       </div>
 
-      <!-- DIGEST -->
-      <div class="st-digest" id="st-digest">
-        <div class="digest-header">
-          <div>
-            <div class="digest-title">&#128240; Digest Giornaliero</div>
-            <div class="digest-meta">
-              <span id="digest-date-lbl"></span>
-              <span id="digest-art-lbl"></span>
-              <span id="digest-client-lbl"></span>
-            </div>
-          </div>
-          <button class="btn-copy-digest" id="btn-copy-digest" onclick="copyDigest()">&#8756; Copia per WA</button>
-        </div>
-        <div class="digest-wa" id="digest-wa"></div>
-      </div>
-
     </div>
   </div>
 </div>
 
 <script>
 // STATE
-let focus         = 'c';
-let fmt           = 'word';
-let allArticles   = [];
+let focus        = 'c';
+let fmt          = 'word';
+let allArticles  = [];
 let currentReport = null;
 let currentId     = null;
 let savedReports  = [];
@@ -463,7 +419,6 @@ let isLoading     = false;
 let selClientId   = null, selClientName = '';
 let selMacroId    = null, selMacroName  = '';
 let cfgType       = 'posizionamento_giornalisti';
-let currentDigestText = '';
 
 const PERIODS = {today:0, week:7, month:30, year:365};
 
@@ -471,10 +426,11 @@ window.onload = () => {
   loadClients();
   loadMacros();
   loadSaved();
+  // Aggiorna contatori quando cambia il periodo
   document.getElementById('period-select').addEventListener('change', refreshCounts);
 };
 
-// CLIENTI
+// CLIENTI — carica lista al boot, contatori per periodo
 async function loadClients(){
   try{
     const period = document.getElementById('period-select').value;
@@ -487,6 +443,7 @@ async function loadClients(){
         <span class="pick-name">${esc(c.name)}</span>
         <span class="pick-count">${c.count}</span>
       </div>`).join('');
+    // Ripristina selezione attiva
     if(selClientId){
       const row = document.querySelector(`#client-rows .pick-row[data-id="${selClientId}"]`);
       if(row) row.classList.add('active');
@@ -499,7 +456,7 @@ function pickClient(el){
   selClientId = el.dataset.id; selClientName = el.dataset.name;
 }
 
-// MACRO
+// MACRO — carica lista al boot, contatori per periodo
 async function loadMacros(){
   try{
     const period = document.getElementById('period-select').value;
@@ -525,6 +482,7 @@ function pickMacro(el){
   selMacroId = el.dataset.id; selMacroName = el.dataset.name;
 }
 
+// Aggiorna entrambi i contatori quando cambia il periodo
 async function refreshCounts(){
   await Promise.all([loadClients(), loadMacros()]);
 }
@@ -560,13 +518,13 @@ async function cercaArticoli(){
 
   isLoading = true;
   showState('loading');
-  setLoadingTxt('Ricerca articoli\u2026', label+' \u00b7 '+fmtDate(start)+' \u2192 '+fmtDate(end));
+  setLoadingTxt('Ricerca articoli…', label+' · '+fmtDate(start)+' → '+fmtDate(end));
 
   try{
     const d = await fetch(url).then(r=>r.json());
     allArticles = d.articles||[];
     renderArticlesList(allArticles);
-    setBarInfo('ARTICOLI TROVATI', label, allArticles.length+' articoli \u00b7 '+fmtDate(start)+' \u2192 '+fmtDate(end));
+    setBarInfo('ARTICOLI TROVATI', label, allArticles.length+' articoli · '+fmtDate(start)+' → '+fmtDate(end));
     document.getElementById('genera-wrap').style.display = allArticles.length ? 'block' : 'none';
     showState('articles');
   }catch(e){
@@ -576,18 +534,19 @@ async function cercaArticoli(){
   isLoading = false;
 }
 
-// RENDER ARTICOLI
+// RENDER LISTA ARTICOLI
 function renderArticlesList(articles){
+  // Già ordinati per AVE dal backend, ma garantiamo l'ordine in JS
   const sorted = [...articles].sort((a,b)=>(parseFloat(b.ave)||0)-(parseFloat(a.ave)||0));
   allArticles = sorted;
   document.getElementById('art-tbody').innerHTML = sorted.map((a,i)=>`
     <tr id="arow-${i}">
       <td><input type="checkbox" class="art-chk" data-idx="${i}" checked onchange="onChk()"></td>
       <td class="art-testata">${esc(a.testata||'')}</td>
-      <td class="art-autore">${esc(a.giornalista||'\u2014')}</td>
+      <td class="art-autore">${esc(a.giornalista||'—')}</td>
       <td class="art-titolo">${esc(a.titolo||'Senza titolo')}</td>
       <td class="art-data">${fmtDateShort(a.data||'')}</td>
-      <td class="art-ave">${a.ave ? Math.round(parseFloat(a.ave)).toLocaleString('it-IT')+'\u20ac' : '\u2014'}</td>
+      <td class="art-ave">${a.ave ? Math.round(parseFloat(a.ave)).toLocaleString('it-IT')+'€' : '—'}</td>
     </tr>`).join('');
   document.getElementById('badge-total').textContent = articles.length;
   onChk();
@@ -603,7 +562,7 @@ function onChk(){
 }
 function selAll(v){ document.querySelectorAll('.art-chk').forEach(c=>c.checked=v); onChk(); }
 
-// APRI CONFIG
+// APRI CONFIG (Step B)
 function apriConfig(){
   const n = document.querySelectorAll('.art-chk:checked').length;
   if(!n){ alert('Seleziona almeno un articolo.'); return; }
@@ -617,10 +576,11 @@ function setCfgType(t){
   cfgType = t;
   document.getElementById('cfg-pos').classList.toggle('active', t==='posizionamento_giornalisti');
   document.getElementById('cfg-nar').classList.toggle('active', t==='analisi_narrazione');
-  document.getElementById('cfg-req').style.display = t==='posizionamento_giornalisti' ? '' : 'none';
+  const req = document.getElementById('cfg-req');
+  req.style.display = t==='posizionamento_giornalisti' ? '' : 'none';
 }
 
-// LANCIA
+// LANCIA (dopo config)
 async function lanciaReport(){
   const refinement = document.getElementById('cfg-refinement').value.trim();
   if(cfgType==='posizionamento_giornalisti' && !refinement){
@@ -645,13 +605,9 @@ async function lanciaReport(){
   const btn=document.getElementById('btn-lancia');
   btn.disabled=true;
 
-  const msgs=[
-    'Avvio analisi\u2026','Estrazione strutturata\u2026','Mappatura giornalisti\u2026',
-    'Analisi sentiment\u2026','Classificazione amici/neutrali/critici\u2026',
-    'Raccomandazioni strategiche\u2026','Finalizzazione\u2026'
-  ];
+  const msgs=['Avvio analisi…','Estrazione strutturata…','Mappatura giornalisti…','Analisi sentiment…','Classificazione amici/neutrali/critici…','Raccomandazioni strategiche…','Finalizzazione…'];
   let mi=0;
-  showState('loading'); setLoadingTxt(msgs[0], selected.length+' articoli \u00b7 GPT-4o');
+  showState('loading'); setLoadingTxt(msgs[0], selected.length+' articoli · GPT-4o');
   const iv=setInterval(()=>{ mi=(mi+1)%msgs.length; document.getElementById('loading-lbl').textContent=msgs[mi]; },4000);
 
   try{
@@ -674,7 +630,7 @@ async function lanciaReport(){
       id: Date.now().toString(),
       subject: clientName||topicName,
       reportType: cfgType,
-      periodLabel: fmtDate(start)+' \u2192 '+fmtDate(end),
+      periodLabel: fmtDate(start)+' → '+fmtDate(end),
       rawText: result.response||'',
       usedArticles: selected,
       count: selected.length,
@@ -687,76 +643,12 @@ async function lanciaReport(){
 
   }catch(e){
     clearInterval(iv);
-    setLoadingTxt('\u26a0 Errore generazione', e.message||'Errore sconosciuto');
+    setLoadingTxt('⚠ Errore generazione', e.message||'Errore sconosciuto');
     setTimeout(()=>showState('config'),6000);
   }
   isLoading=false; btn.disabled=false;
 }
 
-// DIGEST GIORNALIERO
-async function generaDigest(){
-  if(isLoading) return;
-  isLoading = true;
-  const btn = document.getElementById('btn-digest');
-  btn.classList.add('loading'); btn.disabled = true;
-  showState('loading');
-  setBarInfo(
-    'DIGEST GIORNALIERO',
-    new Date().toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}),
-    'Tutti gli articoli di oggi \u00b7 tutti i clienti'
-  );
-  const msgs = [
-    'Raccolta articoli di oggi\u2026',
-    'Ricerca citazioni clienti\u2026',
-    'Identificazione temi\u2026',
-    'Composizione digest\u2026'
-  ];
-  let mi = 0;
-  setLoadingTxt(msgs[0], 'GPT-4o \u00b7 formato WhatsApp');
-  const iv = setInterval(()=>{ mi=(mi+1)%msgs.length; document.getElementById('loading-lbl').textContent=msgs[mi]; }, 3500);
-  try{
-    const d = await fetch('/api/daily-digest',{method:'POST'}).then(r=>r.json());
-    if(!d.success||!d.job_id) throw new Error(d.error||'Errore avvio digest');
-    const result = await pollJob(d.job_id);
-    clearInterval(iv);
-    currentDigestText = result.text || '';
-    renderDigest(result);
-  }catch(e){
-    clearInterval(iv);
-    setLoadingTxt('\u26a0 Errore digest', e.message||'Errore sconosciuto');
-    setTimeout(()=>showState('empty'), 5000);
-  }
-  isLoading = false; btn.classList.remove('loading'); btn.disabled = false;
-}
-
-function renderDigest(result){
-  const today = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
-  document.getElementById('digest-date-lbl').textContent  = '\ud83d\udcc5 ' + today;
-  document.getElementById('digest-art-lbl').textContent   = '\ud83d\udcf0 ' + (result.articles_today||0) + ' articoli';
-  document.getElementById('digest-client-lbl').textContent = '\ud83c\udfaf ' + (result.client_mentions||0) + ' citazioni clienti';
-  const raw = result.text || '';
-  // Split sulle righe separatore (sequenza di trattini em o normali)
-  const parts = raw.split(/\u2014{4,}|-{4,}/);
-  const html = parts.map(p=>{
-    const clean = p.trim();
-    if(!clean) return '';
-    return '<div class="wa-bubble">'+esc(clean)+'</div><div class="wa-tick">\u2713\u2713</div>';
-  }).filter(Boolean).join('');
-  document.getElementById('digest-wa').innerHTML = html || '<div class="wa-bubble">'+esc(raw)+'</div>';
-  showState('digest');
-  document.getElementById('main-scroll').scrollTop = 0;
-}
-
-function copyDigest(){
-  if(!currentDigestText) return;
-  navigator.clipboard.writeText(currentDigestText).then(()=>{
-    const b = document.getElementById('btn-copy-digest');
-    b.textContent = '\u2713 Copiato'; b.classList.add('ok');
-    setTimeout(()=>{ b.textContent = '\u2756 Copia per WA'; b.classList.remove('ok'); }, 2500);
-  });
-}
-
-// POLL JOB
 async function pollJob(jobId,max=180000,interval=3000){
   const deadline=Date.now()+max;
   while(Date.now()<deadline){
@@ -772,7 +664,7 @@ async function pollJob(jobId,max=180000,interval=3000){
 function renderReport(rep,f){
   if(!rep) return;
   showState('report');
-  setBarInfo('INTELLIGENCE REPORT', rep.subject, rep.count+' articoli \u00b7 '+rep.periodLabel);
+  setBarInfo('INTELLIGENCE REPORT', rep.subject, rep.count+' articoli · '+rep.periodLabel);
   document.getElementById('btn-copy').style.display   = 'inline-block';
   document.getElementById('fmt-block').style.display  = 'block';
   document.getElementById('genera-wrap').style.display= 'block';
@@ -786,6 +678,7 @@ function renderReport(rep,f){
     wrap.className='fmt-word'; wrap.innerHTML='<div class="report-body">'+md2html(rep.rawText)+'</div>';
   }
 
+  const used=document.getElementById('used-articles');
   document.getElementById('used-count').textContent=rep.count;
   document.getElementById('used-tbody').innerHTML=(rep.usedArticles||[]).map(a=>`
     <tr>
@@ -794,11 +687,11 @@ function renderReport(rep,f){
       <td>${esc(a.titolo||'')}</td>
       <td class="ut-autore">${esc(a.giornalista||'')}</td>
     </tr>`).join('');
-  document.getElementById('used-articles').style.display = rep.count>0 ? 'block' : 'none';
+  used.style.display = rep.count>0 ? 'block' : 'none';
   document.getElementById('main-scroll').scrollTop=0;
 }
 
-// FORMATO
+// FORMATO — istantaneo, zero API
 function setFmt(f){
   fmt=f;
   document.querySelectorAll('.fmt-pill').forEach(p=>p.classList.toggle('active',p.dataset.fmt===f));
@@ -835,23 +728,23 @@ function md2html(md){
 // WHATSAPP
 function buildWa(raw){
   const wa=raw
-    .replace(/## (.+)/g,'*\ud83d\udccc $1*')
+    .replace(/## (.+)/g,'*📌 $1*')
     .replace(/### (.+)/g,'*$1*')
     .replace(/\*\*(.*?)\*\*/g,'*$1*')
-    .replace(/^\- /gm,'\u2022 ');
-  const blocks=wa.split(/(?=\*\ud83d\udccc)/).filter(b=>b.trim());
-  return '<div class="report-body">'+blocks.map(b=>'<div class="wa-bubble">'+esc(b).trim()+'</div><div class="wa-tick">\u2713\u2713</div>').join('')+'</div>';
+    .replace(/^\- /gm,'• ');
+  const blocks=wa.split(/(?=\*📌)/).filter(b=>b.trim());
+  return '<div class="report-body">'+blocks.map(b=>'<div class="wa-bubble">'+esc(b).trim()+'</div><div class="wa-tick">✓✓</div>').join('')+'</div>';
 }
 
 // COPIA
 function copyReport(){
   if(!currentReport) return;
   let t=currentReport.rawText;
-  if(fmt==='wa') t=t.replace(/## (.+)/g,'*\ud83d\udccc $1*').replace(/### (.+)/g,'*$1*').replace(/\*\*(.*?)\*\*/g,'*$1*').replace(/^\- /gm,'\u2022 ');
+  if(fmt==='wa') t=t.replace(/## (.+)/g,'*📌 $1*').replace(/### (.+)/g,'*$1*').replace(/\*\*(.*?)\*\*/g,'*$1*').replace(/^\- /gm,'• ');
   navigator.clipboard.writeText(t).then(()=>{
     const b=document.getElementById('btn-copy');
-    b.textContent='\u2713 Copiato'; b.classList.add('ok');
-    setTimeout(()=>{b.textContent='\u2756 Copia';b.classList.remove('ok');},2000);
+    b.textContent='✓ Copiato'; b.classList.add('ok');
+    setTimeout(()=>{b.textContent='⎘ Copia';b.classList.remove('ok');},2000);
   });
 }
 
@@ -869,12 +762,12 @@ function renderSaved(){
     return;
   }
   el.innerHTML=savedReports.map(r=>{
-    const ico = r.reportType==='posizionamento_giornalisti' ? '\ud83d\udc65' : '\ud83d\udce1';
+    const typeLabel = r.reportType==='posizionamento_giornalisti' ? '👥' : '📡';
     return `
     <div class="saved-item${r.id===currentId?' active':''}" onclick="loadReport('${r.id}')">
-      <div class="saved-ttl">${ico} ${esc(r.subject)}</div>
+      <div class="saved-ttl">${typeLabel} ${esc(r.subject)}</div>
       <div class="saved-meta"><span>${fmtDateShort(r.generated)}</span><span>${r.count} art.</span></div>
-      <button class="saved-del" onclick="delReport(event,'${r.id}')" title="Elimina">\u2715</button>
+      <button class="saved-del" onclick="delReport(event,'${r.id}')" title="Elimina">✕</button>
     </div>`;
   }).join('');
 }
@@ -898,14 +791,13 @@ function delReport(e,id){
   renderSaved();
 }
 
-// SHOW STATE
+// SHOW STATE — usa 'block'/'flex', MAI '' che eredita display:none dal CSS
 function showState(s){
   document.getElementById('st-empty').style.display    = s==='empty'    ? 'flex'  : 'none';
   document.getElementById('st-loading').style.display  = s==='loading'  ? 'flex'  : 'none';
   document.getElementById('st-articles').style.display = s==='articles' ? 'block' : 'none';
   document.getElementById('st-config').style.display   = s==='config'   ? 'block' : 'none';
   document.getElementById('st-report').style.display   = s==='report'   ? 'block' : 'none';
-  document.getElementById('st-digest').style.display   = s==='digest'   ? 'block' : 'none';
 }
 function setLoadingTxt(lbl,sub){
   document.getElementById('loading-lbl').textContent=lbl||'';
