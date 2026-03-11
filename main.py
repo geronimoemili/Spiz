@@ -20,7 +20,7 @@ from collections import Counter
 try:
     from api.ingestion import process_csv
     from services.database import supabase
-    from api.chat import ask_spiz
+    from api.chat import ask_spiz, generate_digest
     from api.pitch import pitch_advisor
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
@@ -980,6 +980,59 @@ async def pitch_endpoint(message: str = Form(...), client_id: str = Form(""), hi
         return {"success": True, **result}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# DAILY DIGEST
+# ══════════════════════════════════════════════════════════════════════
+
+def _run_digest_job(job_id: str):
+    """Eseguito in thread separato. Genera il digest e salva nel job store."""
+    import traceback
+    try:
+        today = date.today().isoformat()
+
+        # Tutti gli articoli di oggi
+        res_art = (
+            supabase.table("articles")
+            .select(
+                "id, testata, data, giornalista, titolo, occhiello, "
+                "testo_completo, tone, ave, reputational_risk"
+            )
+            .eq("data", today)
+            .order("ave", desc=True)
+            .limit(300)
+            .execute()
+        )
+        articles_today = res_art.data or []
+
+        # Lista clienti
+        res_cli = supabase.table("clients").select("id, name").execute()
+        clients = res_cli.data or []
+
+        result = generate_digest(articles_today=articles_today, clients=clients)
+
+        if "error" in result:
+            _set_job(job_id, "error", error=result["error"])
+        else:
+            _set_job(job_id, "done", result=result)
+
+    except Exception as e:
+        _set_job(job_id, "error", error=str(e) + " | " + traceback.format_exc().splitlines()[-1])
+
+
+@app.post("/api/daily-digest")
+async def daily_digest_endpoint():
+    """
+    Avvia la generazione del digest giornaliero in background.
+    Ritorna subito un job_id. Il frontend fa polling su /api/job/{job_id}.
+    """
+    _cleanup_old_jobs()
+    job_id = str(uuid.uuid4())[:12]
+    _set_job(job_id, "pending")
+    t = threading.Thread(target=_run_digest_job, args=(job_id,), daemon=True)
+    t.start()
+    return {"success": True, "job_id": job_id}
 
 
 # ══════════════════════════════════════════════════════════════════════

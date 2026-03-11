@@ -1,5 +1,5 @@
 """
-api/chat.py  —  SPIZ AI v16 (Updated with Tesi-Aware MAP)
+api/chat.py  —  SPIZ AI v16
 ═══════════════════════════════════════════════════════════════════
 
 DUE TIPI DI REPORT:
@@ -227,11 +227,15 @@ CONTESTO E TESI DEL CLIENTE:
 {refinement}
 
 Questa tesi è l'asse centrale di tutto il report.
-La classificazione "Favorevole", "Neutrale", "Critico" per ogni giornalista DEVE basarsi sull'analisi specifica dell'"orientamento_tesi" estratto per ogni articolo. Se l'articolo, pur con un tono giornalistico bilanciato, riporta fatti o narrazioni che indeboliscono la tesi del cliente, il giornalista va classificato come CRITICO. Ignora il "tone" pre-calcolato per la classificazione rispetto alla tesi; usa solo l'"orientamento_tesi".
+"Amico", "neutrale", "critico" significa: rispetto a questa tesi specifica,
+non in astratto. Un giornalista può essere tecnicamente neutrale sul settore
+ma critico rispetto a questa tesi — e va classificato come critico.
 
 ══════ REGOLE NON NEGOZIABILI ══════
 
-1. Ogni classificazione di un giornalista DEVE essere motivata con l'"orientamento_tesi" estratto per i suoi articoli e con titoli specifici tratti dal corpus. Non opinioni generali: cita il titolo esatto, la testata, la data e la motivazione dell'"orientamento_tesi".
+1. Ogni classificazione di un giornalista DEVE essere motivata con titoli
+   specifici tratti dal corpus. Non opinioni generali: cita il titolo esatto,
+   la testata, la data.
 2. Non inventare orientamenti. Se il corpus non contiene abbastanza articoli
    firmati da un giornalista per classificarlo, scrivilo esplicitamente.
 3. Le statistiche quantitative (volumi, AVE, conteggi) ti vengono fornite
@@ -279,9 +283,10 @@ Per ogni giornalista rilevante (quelli con più articoli nel corpus)
 produci una scheda individuale con questo formato esatto:
 
 ### [NOME COGNOME] — [Testata] ([N] articoli)
-**Classificazione**: FAVOREVOLE / NEUTRALE / CRITICO rispetto alla tesi (basata sull'"orientamento_tesi" degli articoli)
+**Classificazione**: FAVOREVOLE / NEUTRALE / CRITICO rispetto alla tesi
 
-**Evidenze dal corpus**: cita 2-3 titoli reali con data e la motivazione dell'"orientamento_tesi" che giustificano la classificazione. Non parafrasi: titoli esatti come appaiono negli articoli e la spiegazione dell'orientamento.
+**Evidenze dal corpus**: cita 2-3 titoli reali con data che giustificano
+la classificazione. Non parafrasi: titoli esatti come appaiono negli articoli.
 
 **Linguaggio rivelatore**: 2-3 parole o frasi specifiche usate da questo
 giornalista che rivelano il suo frame narrativo rispetto alla tesi.
@@ -335,7 +340,7 @@ Esempi di categorie: rischio giudiziario come amplificatore mediatico,
 copertura internazionale, dinamiche tra fazioni di giornalisti,
 possibili escalation narrative.
 
-## 8. PIANO d'AZIONE SINTETICO
+## 8. PIANO D'AZIONE SINTETICO
 
 Azioni concrete, con orizzonte temporale esplicito (es. "Settimana 1",
 "entro il [data]"). Ogni azione deve indicare: cosa fare, con chi,
@@ -470,43 +475,39 @@ def _direct_report(
 # MAP — > 40 articoli
 # ══════════════════════════════════════════════════════════════════════
 
-def _build_map_system(refinement: str) -> str:
-    refinement_block = f"\nCONTESTO E TESI DEL CLIENTE: {refinement}\n" if refinement else ""
-    return f"""Sei un analista di media intelligence. Leggi gli articoli e per ciascuno
-    estrai un oggetto JSON. Restituisci SOLO un JSON valido con struttura: {{"articoli": [...]}}
+_MAP_SYSTEM = """Sei un analista di media intelligence. Leggi gli articoli e per ciascuno
+estrai un oggetto JSON. Restituisci SOLO un JSON valido con struttura: {"articoli": [...]}
 
-    {refinement_block}
-    Per ogni articolo:
-    - "testata": nome testata
-    - "data": data
-    - "giornalista": nome (o "Redazione")
-    - "titolo": titolo esatto dell'articolo
-    - "tone": valore pre-calcolato ricevuto
-    - "reputational_risk": valore pre-calcolato
-    - "ave": valore AVE ricevuto
-    - "storia": la notizia in UNA riga — soggetto + verbo + oggetto concreti.
-      Non "l'articolo parla di X". Es: "BCE contesta i nuovi vertici di MPS
-      sulla solidità del piano" oppure "Lovaglio presenta lista concorrente"
-    - "frame": attacco / difesa / indagine / elogio / allarme / analisi / cronaca
-    - "linguaggio": array di 3-5 parole o brevi frasi ESATTE usate dall'articolo
-      che rivelano il frame narrativo del giornalista. Es: ["sfogo del banchiere",
-      "impallinato", "guerra di potere"]
-    - "citazioni": array di max 2 citazioni dirette con speaker.
-      {{"speaker": "nome", "testo": "citazione esatta"}} — solo se presenti nel testo.
-      Altrimenti: []
-    - "fatto_chiave": il dato, numero, dichiarazione o accusa più concreta
-      e verificabile. Non generalizzazioni.
-    - "orientamento_tesi": Valuta come questo articolo si posiziona rispetto alla Tesi del Cliente. Indica se è FAVOREVOLE, NEUTRALE o CRITICO e motiva brevemente la scelta citando 1-2 frasi esatte dall'articolo che supportano la tua valutazione.
-    Nessun testo fuori dal JSON."""
+Per ogni articolo:
+- "testata": nome testata
+- "data": data
+- "giornalista": nome (o "Redazione")
+- "titolo": titolo esatto dell'articolo
+- "tone": valore pre-calcolato ricevuto
+- "reputational_risk": valore pre-calcolato
+- "ave": valore AVE ricevuto
+- "storia": la notizia in UNA riga — soggetto + verbo + oggetto concreti.
+  Non "l'articolo parla di X". Es: "BCE contesta i nuovi vertici di MPS
+  sulla solidità del piano" oppure "Lovaglio presenta lista concorrente"
+- "frame": attacco / difesa / indagine / elogio / allarme / analisi / cronaca
+- "linguaggio": array di 3-5 parole o brevi frasi ESATTE usate dall'articolo
+  che rivelano il frame narrativo del giornalista. Es: ["sfogo del banchiere",
+  "impallinato", "guerra di potere"]
+- "citazioni": array di max 2 citazioni dirette con speaker.
+  {"speaker": "nome", "testo": "citazione esatta"} — solo se presenti nel testo.
+  Altrimenti: []
+- "fatto_chiave": il dato, numero, dichiarazione o accusa più concreta
+  e verificabile. Non generalizzazioni.
+Nessun testo fuori dal JSON."""
 
 
-def _map_batch(batch: list, idx: int, refinement: str) -> tuple:
+def _map_batch(batch: list, idx: int) -> tuple:
     blocks = "\n\n════\n\n".join(_article_block(a, MAP_TEXT_CHARS) for a in batch)
     try:
         resp = ai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": _build_map_system(refinement)},
+                {"role": "system", "content": _MAP_SYSTEM},
                 {"role": "user",   "content": blocks},
             ],
             temperature=0.0,
@@ -521,11 +522,11 @@ def _map_batch(batch: list, idx: int, refinement: str) -> tuple:
         return idx, []
 
 
-def _map_parallel(articles: list, refinement: str) -> list:
+def _map_parallel(articles: list) -> list:
     batches = [articles[i:i+MAP_BATCH_SIZE] for i in range(0, len(articles), MAP_BATCH_SIZE)]
     results = [None] * len(batches)
     with ThreadPoolExecutor(max_workers=MAP_MAX_WORKERS) as ex:
-        futs = {ex.submit(_map_batch, b, i, refinement): i for i, b in enumerate(batches)}
+        futs = {ex.submit(_map_batch, b, i): i for i, b in enumerate(batches)}
         for f in as_completed(futs):
             idx, data = f.result()
             results[idx] = data
@@ -641,7 +642,7 @@ def ask_spiz(
         report = _direct_report(articles, stats, system_prompt)
     else:
         print(f"[SPIZ v16] → MAP-REDUCE path ({n} articoli)")
-        extracted = _map_parallel(articles[:80], refinement)
+        extracted = _map_parallel(articles[:80])
         print(f"[SPIZ v16] map: {len(extracted)} estratti")
         report = _reduce_report(extracted, stats, system_prompt)
 
@@ -664,4 +665,134 @@ def ask_spiz(
             }
             for a in articles
         ],
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════
+# DIGEST GIORNALIERO — formato WhatsApp
+# ══════════════════════════════════════════════════════════════════════
+
+def _digest_article_block(a: dict, max_chars: int = 500) -> str:
+    testo = (a.get("testo_completo") or "")[:max_chars]
+    gior  = a.get("giornalista") or "Redazione"
+    return (
+        f"[{a.get('testata','')} | {a.get('data','')} | {gior}]\n"
+        f"TITOLO: {a.get('titolo','')}\n"
+        f"TESTO: {testo}"
+    )
+
+
+def generate_digest(articles_today: list, clients: list) -> dict:
+    """
+    Genera il digest mattutino in testo piano per WhatsApp.
+
+    articles_today : tutti gli articoli di oggi da Supabase
+    clients        : lista di dict con campo 'name'
+    """
+    if not articles_today:
+        return {
+            "error": "Nessun articolo trovato per oggi.",
+            "text": "",
+            "articles_today": 0,
+            "client_mentions": 0,
+        }
+
+    today_str    = date.today().strftime("%d/%m/%Y")
+    n_art        = len(articles_today)
+    client_names = [c.get("name", "").strip() for c in (clients or []) if c.get("name")]
+
+    # ── Match clienti in Python (nessuna AI) ─────────────────────────
+    # Un articolo può citare più clienti: lo duplichiamo per ciascuno.
+    client_hits = []
+    for a in articles_today:
+        haystack = (
+            (a.get("titolo")         or "") + " " +
+            (a.get("occhiello")      or "") + " " +
+            (a.get("testo_completo") or "")
+        ).lower()
+        for name in client_names:
+            if name.lower() in haystack:
+                client_hits.append({"client": name, "article": a})
+
+    n_clienti = len(client_hits)
+    print(f"[DIGEST] {n_art} articoli oggi | {n_clienti} citazioni clienti")
+
+    # ── Corpus temi (testo breve, solo per identificare i temi) ──────
+    all_blocks = "\n\n---\n\n".join(
+        _digest_article_block(a, max_chars=400) for a in articles_today
+    )
+
+    # ── Blocco citazioni clienti (testo più lungo per la sintesi) ────
+    if client_hits:
+        client_blocks = "\n\n---\n\n".join(
+            f"CLIENTE: {ch['client']}\n{_digest_article_block(ch['article'], max_chars=1200)}"
+            for ch in client_hits
+        )
+        parte2_instruction = (
+            "Per ogni voce nel blocco CITAZIONI CLIENTI produci:\n"
+            "- Prima riga: *NOME CLIENTE* — Testata — Giornalista — Data\n"
+            "- Seconda riga: titolo articolo\n"
+            "- 2-3 righe: cosa dice l'articolo sul cliente, tono (positivo/neutro/critico).\n"
+            "Separa ogni voce con una riga vuota."
+        )
+        parte2_placeholder = ""
+    else:
+        client_blocks = ""
+        parte2_instruction = ""
+        parte2_placeholder = "Nessun cliente citato oggi nei media monitorati."
+
+    # ── Prompt ────────────────────────────────────────────────────────
+    system = (
+        "Sei il sistema MAIM Intelligence. Produci il digest mattutino interno "
+        "dell'agenzia di comunicazione MAIM, da condividere su WhatsApp.\n\n"
+        "REGOLE DI FORMATO:\n"
+        "- Testo semplice. Niente tabelle. Niente markdown pesante.\n"
+        "- Usa *testo* solo per titoli di sezione, nomi clienti, nomi tema.\n"
+        "- Separatori con ————————————————————\n"
+        "- Conciso: si legge in 2 minuti su smartphone.\n"
+        "- Italiano professionale. Niente emoji eccessive."
+    )
+
+    user_msg = (
+        f"Data: {today_str} | Articoli oggi: {n_art} | Citazioni clienti: {n_clienti}\n\n"
+        f"══ TUTTI GLI ARTICOLI DI OGGI ══\n\n{all_blocks}\n\n"
+    )
+    if client_blocks:
+        user_msg += f"══ CITAZIONI CLIENTI ══\n\n{client_blocks}\n\n"
+
+    user_msg += (
+        f"══ ISTRUZIONI ══\n\n"
+        f"Produci il digest in questo formato:\n\n"
+        f"📰 *MAIM DIGEST — {today_str}*\n"
+        f"{n_art} articoli raccolti oggi\n\n"
+        f"————————————————————\n\n"
+        f"*TEMI DEL GIORNO*\n\n"
+        f"Identifica 4-6 temi ricorrenti negli articoli di oggi. "
+        f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
+        f"Testo fluente, non elenchi puntati. "
+        f"Cita testata e giornalista quando rilevante.\n\n"
+        f"————————————————————\n\n"
+        f"*I TUOI CLIENTI SUI MEDIA*\n\n"
+        f"{parte2_placeholder}\n"
+        f"{parte2_instruction}\n\n"
+        f"————————————————————\n"
+        f"_MAIM Intelligence — uso interno_"
+    )
+
+    resp = ai.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user",   "content": user_msg},
+        ],
+        temperature=0.1,
+        max_tokens=3000,
+    )
+
+    text = resp.choices[0].message.content.strip()
+
+    return {
+        "text":             text,
+        "articles_today":   n_art,
+        "client_mentions":  n_clienti,
     }
