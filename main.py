@@ -301,11 +301,16 @@ async def get_job_status(job_id: str):
     # done
     result = job["result"] or {}
     return {
-        "status":        "done",
-        "response":      result.get("response", ""),
-        "articles_used": result.get("articles_used", 0),
-        "period_from":   result.get("period_from", ""),
-        "period_to":     result.get("period_to", ""),
+        "status":          "done",
+        # campi report
+        "response":        result.get("response", ""),
+        "articles_used":   result.get("articles_used", 0),
+        "period_from":     result.get("period_from", ""),
+        "period_to":       result.get("period_to", ""),
+        # campi digest
+        "text":            result.get("text", ""),
+        "articles_today":  result.get("articles_today", 0),
+        "client_mentions": result.get("client_mentions", 0),
     }
 
 
