@@ -672,6 +672,15 @@ def ask_spiz(
 
 
 def generate_digest(articles_today: list, clients: list) -> dict:
+    """
+    Struttura digest:
+      1. TEMI DEL GIORNO
+      2. INTERVISTE (tutti gli articoli tipologia=intervista, tier1 GPT summary)
+      3. I TUOI CLIENTI SUI MEDIA
+         - matching via keywords_web (singola keyword, più precisa)
+         - solo tier1, ordine custom
+         - icona fissa 🟧 per tutti i clienti
+    """
     if not articles_today:
         return {
             "error": "Nessun articolo trovato per oggi.",
@@ -680,9 +689,9 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             "client_mentions": 0,
         }
 
-    today = date.today().isoformat()
+    today     = date.today().isoformat()
     today_str = date.today().strftime("%d/%m/%Y")
-    n_art = len(articles_today)
+    n_art     = len(articles_today)
 
     _SYS = (
         "Sei il sistema MAIM Intelligence. Produci contenuto per il digest "
@@ -691,7 +700,6 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         "italiano professionale, no emoji eccessive.")
 
     # ── Carica tabella tier ───────────────────────────────────────────
-    # { "CORRIERE DELLA SERA": {"tier": 1, "ordine": 1}, ... }
     tier_map: dict = {}
     try:
         res_tier = supabase.table("testate_tier").select("testata, tier, ordine").execute()
@@ -705,17 +713,64 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         print(f"[DIGEST] Errore caricamento tier: {e}")
 
     def _get_tier_info(testata: str) -> dict:
-        """Tier e ordine per una testata. Default tier2 se non in tabella."""
         return tier_map.get((testata or "").upper(), {"tier": 2, "ordine": None})
 
-    # ── CHIAMATA 1 — TEMI DEL GIORNO ─────────────────────────────────
+    def _is_tier1(testata: str) -> bool:
+        return _get_tier_info(testata).get("tier", 2) == 1
+
+    def _tier1_ordine(testata: str) -> int:
+        info = _get_tier_info(testata)
+        return info.get("ordine") or 999
+
+    def _art_block_gpt(a: dict) -> str:
+        testo = (a.get("testo_completo") or "")[:1500]
+        return (
+            f"Testata: {(a.get('testata') or '').upper()}\n"
+            f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
+            f"Titolo: {a.get('titolo', '')}\n"
+            f"Testo:\n{testo}"
+        )
+
+    _ISTR_ARTICOLI = (
+        "Produci una voce per ogni articolo in questo formato ESATTO "
+        "(rispetta maiuscole, grassetti, nessun campo aggiuntivo):\n\n"
+        "*TESTATA IN MAIUSCOLO*, Nome Giornalista\n"
+        "Titolo articolo\n"
+        "→ 2-3 righe di sintesi\n\n"
+        "Separa ogni voce con una riga vuota.\n"
+        "Produci SOLO le voci, senza intestazioni aggiuntive.\n"
+        "NON indicare tono (non scrivere positivo/negativo/neutro)."
+    )
+
+    def _gpt_voci(arts: list, contesto: str) -> str:
+        """Genera le voci GPT per una lista di articoli tier1."""
+        BATCH = 8
+        parti = []
+        for i in range(0, len(arts), BATCH):
+            batch = arts[i:i + BATCH]
+            blocchi = "\n\n---\n\n".join(_art_block_gpt(a) for a in batch)
+            msg = f"{contesto}\n\nArticoli ({len(batch)}):\n\n{blocchi}\n\n{_ISTR_ARTICOLI}"
+            resp = ai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": _SYS},
+                    {"role": "user",   "content": msg},
+                ],
+                temperature=0.0,
+                max_tokens=1500,
+            )
+            parti.append(resp.choices[0].message.content.strip())
+        return "\n\n".join(parti)
+
+    # ══════════════════════════════════════════════════════════════════
+    # SEZIONE 1 — TEMI DEL GIORNO
+    # ══════════════════════════════════════════════════════════════════
     elenco_titoli = "\n".join(
         f"[{a.get('testata', '')}] {a.get('titolo', '')}"
         for a in articles_today
     )
-
-    print("[DIGEST] Chiamata 1 — temi del giorno")
-    resp1 = ai.chat.completions.create(
+    print("[DIGEST] Chiamata — temi del giorno")
+    resp_temi = ai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _SYS},
@@ -735,14 +790,35 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         temperature=0.1,
         max_tokens=1200,
     )
-    sezione_temi = resp1.choices[0].message.content.strip()
+    sezione_temi = resp_temi.choices[0].message.content.strip()
 
-    # ── QUERY SUPABASE PER CLIENTE ────────────────────────────────────
-    def _keywords_list(client: dict) -> list:
-        raw = client.get("keywords_press") or client.get("name") or ""
-        kws = [k.strip() for k in raw.split(",") if k.strip()]
-        return kws or [(client.get("name") or "").strip()]
+    # ══════════════════════════════════════════════════════════════════
+    # SEZIONE 2 — INTERVISTE
+    # Tutti gli articoli di oggi con tipologia_articolo = intervista
+    # Solo tier1, ordine custom, GPT summary
+    # ══════════════════════════════════════════════════════════════════
+    interviste_raw = [
+        a for a in articles_today
+        if (a.get("tipologia_articolo") or "").strip().lower() == "intervista"
+           and _is_tier1(a.get("testata", ""))
+    ]
+    # Ordina per ordine tier
+    interviste_raw.sort(key=lambda a: _tier1_ordine(a.get("testata", "")))
 
+    sezione_interviste = ""
+    if interviste_raw:
+        print(f"[DIGEST] Interviste tier1: {len(interviste_raw)}")
+        voci_int = _gpt_voci(interviste_raw, "Articoli di tipo INTERVISTA di oggi")
+        sezione_interviste = f"*INTERVISTE*\n\n{voci_int}"
+    else:
+        print("[DIGEST] Nessuna intervista tier1 oggi")
+
+    # ══════════════════════════════════════════════════════════════════
+    # SEZIONE 3 — CLIENTI
+    # Matching via keywords_web (singola keyword)
+    # Solo articoli tier1, ordine custom
+    # Icona fissa 🟧
+    # ══════════════════════════════════════════════════════════════════
     client_articles: dict = {}
     total_citazioni = 0
 
@@ -750,140 +826,69 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         nome = (client.get("name") or "").strip()
         if not nome:
             continue
-        keywords = _keywords_list(client)
 
-        or_parts = []
-        for kw in keywords:
-            kw_esc = kw.replace("'", "''")
-            or_parts.append(f"titolo.ilike.%{kw_esc}%")
-            or_parts.append(f"occhiello.ilike.%{kw_esc}%")
-            or_parts.append(f"testo_completo.ilike.%{kw_esc}%")
+        # Usa keywords_web (singola keyword più precisa)
+        kw_web = (client.get("keywords_web") or "").strip()
+        if not kw_web:
+            # Fallback: prima keyword da keywords (press)
+            raw_press = (client.get("keywords") or client.get("keywords_press") or "").strip()
+            kw_web = raw_press.split(",")[0].strip() if raw_press else ""
+        if not kw_web:
+            print(f"[DIGEST] {nome}: nessuna keyword, skip")
+            continue
+
+        kw_esc = kw_web.replace("'", "''")
+        or_parts = [
+            f"titolo.ilike.%{kw_esc}%",
+            f"occhiello.ilike.%{kw_esc}%",
+            f"testo_completo.ilike.%{kw_esc}%",
+        ]
 
         try:
             res = (
                 supabase.table("articles")
-                .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave")
+                .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave, tipologia_articolo")
                 .eq("data", today)
                 .or_(",".join(or_parts))
                 .order("ave", desc=True)
                 .execute()
             )
-            arts = res.data or []
-            if arts:
-                client_articles[nome] = arts
-                total_citazioni += len(arts)
-                print(f"[DIGEST] {nome}: {len(arts)} articoli")
+            arts_all = res.data or []
+
+            # Filtra solo tier1
+            arts_t1 = [a for a in arts_all if _is_tier1(a.get("testata", ""))]
+            # Ordina per ordine tier
+            arts_t1.sort(key=lambda a: _tier1_ordine(a.get("testata", "")))
+
+            n_t1  = len(arts_t1)
+            n_all = len(arts_all)
+            print(f"[DIGEST] {nome}: {n_all} totali, {n_t1} tier1 | keyword: '{kw_web}'")
+
+            if arts_t1:
+                client_articles[nome] = {"tier1": arts_t1, "n_all": n_all}
+                total_citazioni += n_all
             else:
-                print(f"[DIGEST] {nome}: nessuna citazione oggi")
+                print(f"[DIGEST] {nome}: nessun articolo tier1 oggi")
         except Exception as e:
             print(f"[DIGEST] errore query per {nome}: {e}")
 
     print(f"[DIGEST] totale citazioni clienti: {total_citazioni}")
 
-    # ── FUNZIONI HELPER ───────────────────────────────────────────────
-    def _art_block_gpt(a: dict) -> str:
-        """Blocco testo per chiamata GPT (tier1)."""
-        testo = (a.get("testo_completo") or "")[:1500]
-        return (
-            f"Testata: {(a.get('testata') or '').upper()}\n"
-            f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
-            f"Titolo: {a.get('titolo', '')}\n"
-            f"Testo:\n{testo}"
-        )
-
-    # Istruzione GPT tier1 — senza tono (positivo/negativo/neutro)
-    _ISTR_TIER1 = (
-        "Produci una voce per ogni articolo in questo formato ESATTO "
-        "(rispetta maiuscole, grassetti, nessun campo aggiuntivo):\n\n"
-        "*TESTATA IN MAIUSCOLO*, Nome Giornalista\n"
-        "Titolo articolo\n"
-        "→ 2-3 righe: cosa dice sul cliente\n\n"
-        "Separa ogni voce con una riga vuota.\n"
-        "Produci SOLO le voci, senza intestazioni aggiuntive.\n"
-        "NON indicare tono (non scrivere positivo/negativo/neutro)."
-    )
-
-    _ICONS = ["📌", "📎", "🔹", "🔸", "▪️", "🔷", "🟦", "🟧", "🟩", "🟥"]
-
-    # ── SEZIONI PER CLIENTE ───────────────────────────────────────────
     sezioni_clienti = []
+    for nome_cliente, data_c in client_articles.items():
+        tier1_arts = data_c["tier1"]
+        n_all      = data_c["n_all"]
+        n_t1       = len(tier1_arts)
 
-    for idx, (nome_cliente, arts) in enumerate(client_articles.items()):
-        icon = _ICONS[idx % len(_ICONS)]
+        print(f"[DIGEST] GPT sezione — {nome_cliente}: {n_t1} art. tier1")
+        voci = _gpt_voci(tier1_arts, f"Cliente: {nome_cliente}")
 
-        # Separa tier1 e tier2 (sconosciute → tier2)
-        tier1_list = []  # lista di (ordine, articolo)
-        tier2_list = []  # lista di articolo
-
-        for a in arts:
-            info = _get_tier_info(a.get("testata", ""))
-            if info["tier"] == 1:
-                ordine = info["ordine"] if info["ordine"] is not None else 999
-                tier1_list.append((ordine, a))
-            else:
-                tier2_list.append(a)
-
-        # Tier1: ordine custom; tier2: alfabetico per testata
-        tier1_list.sort(key=lambda x: x[0])
-        tier1_arts = [a for _, a in tier1_list]
-        tier2_list.sort(key=lambda a: (a.get("testata") or "").upper())
-
-        n_tot = len(arts)
-        label = "articolo" if n_tot == 1 else "articoli"
-
-        # ── Tier1: GPT summary ─────────────────────────────────────
-        voci_tier1 = ""
-        if tier1_arts:
-            print(f"[DIGEST] GPT tier1 — {nome_cliente}: {len(tier1_arts)} art.")
-            BATCH = 8
-            parti = []
-            for i in range(0, len(tier1_arts), BATCH):
-                batch = tier1_arts[i:i + BATCH]
-                blocchi = "\n\n---\n\n".join(_art_block_gpt(a) for a in batch)
-                msg = (
-                    f"Cliente: {nome_cliente}\n"
-                    f"Articoli ({len(batch)}):\n\n"
-                    f"{blocchi}\n\n"
-                    f"{_ISTR_TIER1}"
-                )
-                resp = ai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": _SYS},
-                        {"role": "user", "content": msg},
-                    ],
-                    temperature=0.0,
-                    max_tokens=1500,
-                )
-                parti.append(resp.choices[0].message.content.strip())
-            voci_tier1 = "\n\n".join(parti)
-
-        # ── Tier2: solo riga testata / giornalista — titolo ────────
-        voci_tier2 = ""
-        if tier2_list:
-            righe = []
-            for a in tier2_list:
-                testata = (a.get("testata") or "").upper()
-                gior    = a.get("giornalista") or "Redazione"
-                titolo  = a.get("titolo") or ""
-                righe.append(f"*{testata}*, {gior} — {titolo}")
-            voci_tier2 = "\n".join(righe)
-
-        # ── Assembla sezione cliente ────────────────────────────────
-        parti_sezione = []
-        if voci_tier1:
-            parti_sezione.append(voci_tier1)
-        if voci_tier2:
-            if voci_tier1:
-                # separatore visivo tra tier1 e tier2
-                parti_sezione.append(f"_Altre testate:_\n{voci_tier2}")
-            else:
-                parti_sezione.append(voci_tier2)
-
-        corpo = "\n\n".join(parti_sezione) if parti_sezione else "Nessun articolo."
+        label = "articolo" if n_all == 1 else "articoli"
+        # Se n_all > n_t1 indica quante testate locali sono escluse
+        extra = f" (+{n_all - n_t1} testate locali)" if n_all > n_t1 else ""
 
         sezioni_clienti.append(
-            f"{icon} *{nome_cliente.upper()}* — {n_tot} {label}\n\n{corpo}"
+            f"🟧 *{nome_cliente.upper()}* — {n_all} {label}{extra}\n\n{voci}"
         )
 
     if sezioni_clienti:
@@ -892,16 +897,20 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
     # ── Assemblaggio finale ───────────────────────────────────────────
-    text = (
-        f"*MAIM DIGEST — {today_str}*\n\n"
-        f"————————————————————\n\n"
-        f"{sezione_temi}\n\n"
-        f"————————————————————\n\n"
-        f"*I TUOI CLIENTI SUI MEDIA*\n\n"
-        f"{sezione_clienti}\n\n"
-        f"————————————————————\n"
-        f"_MAIM Intelligence — uso interno_"
-    )
+    blocchi = [
+        f"*MAIM DIGEST — {today_str}*",
+        "————————————————————",
+        sezione_temi,
+    ]
+    if sezione_interviste:
+        blocchi += ["————————————————————", sezione_interviste]
+    blocchi += [
+        "————————————————————",
+        f"*I TUOI CLIENTI SUI MEDIA*\n\n{sezione_clienti}",
+        "————————————————————",
+        "_MAIM Intelligence — uso interno_",
+    ]
+    text = "\n\n".join(blocchi)
 
     return {
         "text": text,
