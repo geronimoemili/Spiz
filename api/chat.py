@@ -685,11 +685,15 @@ def _digest_article_block(a: dict, max_chars: int = 500) -> str:
 def generate_digest(articles_today: list, clients: list) -> dict:
     """
     Genera il digest mattutino in testo piano per WhatsApp.
-    Architettura a due chiamate separate:
-      - Chiamata 1: temi del giorno (solo titoli → token minimi)
-      - Chiamata 2: citazioni clienti (testo completo, batch da 10)
 
-    articles_today : tutti gli articoli di oggi da Supabase
+    Architettura:
+      - articles_today : articoli leggeri (NO testo_completo) — solo per conteggio e temi
+      - Per ogni cliente → query Supabase ilike su titolo+occhiello+testo_completo
+        così si trovano citazioni ovunque nell'articolo, senza limite di 300
+      - GPT: 1 chiamata per i temi + 1 chiamata per cliente (sezione ordinata)
+      - Output: una sezione per cliente, tutti i suoi articoli raggruppati
+
+    articles_today : lista leggera (titolo, testata, giornalista, data, tone, ave)
     clients        : lista di dict con campo 'name'
     """
     if not articles_today:
@@ -700,49 +704,25 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             "client_mentions": 0,
         }
 
-    today_str    = date.today().strftime("%d/%m/%Y")
-    n_art        = len(articles_today)
-    client_names = [c.get("name", "").strip() for c in (clients or []) if c.get("name")]
-
-    # ── Match clienti in Python ───────────────────────────────────────
-    client_hits = []
-    for a in articles_today:
-        haystack = (
-            (a.get("titolo")         or "") + " " +
-            (a.get("occhiello")      or "") + " " +
-            (a.get("testo_completo") or "")
-        ).lower()
-        for name in client_names:
-            if name.lower() in haystack:
-                client_hits.append({"client": name, "article": a})
-
-    n_clienti = len(client_hits)
-    print(f"[DIGEST] {n_art} articoli oggi | {n_clienti} citazioni clienti")
+    today         = date.today().isoformat()
+    today_str     = date.today().strftime("%d/%m/%Y")
+    n_art         = len(articles_today)
+    client_names  = [c.get("name", "").strip() for c in (clients or []) if c.get("name")]
 
     _SYS = (
         "Sei il sistema MAIM Intelligence. Produci contenuto per il digest "
         "mattutino interno dell'agenzia, da condividere su WhatsApp.\n"
-        "FORMATO: testo semplice, *grassetto* solo per titoli/nomi, "
+        "FORMATO: testo semplice, *grassetto* solo per titoli sezione e nomi clienti, "
         "separatori ————————————————————, italiano professionale, no emoji eccessive."
     )
 
     # ══════════════════════════════════════════════════════════════════
     # CHIAMATA 1 — TEMI DEL GIORNO
-    # Input: solo [Testata] Titolo — ~15 token/riga × n_art
+    # Input: solo [Testata] Titolo di tutti gli articoli — token minimi
     # ══════════════════════════════════════════════════════════════════
     elenco_titoli = "\n".join(
         f"[{a.get('testata', '')}] {a.get('titolo', '')}"
         for a in articles_today
-    )
-
-    msg_temi = (
-        f"Data: {today_str} | Totale articoli: {n_art}\n\n"
-        f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
-        f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
-        f"*TEMI DEL GIORNO*\n\n"
-        f"Identifica 4-6 temi ricorrenti. "
-        f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
-        f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
     )
 
     print("[DIGEST] Chiamata 1 — temi del giorno")
@@ -750,7 +730,15 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _SYS},
-            {"role": "user",   "content": msg_temi},
+            {"role": "user", "content": (
+                f"Data: {today_str} | Totale articoli: {n_art}\n\n"
+                f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
+                f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
+                f"*TEMI DEL GIORNO*\n\n"
+                f"Identifica 4-6 temi ricorrenti. "
+                f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
+                f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
+            )},
         ],
         temperature=0.1,
         max_tokens=1200,
@@ -758,61 +746,104 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     sezione_temi = resp1.choices[0].message.content.strip()
 
     # ══════════════════════════════════════════════════════════════════
-    # CHIAMATA 2 — CLIENTI SUI MEDIA
-    # Input: testo completo di ogni articolo che cita un cliente.
-    # Batch da 10 citazioni per stare dentro i limiti TPM.
-    # I risultati vengono concatenati.
+    # QUERY SUPABASE PER CLIENTE — ilike su testo_completo+titolo+occhiello
+    # Trova citazioni ovunque nell'articolo, senza limite di volume
     # ══════════════════════════════════════════════════════════════════
-    def _client_block(ch: dict) -> str:
-        a = ch["article"]
+    # client_articles: { nome_cliente: [articoli con testo_completo] }
+    client_articles: dict = {}
+    total_citazioni = 0
+
+    for name in client_names:
+        try:
+            res = (
+                supabase.table("articles")
+                .select(
+                    "id, testata, data, giornalista, titolo, occhiello, "
+                    "testo_completo, tone, ave"
+                )
+                .eq("data", today)
+                .or_(
+                    f"titolo.ilike.%{name}%,"
+                    f"occhiello.ilike.%{name}%,"
+                    f"testo_completo.ilike.%{name}%"
+                )
+                .order("ave", desc=True)
+                .execute()
+            )
+            arts = res.data or []
+            if arts:
+                client_articles[name] = arts
+                total_citazioni += len(arts)
+                print(f"[DIGEST] {name}: {len(arts)} articoli trovati")
+            else:
+                print(f"[DIGEST] {name}: nessuna citazione oggi")
+        except Exception as e:
+            print(f"[DIGEST] errore query per {name}: {e}")
+
+    print(f"[DIGEST] totale citazioni clienti: {total_citazioni}")
+
+    # ══════════════════════════════════════════════════════════════════
+    # CHIAMATA 2+ — UNA PER CLIENTE
+    # Per ogni cliente: tutti i suoi articoli → sezione ordinata
+    # testo_completo troncato a 1500 chars per articolo
+    # ══════════════════════════════════════════════════════════════════
+    def _art_block_cliente(a: dict) -> str:
+        testo = (a.get("testo_completo") or "")[:1500]
         return (
-            f"CLIENTE: {ch['client']}\n"
             f"Testata: {a.get('testata', '')}\n"
-            f"Data: {a.get('data', '')}\n"
             f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
+            f"Data: {a.get('data', '')}\n"
             f"Titolo: {a.get('titolo', '')}\n"
-            f"Testo:\n{a.get('testo_completo') or ''}"
+            f"Testo:\n{testo}"
         )
 
-    _ISTR_CLIENTI = (
-        "Per ogni voce produci:\n"
-        "- Prima riga: *NOME CLIENTE* — Testata — Giornalista — Data\n"
-        "- Seconda riga: titolo articolo\n"
-        "- 2-3 righe: cosa dice l'articolo sul cliente, tono (positivo/neutro/critico).\n"
+    _ISTR_CLIENTE = (
+        "Produci una voce per ogni articolo in questo formato esatto:\n\n"
+        "[Testata] Giornalista — Data\n"
+        "Titolo articolo\n"
+        "→ 2-3 righe: cosa dice sul cliente, tono (positivo/neutro/critico)\n\n"
         "Separa ogni voce con una riga vuota.\n"
-        "Produci SOLO le voci, nessun titolo di sezione."
+        "Produci SOLO le voci, senza intestazioni."
     )
 
-    sezione_clienti = ""
-    if client_hits:
-        BATCH = 10
-        parti_clienti = []
-        for i in range(0, len(client_hits), BATCH):
-            batch = client_hits[i:i + BATCH]
-            n_batch = len(client_hits)
-            batch_num = i // BATCH + 1
-            total_batches = (n_clienti + BATCH - 1) // BATCH
-            print(f"[DIGEST] Chiamata 2 — clienti batch {batch_num}/{total_batches}")
+    sezioni_clienti = []
 
-            blocchi = "\n\n---\n\n".join(_client_block(ch) for ch in batch)
-            msg_clienti = (
-                f"Analizza le seguenti citazioni di clienti MAIM trovate oggi:\n\n"
+    for nome_cliente, arts in client_articles.items():
+        n_arts_cliente = len(arts)
+        print(f"[DIGEST] GPT sezione cliente: {nome_cliente} ({n_arts_cliente} art.)")
+
+        # Batch da 8 articoli se sono molti
+        BATCH = 8
+        parti = []
+        for i in range(0, n_arts_cliente, BATCH):
+            batch = arts[i:i + BATCH]
+            blocchi = "\n\n---\n\n".join(_art_block_cliente(a) for a in batch)
+            msg = (
+                f"Cliente: *{nome_cliente}*\n"
+                f"Articoli che lo citano oggi ({n_arts_cliente} totali):\n\n"
                 f"{blocchi}\n\n"
-                f"{_ISTR_CLIENTI}"
+                f"{_ISTR_CLIENTE}"
             )
-
-            resp2 = ai.chat.completions.create(
+            resp = ai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": _SYS},
-                    {"role": "user",   "content": msg_clienti},
+                    {"role": "user",   "content": msg},
                 ],
                 temperature=0.0,
                 max_tokens=1500,
             )
-            parti_clienti.append(resp2.choices[0].message.content.strip())
+            parti.append(resp.choices[0].message.content.strip())
 
-        sezione_clienti = "\n\n".join(parti_clienti)
+        voci = "\n\n".join(parti)
+        sezioni_clienti.append(
+            f"*{nome_cliente.upper()}* — {n_arts_cliente} "
+            f"{'articolo' if n_arts_cliente == 1 else 'articoli'}\n\n"
+            f"{voci}"
+        )
+
+    if sezioni_clienti:
+        sezione_clienti = ("\n\n" + "·" * 20 + "\n\n").join(sezioni_clienti)
     else:
         sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
@@ -832,5 +863,5 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     return {
         "text":            text,
         "articles_today":  n_art,
-        "client_mentions": n_clienti,
+        "client_mentions": total_citazioni,
     }

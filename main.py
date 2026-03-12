@@ -301,16 +301,11 @@ async def get_job_status(job_id: str):
     # done
     result = job["result"] or {}
     return {
-        "status":          "done",
-        # campi report
-        "response":        result.get("response", ""),
-        "articles_used":   result.get("articles_used", 0),
-        "period_from":     result.get("period_from", ""),
-        "period_to":       result.get("period_to", ""),
-        # campi digest
-        "text":            result.get("text", ""),
-        "articles_today":  result.get("articles_today", 0),
-        "client_mentions": result.get("client_mentions", 0),
+        "status":        "done",
+        "response":      result.get("response", ""),
+        "articles_used": result.get("articles_used", 0),
+        "period_from":   result.get("period_from", ""),
+        "period_to":     result.get("period_to", ""),
     }
 
 
@@ -997,20 +992,17 @@ def _run_digest_job(job_id: str):
     try:
         today = date.today().isoformat()
 
-        # Tutti gli articoli di oggi
+        # Query leggera — NO testo_completo, nessun limite
+        # Il testo completo viene recuperato per-cliente dentro generate_digest
         res_art = (
             supabase.table("articles")
-            .select(
-                "id, testata, data, giornalista, titolo, occhiello, "
-                "testo_completo, tone, ave, reputational_risk"
-            )
+            .select("id, testata, data, giornalista, titolo, occhiello, tone, ave")
             .eq("data", today)
             .order("ave", desc=True)
-            .limit(300)
             .execute()
         )
         articles_today = res_art.data or []
-        print(f"[DIGEST DEBUG] today={today} | articoli trovati: {len(articles_today)}")
+        print(f"[DIGEST] {len(articles_today)} articoli oggi (query leggera)")
 
         # Lista clienti
         res_cli = supabase.table("clients").select("id, name").execute()
@@ -1024,7 +1016,9 @@ def _run_digest_job(job_id: str):
             _set_job(job_id, "done", result=result)
 
     except Exception as e:
-        _set_job(job_id, "error", error=str(e) + " | " + traceback.format_exc().splitlines()[-1])
+        tb = traceback.format_exc()
+        print(f"[DIGEST ERROR] {tb}")
+        _set_job(job_id, "error", error=str(e) + " | " + tb.splitlines()[-1])
 
 
 @app.post("/api/daily-digest")
