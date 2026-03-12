@@ -8,334 +8,114 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
 <style>
   :root {
-    --bg:       #f4f6f9;
-    --surface:  #ffffff;
-    --border:   #dde3ed;
-    --border2:  #eef1f6;
-    --text:     #1a2236;
-    --muted:    #5a6a84;
-    --faint:    #9aabc0;
-    --cyan:     #0ea5c9;
-    --pink:     #d4367a;
-    --amber:    #d97706;
-    --green:    #059669;
-    --red:      #e03a5a;
-    --grad:     linear-gradient(135deg, #0ea5c9, #d4367a);
+    --bg:#f4f6f9;--surface:#ffffff;--border:#dde3ed;--border2:#eef1f6;
+    --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+    --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+    --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; background: var(--bg); color: var(--text); min-height: 100vh; }
-  a { text-decoration: none; color: inherit; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+  a{text-decoration:none;color:inherit}
+  nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+  .nav-links{display:flex;gap:2px;margin-left:auto}
+  .nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+  .nav-link:hover{color:var(--text)}
+  .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+  .wrap{max-width:1280px;margin:0 auto;padding:24px 20px}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .stat-grid .upload-card{grid-column:span 2;margin-bottom:0;border:1px solid var(--border);border-radius:10px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad)}
+  .stat-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .stat-val{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:700;line-height:1;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .stat-sub{font-size:11px;color:var(--faint);margin-top:5px}
+  .sec-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  select{font-family:'IBM Plex Mono',monospace;font-size:10px;background:#eef1f6;border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);cursor:pointer;outline:none}
+  select:focus{border-color:var(--cyan)}
+  .upload-card{background:var(--surface);border:2px dashed var(--border);border-radius:10px;padding:22px 24px;margin-bottom:0;display:flex;align-items:center;gap:20px;flex-wrap:wrap;transition:border-color .2s}
+  .upload-card:hover{border-color:var(--cyan)}
+  .upload-icon{font-size:28px;flex-shrink:0}
+  .upload-info{flex:1;min-width:200px}
+  .upload-info h3{font-size:14px;font-weight:700;margin-bottom:3px}
+  .upload-info p{font-size:11px;color:var(--faint)}
+  .file-label{display:inline-flex;align-items:center;gap:8px;background:#eef1f6;border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);transition:background .2s;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file-label:hover{background:#e4e9f2}
+  .btn-upload{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:10px 24px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:opacity .2s,transform .1s;white-space:nowrap}
+  .btn-upload:disabled{opacity:.4;cursor:default}
+  .btn-upload:not(:disabled):hover{opacity:.9;transform:translateY(-1px)}
+  .progress-wrap{width:100%;background:#eef1f6;border-radius:4px;height:6px;margin-top:10px;overflow:hidden;display:none}
+  .progress-bar{height:100%;background:var(--grad);border-radius:4px;width:0%;transition:width .3s ease}
+  .progress-txt{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);margin-top:5px;display:none}
+  .bottom-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
 
-  /* ── NAV ── */
-  nav {
-    background: var(--surface);
-    border-bottom: 2px solid var(--border);
-    height: 56px;
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  }
-  .logo-img { height: 38px; width: auto; display: block; flex-shrink: 0; }
-  .nav-links { display: flex; gap: 2px; margin-left: auto; }
-  .nav-link {
-    color: var(--muted); font-size: 11px; font-weight: 600;
-    letter-spacing: .5px; text-transform: uppercase;
-    padding: 6px 14px; border-bottom: 2px solid transparent;
-    transition: color .2s, border-color .2s;
-  }
-  .nav-link:hover { color: var(--text); }
-  .nav-link.active { color: var(--pink); border-bottom-color: var(--pink); }
+  /* DIGEST */
+  .digest-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column}
+  .digest-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+  .digest-header-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .btn-digest-gen{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+  .btn-digest-gen:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+  .btn-digest-gen:disabled{opacity:.4;cursor:default}
+  .btn-digest-copy{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--grad);border:none;border-radius:5px;padding:5px 12px;cursor:pointer;color:#fff;transition:opacity .15s;white-space:nowrap}
+  .btn-digest-copy:hover{opacity:.85}
+  .digest-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);margin-bottom:10px;letter-spacing:.5px;min-height:14px}
+  .digest-body{flex:1;overflow-y:auto;max-height:340px;font-size:12px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;padding-right:4px}
+  .digest-body::-webkit-scrollbar{width:4px}
+  .digest-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  .digest-loader{display:flex;align-items:center;gap:8px;padding:20px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint)}
+  .d{width:8px;height:8px;border-radius:50%;background:var(--cyan);animation:pulse 1.2s ease-in-out infinite}
+  .d:nth-child(2){animation-delay:.2s}.d:nth-child(3){animation-delay:.4s}
+  @keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}
+  .digest-idle{padding:24px 0;text-align:center;font-size:11px;color:var(--faint)}
 
-  /* ── LAYOUT ── */
-  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+  /* MACRO */
+  .macro-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:5px;margin-bottom:2px}
+  .macro-row:nth-child(odd){background:#fafbfc}
+  .macro-name{flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .macro-bar-wrap{width:70px;height:5px;background:#eef1f6;border-radius:3px;overflow:hidden;flex-shrink:0}
+  .macro-bar{height:100%;border-radius:3px}
+  .macro-count{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+  .macro-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--border2)}
+  .legend-item{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);letter-spacing:.5px}
+  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
+  /* CLIENTI */
+  .client-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border2)}
+  .client-row:last-child{border-bottom:none}
+  .client-avatar{width:32px;height:32px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+  .client-name{flex:1;font-weight:600;font-size:13px}
+  .client-bar-wrap{width:100px;height:5px;background:#eef1f6;border-radius:3px;overflow:hidden;flex-shrink:0}
+  .client-bar{height:100%;background:var(--grad);border-radius:3px}
+  .client-count{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan);min-width:36px;text-align:right;flex-shrink:0}
 
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .stat-grid .upload-card {
-    grid-column: span 2;
-    margin-bottom: 0;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-  }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--grad);
-  }
-  .stat-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; font-weight: 600;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--faint); margin-bottom: 6px;
-  }
-  .stat-val {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 32px; font-weight: 700; line-height: 1;
-    background: var(--grad);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .stat-sub { font-size: 11px; color: var(--faint); margin-top: 5px; }
-
-  /* ── SECTION LABEL ── */
-  .sec-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; font-weight: 600;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: var(--faint); margin-bottom: 14px;
-  }
-
-  /* ── CARD ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-  }
-  .card-header {
-    display: flex; align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-
-
-  /* ── SELECT ── */
-  select {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    background: #eef1f6;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 8px;
-    color: var(--text);
-    cursor: pointer;
-    outline: none;
-  }
-  select:focus { border-color: var(--cyan); }
-
-  /* ── UPLOAD ── */
-  .upload-card {
-    background: var(--surface);
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 22px 24px;
-    margin-bottom: 0;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    transition: border-color .2s;
-  }
-  .upload-card:hover { border-color: var(--cyan); }
-  .upload-icon { font-size: 28px; flex-shrink: 0; }
-  .upload-info { flex: 1; min-width: 200px; }
-  .upload-info h3 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-  .upload-info p { font-size: 11px; color: var(--faint); }
-  .file-label {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: #eef1f6; border: 1px solid var(--border);
-    border-radius: 6px; padding: 8px 16px;
-    cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted);
-    transition: background .2s;
-    max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .file-label:hover { background: #e4e9f2; }
-  .btn-upload {
-    background: var(--grad);
-    color: #fff; border: none; border-radius: 6px;
-    padding: 10px 24px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
-    cursor: pointer; letter-spacing: .5px;
-    transition: opacity .2s, transform .1s;
-    white-space: nowrap;
-  }
-  .btn-upload:disabled { opacity: .4; cursor: default; }
-  .btn-upload:not(:disabled):hover { opacity: .9; transform: translateY(-1px); }
-  .progress-wrap {
-    width: 100%; background: #eef1f6;
-    border-radius: 4px; height: 6px;
-    margin-top: 10px; overflow: hidden;
-    display: none;
-  }
-  .progress-bar {
-    height: 100%; background: var(--grad);
-    border-radius: 4px; width: 0%;
-    transition: width .3s ease;
-  }
-  .progress-txt {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--faint); margin-top: 5px;
-    display: none;
-  }
-
-  /* ── BOTTOM ROW ── */
-  .bottom-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  /* ── JOURNALIST LIST ── */
-  .j-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border2);
-  }
-  .j-row:last-child { border-bottom: none; }
-  .j-rank {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--faint);
-    width: 16px; text-align: right; flex-shrink: 0;
-  }
-  .j-info { flex: 1; min-width: 0; }
-  .j-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .j-testata {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--amber); margin-top: 1px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .j-bar-wrap { width: 50px; height: 4px; background: #eef1f6; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
-  .j-bar { height: 100%; background: var(--grad); border-radius: 2px; }
-  .j-count {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; font-weight: 700; color: var(--cyan);
-    width: 24px; text-align: right; flex-shrink: 0;
-  }
-
-  /* ── MACRO HEATMAP ── */
-  .macro-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 7px 8px; border-radius: 5px; margin-bottom: 2px;
-  }
-  .macro-row:nth-child(odd) { background: #fafbfc; }
-  .macro-name { flex: 1; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .macro-bar-wrap { width: 70px; height: 5px; background: #eef1f6; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-  .macro-bar { height: 100%; border-radius: 3px; }
-  .macro-count {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; font-weight: 700;
-    width: 28px; text-align: right; flex-shrink: 0;
-  }
-  .macro-delta {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    width: 32px; text-align: right; flex-shrink: 0;
-  }
-  .macro-legend {
-    display: flex; gap: 14px; flex-wrap: wrap;
-    margin-top: 12px; padding-top: 10px;
-    border-top: 1px solid var(--border2);
-  }
-  .legend-item {
-    display: flex; align-items: center; gap: 5px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; color: var(--faint); letter-spacing: .5px;
-  }
-  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-
-  /* ── CLIENT LIST ── */
-  .client-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 9px 0; border-bottom: 1px solid var(--border2);
-  }
-  .client-row:last-child { border-bottom: none; }
-  .client-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--grad);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 12px;
-    flex-shrink: 0; font-family: 'IBM Plex Mono', monospace;
-  }
-  .client-name { flex: 1; font-weight: 600; font-size: 13px; }
-  .client-bar-wrap { width: 100px; height: 5px; background: #eef1f6; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-  .client-bar { height: 100%; background: var(--grad); border-radius: 3px; }
-  .client-count {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px; font-weight: 700; color: var(--cyan);
-    min-width: 36px; text-align: right; flex-shrink: 0;
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    text-align: right;
-    padding: 14px 24px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px; letter-spacing: 1px;
-    color: #c8d0e0; text-transform: uppercase;
-  }
-
-  /* ── LOADING SKELETON ── */
-  .skeleton {
-    background: linear-gradient(90deg, #eef1f6 25%, #e4e9f2 50%, #eef1f6 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite;
-    border-radius: 4px;
-  }
-  @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed; bottom: 20px; right: 20px;
-    background: #e8ecf2; color: #fff;
-    padding: 10px 18px; border-radius: 7px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.2);
-    transform: translateY(60px); opacity: 0;
-    transition: all .3s ease;
-    z-index: 9999;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-left: 3px solid var(--green); }
-  .toast.error   { border-left: 3px solid var(--red); }
-
-  @media (max-width: 1024px) {
-    .bottom-row { grid-template-columns: 1fr 1fr; }
-    .stat-grid  { grid-template-columns: repeat(2,1fr); }
-  }
-  @media (max-width: 640px) {
-    .bottom-row, .stat-grid { grid-template-columns: 1fr; }
-  }
+  footer{text-align:right;padding:14px 24px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:#c8d0e0;text-transform:uppercase}
+  .skeleton{background:linear-gradient(90deg,#eef1f6 25%,#e4e9f2 50%,#eef1f6 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .toast{position:fixed;bottom:20px;right:20px;background:#e8ecf2;color:#fff;padding:10px 18px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(60px);opacity:0;transition:all .3s ease;z-index:9999}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-left:3px solid var(--green)}
+  .toast.error{border-left:3px solid var(--red)}
+  @media(max-width:1024px){.bottom-row{grid-template-columns:1fr 1fr}.stat-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.bottom-row,.stat-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-
-<!-- NAV -->
 <nav>
   <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
   <div class="nav-links">
-    <a href="/"             class="nav-link active">Home</a>
-    <a href="/press"        class="nav-link">Press</a>
-    <a href="/web"          class="nav-link">Web</a>
-    <a href="/chat"         class="nav-link">AI Analysis</a>
-    <a href="/pitch"        class="nav-link">AI Pitch</a>
-    <a href="/clients"      class="nav-link">Clienti</a>
-    <a href="/giornalisti"  class="nav-link">Giornalisti</a>
+    <a href="/" class="nav-link active">Home</a>
+    <a href="/press" class="nav-link">Press</a>
+    <a href="/web" class="nav-link">Web</a>
+    <a href="/chat" class="nav-link">AI Analysis</a>
+    <a href="/pitch" class="nav-link">AI Pitch</a>
+    <a href="/clients" class="nav-link">Clienti</a>
+    <a href="/giornalisti" class="nav-link">Giornalisti</a>
   </div>
 </nav>
 
-
-  <!-- STAT CARDS + UPLOAD nella stessa griglia -->
+<div class="wrap">
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-label">Totale archivio</div>
@@ -345,17 +125,14 @@
     <div class="stat-card">
       <div class="stat-label">Rassegnati oggi</div>
       <div class="stat-val" id="s-today">—</div>
-      <div class="stat-sub" id="s-today-sub">firmati</div>
+      <div class="stat-sub" id="s-today-sub">articoli firmati</div>
     </div>
-    <!-- Upload occupa le 2 colonne destre -->
     <div class="upload-card" id="upload-zone">
       <div class="upload-icon">📂</div>
       <div class="upload-info">
         <h3>Carica rassegna stampa</h3>
-        <p>CSV esportato da rassegna. Elaborazione e indicizzazione automatica.</p>
-        <div class="progress-wrap" id="prog-wrap">
-          <div class="progress-bar" id="prog-bar"></div>
-        </div>
+        <p>CSV esportato da rassegna. Il digest viene generato automaticamente.</p>
+        <div class="progress-wrap" id="prog-wrap"><div class="progress-bar" id="prog-bar"></div></div>
         <div class="progress-txt" id="prog-txt"></div>
       </div>
       <label class="file-label" id="file-label">
@@ -367,24 +144,26 @@
     </div>
   </div>
 
-  <!-- BOTTOM ROW -->
   <div class="bottom-row">
-
-    <!-- TOP GIORNALISTI -->
-    <div class="card">
-      <div class="card-header">
-        <div class="sec-label">✍️ Giornalisti / AVE</div>
-        <select id="j-period" onchange="loadJournalists()">
-          <option value="today" selected>Oggi</option>
-          <option value="7days">7 giorni</option>
-          <option value="30days">30 giorni</option>
-          <option value="6months">6 mesi</option>
-        </select>
+    <!-- DIGEST -->
+    <div class="digest-card">
+      <div class="digest-header">
+        <div class="sec-label" style="margin-bottom:0">📰 Digest del giorno</div>
+        <div class="digest-header-right">
+          <select id="digest-date-select" onchange="loadDigestByDate(this.value)">
+            <option value="today">Oggi</option>
+          </select>
+          <button class="btn-digest-gen" id="btn-gen" onclick="generateDigest()">⚡ Genera</button>
+          <button class="btn-digest-copy" id="btn-copy" onclick="copyDigest()" style="display:none">📋 Copia</button>
+        </div>
       </div>
-      <div id="journalists-list"><div class="skeleton" style="height:180px"></div></div>
+      <div class="digest-meta" id="digest-meta"></div>
+      <div id="digest-content">
+        <div class="digest-idle">Nessun digest disponibile per oggi.<br>Carica la rassegna o premi ⚡ Genera.</div>
+      </div>
     </div>
 
-    <!-- HEATMAP MACRO -->
+    <!-- MACRO HEATMAP -->
     <div class="card">
       <div class="card-header">
         <div class="sec-label">🎯 Copertura temi strategici</div>
@@ -400,7 +179,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:#e03a5a"></div>Alto</div>
         <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Medio</div>
         <div class="legend-item"><div class="legend-dot" style="background:#0ea5c9"></div>Basso</div>
-        <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c8d0e0;">articoli oggi</div>
+        <div style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c8d0e0">articoli oggi</div>
       </div>
     </div>
 
@@ -417,33 +196,29 @@
       </div>
       <div id="clients-list"><div class="skeleton" style="height:220px"></div></div>
     </div>
-
   </div>
-
 </div>
 
 <footer>Geronimo Emili project</footer>
 <div class="toast" id="toast"></div>
 
 <script>
-// ── GLOBALS ─────────────────────────────────────────────────
 let allClients = [];
 let selectedFile = null;
+let digestPollTimer = null;
+let currentDigestText = '';
 
-// ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ticker in parallelo, non bloccanti
-
   await Promise.all([
     loadStats(),
     loadTodayStats(),
-    loadJournalists(),
+    loadDigestStatus(),
+    loadDigestDates(),
     loadMacroHeatmap(),
     loadClientCitations(),
   ]);
 });
 
-// ── TOAST ────────────────────────────────────────────────────
 function toast(msg, type='success') {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -451,236 +226,247 @@ function toast(msg, type='success') {
   setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-// ── STATS ────────────────────────────────────────────────────
 async function loadStats() {
   try {
-    const r = await fetch('/api/dashboard-stats');
-    const d = await r.json();
+    const d = await fetch('/api/dashboard-stats').then(r=>r.json());
     document.getElementById('s-total').textContent = fmt(d.totale || 0);
   } catch(e) {}
 }
 
 async function loadTodayStats() {
   try {
-    const r = await fetch('/api/today-stats');
-    const d = await r.json();
-    const giornalisti = (d.giornalisti || []).filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome));
-    const firmati = giornalisti.reduce((a,g) => a + (g.articoli||0), 0);
+    const d = await fetch('/api/today-stats').then(r=>r.json());
+    const firmati = (d.giornalisti || [])
+      .filter(g => g.nome && !['N.D.','N/D','Redazione',''].includes(g.nome))
+      .reduce((a,g) => a + (g.articoli||0), 0);
     document.getElementById('s-today').textContent = fmt(firmati);
-    document.getElementById('s-today-sub').textContent = 'articoli firmati';
   } catch(e) {}
 }
 
-// ── JOURNALISTS / AVE ────────────────────────────────────────
-// ── JOURNALISTS — ordinati per AVE articolo più importante ──────────
-async function loadJournalists() {
-  const period = document.getElementById('j-period').value;
-  const el = document.getElementById('journalists-list');
-  el.innerHTML = '<div class="skeleton" style="height:200px"></div>';
+// ─── DIGEST ────────────────────────────────────────────────
+async function loadDigestStatus() {
   try {
-    const r = await fetch(`/api/top-giornalisti-ave?period=${period}&limit=15`);
-    const data = await r.json();
-    if (!data.length) {
-      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun dato disponibile</p>';
-      return;
+    const d = await fetch('/api/digest/status').then(r=>r.json());
+    if (d.status === 'ready') {
+      showDigest(d.text, d.articles_today, d.client_mentions, d.created_at);
+    } else if (d.status === 'generating') {
+      showDigestLoader();
+      startPollDigest(d.job_id);
     }
-    const maxAve = data[0]?.ave || 1;
-    el.innerHTML = data.map((j,i) => `
-      <div class="j-row">
-        <div class="j-rank">${i+1}</div>
-        <div class="j-info">
-          <div class="j-name">${esc(j.nome)}</div>
-          <div class="j-testata">${esc(j.testata||'')}${j.titolo ? ' · <span style="color:var(--faint);font-style:italic">' + esc(j.titolo) + '</span>' : ''}</div>
-        </div>
-        <div class="j-bar-wrap"><div class="j-bar" style="width:${Math.round((j.ave||0)/maxAve*100)}%"></div></div>
-        <div class="j-count">${fmtAve(j.ave)}</div>
-      </div>`).join('');
+  } catch(e) {}
+}
+
+async function loadDigestDates() {
+  try {
+    const d = await fetch('/api/digest/dates').then(r=>r.json());
+    const sel = document.getElementById('digest-date-select');
+    sel.innerHTML = '<option value="today">Oggi</option>';
+    const today = isoToday();
+    (d.dates || []).forEach(row => {
+      if (row.data === today) return;
+      const opt = document.createElement('option');
+      opt.value = row.data;
+      opt.textContent = isoToIT(row.data);
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function loadDigestByDate(val) {
+  if (val === 'today') { await loadDigestStatus(); return; }
+  showDigestLoader();
+  try {
+    const r = await fetch(`/api/digest/${val}`);
+    if (r.status === 404) { showDigestIdle('Nessun digest per questa data.'); return; }
+    const d = await r.json();
+    showDigest(d.text, d.articles_today, d.client_mentions, d.created_at);
+  } catch(e) { showDigestIdle('Errore caricamento.'); }
+}
+
+async function generateDigest() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.textContent = '⏳…';
+  showDigestLoader();
+  try {
+    const d = await fetch('/api/daily-digest', {method:'POST'}).then(r=>r.json());
+    startPollDigest(d.job_id);
   } catch(e) {
-    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
+    showDigestIdle('Errore avvio generazione.');
+    resetGenBtn();
   }
 }
 
-// ── MACRO HEATMAP ────────────────────────────────────────────
+function startPollDigest(jobId) {
+  clearTimeout(digestPollTimer);
+  let attempts = 0;
+  async function poll() {
+    attempts++;
+    if (attempts > 160) { showDigestIdle('Timeout. Riprova.'); resetGenBtn(); return; }
+    try {
+      const d = await fetch(`/api/job/${jobId}`).then(r=>r.json());
+      if (d.status === 'done') {
+        showDigest(d.text, d.articles_today, d.client_mentions, null);
+        resetGenBtn(); loadDigestDates();
+        toast('✅ Digest pronto!', 'success');
+      } else if (d.status === 'error') {
+        showDigestIdle('Errore: ' + (d.error || ''));
+        resetGenBtn(); toast('❌ Errore digest', 'error');
+      } else {
+        digestPollTimer = setTimeout(poll, 3000);
+      }
+    } catch(e) { digestPollTimer = setTimeout(poll, 5000); }
+  }
+  poll();
+}
+
+function showDigest(text, art, cli, createdAt) {
+  currentDigestText = text || '';
+  const parts = [];
+  if (art) parts.push(art + ' articoli');
+  if (cli) parts.push(cli + ' citazioni clienti');
+  if (createdAt) parts.push('aggiornato ' + dtIT(createdAt));
+  document.getElementById('digest-meta').textContent = parts.join(' · ');
+  document.getElementById('digest-content').innerHTML =
+    '<div class="digest-body">' + renderWA(esc(text || '')) + '</div>';
+  document.getElementById('btn-copy').style.display = 'inline-block';
+}
+
+function showDigestLoader() {
+  document.getElementById('digest-meta').textContent = 'Generazione in corso…';
+  document.getElementById('digest-content').innerHTML =
+    '<div class="digest-loader"><div class="d"></div><div class="d"></div><div class="d"></div><span>Elaborazione…</span></div>';
+  document.getElementById('btn-copy').style.display = 'none';
+}
+
+function showDigestIdle(msg) {
+  document.getElementById('digest-meta').textContent = '';
+  document.getElementById('digest-content').innerHTML = '<div class="digest-idle">' + esc(msg) + '</div>';
+  document.getElementById('btn-copy').style.display = 'none';
+}
+
+function resetGenBtn() {
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = false; btn.textContent = '⚡ Genera';
+}
+
+function copyDigest() {
+  if (!currentDigestText) return;
+  navigator.clipboard.writeText(currentDigestText)
+    .then(() => toast('📋 Copiato!', 'success'))
+    .catch(() => toast('Errore copia', 'error'));
+}
+
+function renderWA(html) {
+  return html.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+}
+
+// ─── MACRO HEATMAP ─────────────────────────────────────────
 async function loadMacroHeatmap() {
   const el = document.getElementById('macro-list');
   el.innerHTML = '<div class="skeleton" style="height:240px"></div>';
   try {
     const period = document.getElementById('macro-period').value;
-    const today  = fmt_date(new Date());
-    const daysMap = { today: 0, '7days': 7, '30days': 30, '6months': 180 };
+    const today = isoToday();
+    const daysMap = {today:0,'7days':7,'30days':30,'6months':180};
     const days = daysMap[period] ?? 0;
-    const from_date = days === 0 ? today : fmt_date(new Date(Date.now() - days*86400000));
-
+    const from_date = days === 0 ? today : isoDate(new Date(Date.now() - days*86400000));
     const rMacros = await fetch('/api/macro-groups').then(r=>r.json());
     const macroGroups = rMacros.groups || [];
-
-    if (!macroGroups.length) {
-      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun tema strategico configurato</p>';
-      return;
-    }
-
+    if (!macroGroups.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun tema configurato</p>'; return; }
     const results = await Promise.all(
       macroGroups.map(g =>
         fetch(`/api/macro-group-articles?macro_group_id=${g.id}&from_date=${from_date}&to_date=${today}`)
-          .then(r => r.json())
-          .then(d => ({ id: g.id, name: g.name, count: (d.articles || []).length }))
-          .catch(() => ({ id: g.id, name: g.name, count: 0 }))
+          .then(r=>r.json()).then(d=>({id:g.id,name:g.name,count:(d.articles||[]).length}))
+          .catch(()=>({id:g.id,name:g.name,count:0}))
       )
     );
-
-    // 3. Ordina per copertura decrescente
-    const items = results.sort((a, b) => b.count - a.count);
-    const max   = items[0]?.count || 1;
-
+    const items = results.sort((a,b)=>b.count-a.count);
+    const max = items[0]?.count || 1;
     el.innerHTML = items.map(m => {
-      const pct   = max > 0 ? Math.round(m.count / max * 100) : 0;
-      const color = pct >= 75 ? '#e03a5a' : pct >= 40 ? '#d97706' : '#0ea5c9';
-      return `
-      <div class="macro-row">
-        <div class="macro-name">${esc(m.name)}</div>
-        <div class="macro-bar-wrap"><div class="macro-bar" style="width:${pct}%;background:${color}"></div></div>
-        <div class="macro-count" style="color:${color}">${m.count}</div>
-      </div>`;
+      const pct = max > 0 ? Math.round(m.count/max*100) : 0;
+      const color = pct>=75?'#e03a5a':pct>=40?'#d97706':'#0ea5c9';
+      return `<div class="macro-row"><div class="macro-name">${esc(m.name)}</div><div class="macro-bar-wrap"><div class="macro-bar" style="width:${pct}%;background:${color}"></div></div><div class="macro-count" style="color:${color}">${m.count}</div></div>`;
     }).join('');
-
-  } catch(e) {
-    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
-  }
+  } catch(e) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore</p>'; }
 }
 
-// ── CLIENT CITATIONS ─────────────────────────────────────────
+// ─── CLIENT CITATIONS ──────────────────────────────────────
 async function loadClientCitations() {
   const days = parseInt(document.getElementById('client-period').value);
-  const el   = document.getElementById('clients-list');
+  const el = document.getElementById('clients-list');
   el.innerHTML = '<div class="skeleton" style="height:220px"></div>';
-
   try {
     const today = new Date();
-    const from  = new Date(today); from.setDate(from.getDate() - (days-1));
-
+    const from = new Date(today); from.setDate(from.getDate() - (days-1));
     const [rClients, rArts] = await Promise.all([
       fetch('/api/clients').then(r=>r.json()),
-      fetch(`/api/articles?from_date=${fmt_date(from)}&to_date=${fmt_date(today)}&limit=3000`).then(r=>r.json()),
+      fetch(`/api/articles?from_date=${isoDate(from)}&to_date=${isoDate(today)}&limit=3000`).then(r=>r.json()),
     ]);
-
     allClients = Array.isArray(rClients) ? rClients : [];
     const articles = rArts.articles || [];
-
-    // Per ogni client conta articoli che contengono le sue keyword
     const results = allClients.map(c => {
-      const rawKw = c.keywords_press || c.keywords || '';
-      const kws   = rawKw.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+      const kws = (c.keywords_press||c.keywords||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
       let count = 0;
-      if (kws.length) {
-        articles.forEach(a => {
-          const text = `${a.titolo||''} ${a.occhiello||''}`.toLowerCase();
-          if (kws.some(kw => text.includes(kw))) count++;
-        });
-      }
-      return { name: c.name, count };
-    }).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
-
-    if (!results.length) {
-      el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun cliente configurato</p>';
-      return;
-    }
-
+      if (kws.length) articles.forEach(a => {
+        if (kws.some(kw=>`${a.titolo||''} ${a.occhiello||''}`.toLowerCase().includes(kw))) count++;
+      });
+      return {name:c.name, count};
+    }).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+    if (!results.length) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Nessun cliente</p>'; return; }
     const max = results[0].count || 1;
     el.innerHTML = results.map(c => {
-      const pct      = max > 0 ? Math.round(c.count/max*100) : 0;
-      const initials = c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-      return `
-      <div class="client-row">
-        <div class="client-avatar">${esc(initials)}</div>
-        <div class="client-name">${esc(c.name)}</div>
-        <div class="client-bar-wrap"><div class="client-bar" style="width:${pct}%"></div></div>
-        <div class="client-count">${c.count}</div>
-      </div>`;
+      const pct = max>0?Math.round(c.count/max*100):0;
+      const ini = c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+      return `<div class="client-row"><div class="client-avatar">${esc(ini)}</div><div class="client-name">${esc(c.name)}</div><div class="client-bar-wrap"><div class="client-bar" style="width:${pct}%"></div></div><div class="client-count">${c.count}</div></div>`;
     }).join('');
-
-  } catch(e) {
-    el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore caricamento</p>';
-  }
+  } catch(e) { el.innerHTML = '<p style="color:var(--faint);font-size:11px;padding:8px 0">Errore</p>'; }
 }
 
-// ── UPLOAD ──────────────────────────────────────────────────
+// ─── UPLOAD ────────────────────────────────────────────────
 function onFilePick(input) {
-  const files = Array.from(input.files || []);
+  const files = Array.from(input.files||[]);
   if (!files.length) return;
   selectedFile = files;
-  document.getElementById('file-name').textContent =
-    files.length === 1 ? files[0].name : `${files.length} file selezionati`;
+  document.getElementById('file-name').textContent = files.length===1 ? files[0].name : `${files.length} file`;
   document.getElementById('btn-upload').disabled = false;
 }
 
 async function doUpload() {
-  if (!selectedFile || !selectedFile.length) return;
-  const files   = selectedFile;
-  const btn     = document.getElementById('btn-upload');
-  const progW   = document.getElementById('prog-wrap');
-  const progB   = document.getElementById('prog-bar');
-  const progTxt = document.getElementById('prog-txt');
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Elaborazione…';
-  progW.style.display   = 'block';
-  progTxt.style.display = 'block';
-
-  // Fake progress while uploading
-  let pct = 0;
-  const iv = setInterval(() => {
-    pct = Math.min(pct + Math.random()*8, 85);
-    progB.style.width = pct+'%';
-    progTxt.textContent = `Elaborazione in corso… ${Math.round(pct)}%`;
-  }, 200);
-
+  if (!selectedFile?.length) return;
+  const btn=document.getElementById('btn-upload'), progW=document.getElementById('prog-wrap'),
+        progB=document.getElementById('prog-bar'), progTxt=document.getElementById('prog-txt');
+  btn.disabled=true; btn.textContent='⏳ Elaborazione…';
+  progW.style.display='block'; progTxt.style.display='block';
+  let pct=0;
+  const iv=setInterval(()=>{pct=Math.min(pct+Math.random()*8,85);progB.style.width=pct+'%';progTxt.textContent=`Elaborazione… ${Math.round(pct)}%`;},200);
   try {
-    const fd = new FormData();
-    files.forEach(f => fd.append('files', f));
-    const r  = await fetch('/upload', { method:'POST', body:fd });
-    const d  = await r.json();
-    clearInterval(iv);
-    progB.style.width = '100%';
-    progTxt.textContent = 'Completato!';
-
-    const results = d.results || [];
-    const ok  = results.filter(r => r.status === 'success');
-    const err = results.filter(r => r.status !== 'success');
-
-    if (ok.length)  toast(`✅ ${ok.length} file caricati correttamente`, 'success');
-    if (err.length) toast(`⚠️ ${err.length} file con errori: ${err.map(r=>r.file).join(', ')}`, 'error');
-    if (ok.length)  setTimeout(() => loadStats(), 1000);
-
-  } catch(e) {
-    clearInterval(iv);
-    toast('❌ Errore di connessione', 'error');
-  }
-
-  setTimeout(() => {
-    progW.style.display = 'none';
-    progTxt.style.display = 'none';
-    progB.style.width = '0%';
-    btn.textContent = '⚡ Elabora';
-    btn.disabled = true;
-    selectedFile = null;
-    document.getElementById('file-name').textContent = 'Scegli uno o più CSV';
-    document.getElementById('file-input').value = '';
-  }, 2000);
+    const fd=new FormData(); selectedFile.forEach(f=>fd.append('files',f));
+    const d=await fetch('/upload',{method:'POST',body:fd}).then(r=>r.json());
+    clearInterval(iv); progB.style.width='100%'; progTxt.textContent='Completato!';
+    const ok=d.results.filter(r=>r.status==='success');
+    const err=d.results.filter(r=>r.status!=='success');
+    if (ok.length) toast(`✅ ${ok.length} file caricati — digest in generazione…`,'success');
+    if (err.length) toast(`⚠️ ${err.length} file con errori`,'error');
+    if (d.digest_job_id) {
+      setTimeout(()=>{ showDigestLoader(); startPollDigest(d.digest_job_id); }, 1500);
+    }
+    if (ok.length) setTimeout(()=>{ loadStats(); loadTodayStats(); }, 1000);
+  } catch(e) { clearInterval(iv); toast('❌ Errore connessione','error'); }
+  setTimeout(()=>{
+    progW.style.display='none'; progTxt.style.display='none'; progB.style.width='0%';
+    btn.textContent='⚡ Elabora'; btn.disabled=true; selectedFile=null;
+    document.getElementById('file-name').textContent='Scegli uno o più CSV';
+    document.getElementById('file-input').value='';
+  },2000);
 }
 
-
-function fmt(n)      { return Number(n).toLocaleString('it-IT'); }
-function esc(s)      { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmtAve(n) {
-  if (!n || n === 0) return '0';
-  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
-  if (n >= 1000)    return Math.round(n/1000)+'k';
-  return Math.round(n).toString();
-}
-function fmt_date(d) {
-  const dd = new Date(d);
-  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
-}
+// ─── UTILS ─────────────────────────────────────────────────
+function fmt(n) { return Number(n).toLocaleString('it-IT'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function isoDate(d) { const dd=new Date(d); return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`; }
+function isoToday() { return isoDate(new Date()); }
+function isoToIT(s) { if(!s)return''; const[y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function dtIT(s) { if(!s)return''; return new Date(s).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 </script>
 </body>
 </html>

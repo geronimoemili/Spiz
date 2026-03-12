@@ -64,7 +64,6 @@ def _cleanup_expired_docx():
 
 
 # ── JOB QUEUE (in-memory) ─────────────────────────────────────────────
-# Struttura: { job_id: { status: pending|done|error, result: {}, error: str, created: float } }
 _JOBS: dict = {}
 _JOBS_LOCK = threading.Lock()
 
@@ -82,7 +81,6 @@ def _get_job(job_id: str) -> dict | None:
         return _JOBS.get(job_id)
 
 def _cleanup_old_jobs():
-    """Rimuovi job più vecchi di 30 minuti."""
     cutoff = time.time() - 1800
     with _JOBS_LOCK:
         old = [k for k, v in _JOBS.items() if v["created"] < cutoff]
@@ -102,7 +100,7 @@ class GenerateReportRequest(BaseModel):
     client_name:  Optional[str]       = ""
     topic_name:   Optional[str]       = ""
     article_ids:  Optional[List[str]] = []
-    report_type:  Optional[str]       = "posizionamento_giornalisti"  # posizionamento_giornalisti | analisi_narrazione
+    report_type:  Optional[str]       = "posizionamento_giornalisti"
     refinement:   Optional[str]       = ""
 
 class ArticleUpdateSimple(BaseModel):
@@ -213,7 +211,18 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
             if os.path.exists(path): os.remove(path)
         except Exception as e:
             results.append({"file": file.filename, "status": "error", "message": str(e)})
-    return {"results": results}
+
+    # Trigger digest automatico se almeno un file caricato correttamente
+    digest_job_id = None
+    if any(r["status"] == "success" for r in results):
+        _cleanup_old_jobs()
+        digest_job_id = str(uuid.uuid4())[:12]
+        _set_job(digest_job_id, "pending")
+        t = threading.Thread(target=_run_digest_job, args=(digest_job_id,), daemon=True)
+        t.start()
+        print(f"[DIGEST] Avviato automaticamente dopo upload (job {digest_job_id})")
+
+    return {"results": results, "digest_job_id": digest_job_id}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -222,7 +231,6 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
 
 def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: list,
                     report_type: str = "posizionamento_giornalisti", refinement: str = ""):
-    """Eseguito in un thread separato. Non blocca FastAPI."""
     import traceback
     try:
         try:
@@ -247,16 +255,11 @@ def _run_report_job(job_id: str, client_name: str, topic_name: str, articles: li
 
 @app.post("/api/generate-report")
 async def generate_report_endpoint(req: GenerateReportRequest):
-    """
-    Ritorna subito un job_id. La generazione avviene in background.
-    Il frontend fa polling su /api/job/{job_id}.
-    """
     _cleanup_old_jobs()
 
     if not req.article_ids:
         return {"success": False, "error": "Nessun articolo selezionato."}
 
-    # Recupera articoli completi dal DB
     DB_COLS = (
         "id, testata, data, giornalista, occhiello, titolo, sottotitolo, "
         "testo_completo, macrosettori, tipologia_articolo, tone, "
@@ -287,7 +290,6 @@ async def generate_report_endpoint(req: GenerateReportRequest):
 
 @app.get("/api/job/{job_id}")
 async def get_job_status(job_id: str):
-    """Polling endpoint. Ritorna status: pending | done | error."""
     job = _get_job(job_id)
     if not job:
         return {"status": "error", "error": "Job non trovato o scaduto."}
@@ -298,18 +300,20 @@ async def get_job_status(job_id: str):
     if job["status"] == "error":
         return {"status": "error", "error": job["error"]}
 
-    # done
+    # done — restituisce campi sia report che digest
     result = job["result"] or {}
     return {
-        "status":        "done",
-        "response":      result.get("response", ""),
-        "articles_used": result.get("articles_used", 0),
-        "period_from":   result.get("period_from", ""),
-        "period_to":     result.get("period_to", ""),
+        "status":          "done",
+        "response":        result.get("response", ""),
+        "articles_used":   result.get("articles_used", 0),
+        "period_from":     result.get("period_from", ""),
+        "period_to":       result.get("period_to", ""),
+        "text":            result.get("text", ""),
+        "articles_today":  result.get("articles_today", 0),
+        "client_mentions": result.get("client_mentions", 0),
     }
 
 
-# ── /api/chat legacy (compatibilità) ─────────────────────────────────
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     try:
@@ -440,7 +444,6 @@ async def today_mentions():
         return []
 
 
-
 @app.get("/api/period-mentions")
 async def period_mentions(from_date: Optional[str] = None, to_date: Optional[str] = None):
     try:
@@ -514,6 +517,7 @@ async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[
     except Exception as e:
         return {"groups": [], "error": str(e)}
 
+
 # ══════════════════════════════════════════════════════════════════════
 # TOP GIORNALISTI
 # ══════════════════════════════════════════════════════════════════════
@@ -530,6 +534,31 @@ async def top_giornalisti(period: str = Query("30days"), limit: int = Query(20))
         SKIP = {"", "N.D.", "N/D", "Redazione", "Autore non indicato", "redazione"}
         counter = Counter(a.get("giornalista","") for a in articles if a.get("giornalista") and a["giornalista"] not in SKIP)
         return [{"nome": nome, "articoli": count} for nome, count in counter.most_common(limit)]
+    except Exception as e:
+        return []
+
+
+@app.get("/api/top-giornalisti-ave")
+async def top_giornalisti_ave(period: str = Query("today"), limit: int = Query(15)):
+    """Giornalisti per AVE massima del loro miglior articolo nel periodo."""
+    try:
+        today = date.today()
+        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180}
+        days = days_map.get(period, 0)
+        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+        SKIP = {"", "N.D.", "N/D", "Redazione", "Autore non indicato", "redazione"}
+        res = supabase.table("articles").select("giornalista, testata, titolo, ave") \
+            .gte("data", from_date).lte("data", today.isoformat()).execute()
+        best: dict = {}
+        for a in res.data or []:
+            g = a.get("giornalista", "")
+            if not g or g in SKIP:
+                continue
+            ave = float(a.get("ave") or 0)
+            if g not in best or ave > best[g]["ave"]:
+                best[g] = {"nome": g, "testata": a.get("testata",""), "titolo": a.get("titolo",""), "ave": ave}
+        ranked = sorted(best.values(), key=lambda x: x["ave"], reverse=True)[:limit]
+        return ranked
     except Exception as e:
         return []
 
@@ -611,7 +640,6 @@ async def get_articles_filtered(
                         kw in (a.get("occhiello") or "").lower()
                         for kw in keywords
                     )]
-
         elif topic:
             tl = topic.lower()
             articles = [a for a in articles if
@@ -987,33 +1015,41 @@ async def pitch_endpoint(message: str = Form(...), client_id: str = Form(""), hi
 # ══════════════════════════════════════════════════════════════════════
 
 def _run_digest_job(job_id: str):
-    """Eseguito in thread separato. Genera il digest e salva nel job store."""
+    """Eseguito in thread separato. Genera digest e salva su Supabase."""
     import traceback
     try:
         today = date.today().isoformat()
 
-        # Query leggera — NO testo_completo, nessun limite
-        # Il testo completo viene recuperato per-cliente dentro generate_digest
         res_art = (
             supabase.table("articles")
-            .select("id, testata, data, giornalista, titolo, occhiello, tone, ave")
+            .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave")
             .eq("data", today)
             .order("ave", desc=True)
             .execute()
         )
         articles_today = res_art.data or []
-        print(f"[DIGEST] {len(articles_today)} articoli oggi (query leggera)")
+        print(f"[DIGEST] {len(articles_today)} articoli oggi")
 
-        # Lista clienti
-        res_cli = supabase.table("clients").select("id, name").execute()
+        res_cli = supabase.table("clients").select("id, name, keywords_press, keywords").execute()
         clients = res_cli.data or []
 
         result = generate_digest(articles_today=articles_today, clients=clients)
 
-        if "error" in result:
+        if "error" in result and not result.get("text"):
             _set_job(job_id, "error", error=result["error"])
         else:
             _set_job(job_id, "done", result=result)
+            if result.get("text"):
+                try:
+                    supabase.table("digests").upsert({
+                        "data":            today,
+                        "text":            result["text"],
+                        "articles_today":  result.get("articles_today", 0),
+                        "client_mentions": result.get("client_mentions", 0),
+                    }, on_conflict="data").execute()
+                    print(f"[DIGEST] Salvato in Supabase per {today}")
+                except Exception as save_err:
+                    print(f"[DIGEST] Errore salvataggio Supabase: {save_err}")
 
     except Exception as e:
         tb = traceback.format_exc()
@@ -1023,16 +1059,63 @@ def _run_digest_job(job_id: str):
 
 @app.post("/api/daily-digest")
 async def daily_digest_endpoint():
-    """
-    Avvia la generazione del digest giornaliero in background.
-    Ritorna subito un job_id. Il frontend fa polling su /api/job/{job_id}.
-    """
     _cleanup_old_jobs()
     job_id = str(uuid.uuid4())[:12]
     _set_job(job_id, "pending")
     t = threading.Thread(target=_run_digest_job, args=(job_id,), daemon=True)
     t.start()
     return {"success": True, "job_id": job_id}
+
+
+@app.get("/api/digest/status")
+async def digest_status():
+    """Stato digest del giorno: ready | generating | idle"""
+    today = date.today().isoformat()
+    try:
+        res = supabase.table("digests").select("*").eq("data", today).execute()
+        if res.data:
+            row = res.data[0]
+            return {
+                "status":          "ready",
+                "text":            row.get("text", ""),
+                "articles_today":  row.get("articles_today", 0),
+                "client_mentions": row.get("client_mentions", 0),
+                "created_at":      row.get("created_at"),
+            }
+    except Exception as e:
+        print(f"[DIGEST STATUS] {e}")
+
+    for jid, j in _JOBS.items():
+        if j.get("status") in ("pending", "running"):
+            return {"status": "generating", "job_id": jid}
+
+    return {"status": "idle"}
+
+
+@app.get("/api/digest/dates")
+async def digest_dates():
+    """Lista date con digest disponibile (ultimi 30 giorni)."""
+    try:
+        res = supabase.table("digests") \
+            .select("data, articles_today, client_mentions, created_at") \
+            .order("data", desc=True).limit(30).execute()
+        return {"dates": res.data or []}
+    except Exception as e:
+        return {"dates": [], "error": str(e)}
+
+
+@app.get("/api/digest/{data_str}")
+async def get_digest_by_date(data_str: str):
+    """Recupera digest per data YYYY-MM-DD."""
+    try:
+        res = supabase.table("digests").select("*").eq("data", data_str).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Digest non trovato")
+        return res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ══════════════════════════════════════════════════════════════════════
