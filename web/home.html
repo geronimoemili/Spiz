@@ -304,10 +304,20 @@ function startPollDigest(jobId) {
     if (attempts > 160) { showDigestIdle('Timeout. Riprova.'); resetGenBtn(); return; }
     try {
       const d = await fetch(`/api/job/${jobId}`).then(r=>r.json());
+      console.log('[DIGEST POLL]', JSON.stringify({status:d.status, text_len:d.text?.length, art:d.articles_today, cli:d.client_mentions, err:d.error}));
       if (d.status === 'done') {
-        showDigest(d.text, d.articles_today, d.client_mentions, null);
-        resetGenBtn(); loadDigestDates();
-        toast('✅ Digest pronto!', 'success');
+        // Prova tutte le chiavi possibili in cui può arrivare il testo
+        const text = d.text || d.response || d.digest || d.content || '';
+        if (text) {
+          showDigest(text, d.articles_today, d.client_mentions, null);
+          resetGenBtn(); loadDigestDates();
+          toast('✅ Digest pronto!', 'success');
+        } else {
+          // Testo vuoto: log e mostra errore descrittivo invece del riquadro bianco
+          console.warn('[DIGEST] Job done ma testo vuoto. Risposta completa:', d);
+          showDigestIdle('Digest generato ma testo vuoto. Controlla i log del server.');
+          resetGenBtn();
+        }
       } else if (d.status === 'error') {
         showDigestIdle('Errore: ' + (d.error || ''));
         resetGenBtn(); toast('❌ Errore digest', 'error');
@@ -326,9 +336,25 @@ function showDigest(text, art, cli, createdAt) {
   if (cli) parts.push(cli + ' citazioni clienti');
   if (createdAt) parts.push('aggiornato ' + dtIT(createdAt));
   document.getElementById('digest-meta').textContent = parts.join(' · ');
+  // Renderizza senza esc() — il testo WA non ha HTML, esc() causa problemi con renderWA
   document.getElementById('digest-content').innerHTML =
-    '<div class="digest-body">' + renderWA(esc(text || '')) + '</div>';
+    '<div class="digest-body">' + renderWA(text || '') + '</div>';
   document.getElementById('btn-copy').style.display = 'inline-block';
+}
+
+function renderWA(text) {
+  // Escape caratteri HTML pericolosi ma preserva la struttura WA
+  let s = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // separatori ————
+  s = s.replace(/^[—\-]{4,}$/gm, '<hr style="border:none;border-top:1px solid #eef1f6;margin:8px 0">');
+  // *bold*
+  s = s.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+  // newline
+  s = s.replace(/\n/g, '<br>');
+  return s;
 }
 
 function showDigestLoader() {
