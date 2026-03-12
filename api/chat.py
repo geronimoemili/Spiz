@@ -99,7 +99,6 @@ def _date_range(context: str, message: str = ""):
 
 # ══════════════════════════════════════════════════════════════════════
 # STATISTICHE PYTHON — DATI DURI, NESSUNA AI
-# Calcola tutto in Python. L'AI riceve fatti, non deve indovinarli.
 # ══════════════════════════════════════════════════════════════════════
 
 
@@ -110,8 +109,8 @@ def _compute_stats(articles: list) -> dict:
     testate_count = Counter()
     testate_ave = defaultdict(float)
     giornalisti_count = Counter()
-    giornalisti_test = {}  # giornalista → testata
-    giornalisti_tone = defaultdict(Counter)  # giornalista → {tone: n}
+    giornalisti_test = {}
+    giornalisti_tone = defaultdict(Counter)
     tones = Counter()
     rep_risks = Counter()
     topics = Counter()
@@ -150,7 +149,6 @@ def _compute_stats(articles: list) -> dict:
 
     tone_tot = sum(tones.values()) or 1
 
-    # Righe formattate per i prompt
     testate_rows = []
     for t, cnt in testate_count.most_common(20):
         ave_s = f"{testate_ave[t]:,.0f}€" if testate_ave[t] else "N/D"
@@ -159,7 +157,6 @@ def _compute_stats(articles: list) -> dict:
     giorn_rows = []
     for g, cnt in giornalisti_count.most_common(25):
         test = giornalisti_test.get(g, "")
-        # Tone prevalente per giornalista
         tone_dist = giornalisti_tone.get(g, Counter())
         tone_s = ", ".join(
             f"{k}:{v}"
@@ -173,16 +170,10 @@ def _compute_stats(articles: list) -> dict:
         "periodo_da": min(dates) if dates else "",
         "periodo_a": max(dates) if dates else "",
         "testate_count": dict(testate_count.most_common(20)),
-        "testate_ave": {
-            k: round(v, 2)
-            for k, v in testate_ave.items()
-        },
+        "testate_ave": {k: round(v, 2) for k, v in testate_ave.items()},
         "giornalisti_count": dict(giornalisti_count.most_common(30)),
         "giornalisti_test": giornalisti_test,
-        "giornalisti_tone": {
-            g: dict(c)
-            for g, c in giornalisti_tone.items()
-        },
+        "giornalisti_tone": {g: dict(c) for g, c in giornalisti_tone.items()},
         "sentiment": {
             k: round(v / tone_tot * 100)
             for k, v in tones.items() if k
@@ -191,7 +182,6 @@ def _compute_stats(articles: list) -> dict:
         "topics": dict(topics.most_common(8)),
         "ave_totale": round(sum(testate_ave.values()), 2),
         "monthly": dict(sorted(monthly.items())),
-        # Stringhe pronte per i prompt
         "_testate_block": "\n".join(testate_rows),
         "_giornalisti_block": "\n".join(giorn_rows),
         "_trend_block": "\n".join(trend_rows),
@@ -227,15 +217,10 @@ def _article_block(a: dict, max_chars: int) -> str:
 
 # ══════════════════════════════════════════════════════════════════════
 # PROMPT — POSIZIONAMENTO GIORNALISTI
-# Benchmark: MPS_Report_Maim_2026.docx
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _build_posizionamento_system(
-    client_name: str,
-    topic_name: str,
-    refinement: str,
-) -> str:
+def _build_posizionamento_system(client_name, topic_name, refinement) -> str:
     subject = client_name or topic_name or "il soggetto del cliente"
     return f"""Sei SPIZ, analista senior di MAIM Public Diplomacy & Media Relations.
 Produci un report professionale riservato destinato al team di comunicazione del cliente.
@@ -358,10 +343,6 @@ Segnala 2-4 rischi o elementi rilevanti emersi dal corpus che il cliente
 deve monitorare nelle prossime settimane. Ogni punto deve essere ancorato
 a qualcosa di specifico nel corpus (testata, giornalista, titolo, dinamica).
 
-Esempi di categorie: rischio giudiziario come amplificatore mediatico,
-copertura internazionale, dinamiche tra fazioni di giornalisti,
-possibili escalation narrative.
-
 ## 8. PIANO D'AZIONE SINTETICO
 
 Azioni concrete, con orizzonte temporale esplicito (es. "Settimana 1",
@@ -381,11 +362,7 @@ Chiudi SEMPRE con questa riga separata:
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _build_narrazione_system(
-    client_name: str,
-    topic_name: str,
-    refinement: str,
-) -> str:
+def _build_narrazione_system(client_name, topic_name, refinement) -> str:
     subject = client_name or topic_name or ""
     focus_block = ""
     if subject:
@@ -472,27 +449,19 @@ perché questo lo rende il profilo giusto.
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _direct_report(
-    articles: list,
-    stats: dict,
-    system_prompt: str,
-) -> str:
+def _direct_report(articles, stats, system_prompt) -> str:
     corpus_blocks = "\n\n════\n\n".join(
         _article_block(a, DIRECT_TEXT_CHARS) for a in articles)
     resp = ai.chat.completions.create(
         model="gpt-4o",
         messages=[
+            {"role": "system", "content": system_prompt},
             {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role":
-                "user",
-                "content":
-                (f"STATISTICHE PRE-CALCOLATE:\n{_stats_prompt_block(stats)}\n\n"
-                 f"CORPUS COMPLETO ({len(articles)} articoli):\n\n{corpus_blocks}"
-                 )
+                "role": "user",
+                "content": (
+                    f"STATISTICHE PRE-CALCOLATE:\n{_stats_prompt_block(stats)}\n\n"
+                    f"CORPUS COMPLETO ({len(articles)} articoli):\n\n{corpus_blocks}"
+                )
             },
         ],
         temperature=0.05,
@@ -517,17 +486,10 @@ Per ogni articolo:
 - "reputational_risk": valore pre-calcolato
 - "ave": valore AVE ricevuto
 - "storia": la notizia in UNA riga — soggetto + verbo + oggetto concreti.
-  Non "l'articolo parla di X". Es: "BCE contesta i nuovi vertici di MPS
-  sulla solidità del piano" oppure "Lovaglio presenta lista concorrente"
 - "frame": attacco / difesa / indagine / elogio / allarme / analisi / cronaca
 - "linguaggio": array di 3-5 parole o brevi frasi ESATTE usate dall'articolo
-  che rivelano il frame narrativo del giornalista. Es: ["sfogo del banchiere",
-  "impallinato", "guerra di potere"]
-- "citazioni": array di max 2 citazioni dirette con speaker.
-  {"speaker": "nome", "testo": "citazione esatta"} — solo se presenti nel testo.
-  Altrimenti: []
+- "citazioni": array di max 2 citazioni dirette con speaker. Altrimenti: []
 - "fatto_chiave": il dato, numero, dichiarazione o accusa più concreta
-  e verificabile. Non generalizzazioni.
 Nessun testo fuori dal JSON."""
 
 
@@ -538,14 +500,8 @@ def _map_batch(batch: list, idx: int) -> tuple:
         resp = ai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": _MAP_SYSTEM
-                },
-                {
-                    "role": "user",
-                    "content": blocks
-                },
+                {"role": "system", "content": _MAP_SYSTEM},
+                {"role": "user", "content": blocks},
             ],
             temperature=0.0,
             max_tokens=4000,
@@ -582,31 +538,21 @@ def _map_parallel(articles: list) -> list:
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _reduce_report(
-    extracted: list,
-    stats: dict,
-    system_prompt: str,
-) -> str:
-    extracted_txt = json.dumps(extracted,
-                               ensure_ascii=False,
-                               separators=(',', ':'))
+def _reduce_report(extracted, stats, system_prompt) -> str:
+    extracted_txt = json.dumps(extracted, ensure_ascii=False, separators=(',', ':'))
     if len(extracted_txt) > 18000:
         extracted_txt = extracted_txt[:18000] + "...]"
 
     resp = ai.chat.completions.create(
         model="gpt-4o",
         messages=[
+            {"role": "system", "content": system_prompt},
             {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role":
-                "user",
-                "content":
-                (f"STATISTICHE PRE-CALCOLATE:\n{_stats_prompt_block(stats)}\n\n"
-                 f"ARTICOLI ESTRATTI (strutturati, {len(extracted)} articoli):\n{extracted_txt}"
-                 )
+                "role": "user",
+                "content": (
+                    f"STATISTICHE PRE-CALCOLATE:\n{_stats_prompt_block(stats)}\n\n"
+                    f"ARTICOLI ESTRATTI (strutturati, {len(extracted)} articoli):\n{extracted_txt}"
+                )
             },
         ],
         temperature=0.05,
@@ -635,9 +581,7 @@ def ask_spiz(
     refinement = (refinement or "").strip()
     report_type = (report_type or "posizionamento_giornalisti").strip()
 
-    print(
-        f"[SPIZ v16] report_type={report_type} client={client_name} topic={topic_name}"
-    )
+    print(f"[SPIZ v16] report_type={report_type} client={client_name} topic={topic_name}")
 
     # ── 1. ARTICOLI ──────────────────────────────────────────────────
     if preloaded_articles:
@@ -685,11 +629,9 @@ def ask_spiz(
 
     # ── 3. SCEGLI PROMPT ─────────────────────────────────────────────
     if report_type == "posizionamento_giornalisti":
-        system_prompt = _build_posizionamento_system(client_name, topic_name,
-                                                     refinement)
+        system_prompt = _build_posizionamento_system(client_name, topic_name, refinement)
     else:
-        system_prompt = _build_narrazione_system(client_name, topic_name,
-                                                 refinement)
+        system_prompt = _build_narrazione_system(client_name, topic_name, refinement)
 
     # ── 4. GENERA ────────────────────────────────────────────────────
     if n <= DIRECT_THRESHOLD:
@@ -703,16 +645,11 @@ def ask_spiz(
 
     # ── 5. RISPOSTA ──────────────────────────────────────────────────
     return {
-        "response":
-        report,
-        "is_report":
-        True,
-        "articles_used":
-        n,
-        "period_from":
-        stats.get("periodo_da", ""),
-        "period_to":
-        stats.get("periodo_a", ""),
+        "response": report,
+        "is_report": True,
+        "articles_used": n,
+        "period_from": stats.get("periodo_da", ""),
+        "period_to": stats.get("periodo_a", ""),
         "articles_list": [{
             "id": a.get("id", ""),
             "testata": a.get("testata", ""),
@@ -727,28 +664,14 @@ def ask_spiz(
 
 # ══════════════════════════════════════════════════════════════════════
 # DIGEST GIORNALIERO — formato WhatsApp
+# Logica tier:
+#   - Carica tabella testate_tier da Supabase
+#   - Tier1 (ordine custom) → GPT summary, senza etichetta tono
+#   - Tier2 (alfabetico) + testate sconosciute → solo riga testata/giornalista/titolo
 # ══════════════════════════════════════════════════════════════════════
 
 
-def _digest_article_block(a: dict, max_chars: int = 500) -> str:
-    testo = (a.get("testo_completo") or "")[:max_chars]
-    gior = a.get("giornalista") or "Redazione"
-    return (f"[{a.get('testata','')} | {a.get('data','')} | {gior}]\n"
-            f"TITOLO: {a.get('titolo','')}\n"
-            f"TESTO: {testo}")
-
-
 def generate_digest(articles_today: list, clients: list) -> dict:
-    """
-    Genera il digest mattutino in testo piano per WhatsApp.
-
-    Architettura:
-      - articles_today : articoli leggeri (NO testo_completo) — per conteggio e temi
-      - Per ogni cliente → query Supabase ilike su keywords_press (tutti i termini)
-        su titolo+occhiello+testo_completo, su tutti gli articoli del giorno
-      - GPT: 1 chiamata per i temi + 1 chiamata per cliente
-      - Output: sezione per cliente, articoli raggruppati, formato WA pulito
-    """
     if not articles_today:
         return {
             "error": "Nessun articolo trovato per oggi.",
@@ -767,32 +690,46 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         "FORMATO: testo semplice, *grassetto* solo dove indicato, "
         "italiano professionale, no emoji eccessive.")
 
-    # ══════════════════════════════════════════════════════════════════
-    # CHIAMATA 1 — TEMI DEL GIORNO
-    # ══════════════════════════════════════════════════════════════════
-    elenco_titoli = "\n".join(f"[{a.get('testata', '')}] {a.get('titolo', '')}"
-                              for a in articles_today)
+    # ── Carica tabella tier ───────────────────────────────────────────
+    # { "CORRIERE DELLA SERA": {"tier": 1, "ordine": 1}, ... }
+    tier_map: dict = {}
+    try:
+        res_tier = supabase.table("testate_tier").select("testata, tier, ordine").execute()
+        for row in (res_tier.data or []):
+            tier_map[(row["testata"] or "").upper()] = {
+                "tier":   row.get("tier", 2),
+                "ordine": row.get("ordine"),
+            }
+        print(f"[DIGEST] Caricate {len(tier_map)} testate dalla tabella tier")
+    except Exception as e:
+        print(f"[DIGEST] Errore caricamento tier: {e}")
+
+    def _get_tier_info(testata: str) -> dict:
+        """Tier e ordine per una testata. Default tier2 se non in tabella."""
+        return tier_map.get((testata or "").upper(), {"tier": 2, "ordine": None})
+
+    # ── CHIAMATA 1 — TEMI DEL GIORNO ─────────────────────────────────
+    elenco_titoli = "\n".join(
+        f"[{a.get('testata', '')}] {a.get('titolo', '')}"
+        for a in articles_today
+    )
 
     print("[DIGEST] Chiamata 1 — temi del giorno")
     resp1 = ai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
+            {"role": "system", "content": _SYS},
             {
-                "role": "system",
-                "content": _SYS
-            },
-            {
-                "role":
-                "user",
-                "content":
-                (f"Data: {today_str} | Totale articoli: {n_art}\n\n"
-                 f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
-                 f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
-                 f"*TEMI DEL GIORNO*\n\n"
-                 f"Identifica 4-6 temi ricorrenti. "
-                 f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
-                 f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
-                 )
+                "role": "user",
+                "content": (
+                    f"Data: {today_str} | Totale articoli: {n_art}\n\n"
+                    f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
+                    f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
+                    f"*TEMI DEL GIORNO*\n\n"
+                    f"Identifica 4-6 temi ricorrenti. "
+                    f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
+                    f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
+                )
             },
         ],
         temperature=0.1,
@@ -800,16 +737,11 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     )
     sezione_temi = resp1.choices[0].message.content.strip()
 
-    # ══════════════════════════════════════════════════════════════════
-    # QUERY SUPABASE PER CLIENTE — usa keywords_press
-    # Ogni keyword → OR su titolo+occhiello+testo_completo
-    # Nessun limite di articoli
-    # ══════════════════════════════════════════════════════════════════
+    # ── QUERY SUPABASE PER CLIENTE ────────────────────────────────────
     def _keywords_list(client: dict) -> list:
-        """Estrae lista di keyword da keywords_press, fallback su name."""
         raw = client.get("keywords_press") or client.get("name") or ""
         kws = [k.strip() for k in raw.split(",") if k.strip()]
-        return kws or [client.get("name", "").strip()]
+        return kws or [(client.get("name") or "").strip()]
 
     client_articles: dict = {}
     total_citazioni = 0
@@ -820,26 +752,27 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             continue
         keywords = _keywords_list(client)
 
-        # Costruisce stringa OR per Supabase: tutti i termini su tutti e tre i campi
         or_parts = []
         for kw in keywords:
-            kw_esc = kw.replace("'", "''")  # escape apostrofi
+            kw_esc = kw.replace("'", "''")
             or_parts.append(f"titolo.ilike.%{kw_esc}%")
             or_parts.append(f"occhiello.ilike.%{kw_esc}%")
             or_parts.append(f"testo_completo.ilike.%{kw_esc}%")
 
         try:
-            res = (supabase.table("articles").select(
-                "id, testata, data, giornalista, titolo, occhiello, "
-                "testo_completo, tone, ave").eq("data", today).or_(
-                    ",".join(or_parts)).order("ave", desc=True).execute())
+            res = (
+                supabase.table("articles")
+                .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave")
+                .eq("data", today)
+                .or_(",".join(or_parts))
+                .order("ave", desc=True)
+                .execute()
+            )
             arts = res.data or []
             if arts:
                 client_articles[nome] = arts
                 total_citazioni += len(arts)
-                print(
-                    f"[DIGEST] {nome}: {len(arts)} articoli | keywords: {keywords}"
-                )
+                print(f"[DIGEST] {nome}: {len(arts)} articoli")
             else:
                 print(f"[DIGEST] {nome}: nessuna citazione oggi")
         except Exception as e:
@@ -847,87 +780,128 @@ def generate_digest(articles_today: list, clients: list) -> dict:
 
     print(f"[DIGEST] totale citazioni clienti: {total_citazioni}")
 
-    # ══════════════════════════════════════════════════════════════════
-    # CHIAMATA GPT PER CLIENTE
-    # Formato voce:
-    #   📰 *CORRIERE DELLA SERA*, Mario Rossi
-    #   Titolo articolo
-    #   → sintesi 2-3 righe, tono
-    # ══════════════════════════════════════════════════════════════════
-    def _art_block_cliente(a: dict) -> str:
+    # ── FUNZIONI HELPER ───────────────────────────────────────────────
+    def _art_block_gpt(a: dict) -> str:
+        """Blocco testo per chiamata GPT (tier1)."""
         testo = (a.get("testo_completo") or "")[:1500]
-        return (f"Testata: {a.get('testata', '').upper()}\n"
-                f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
-                f"Titolo: {a.get('titolo', '')}\n"
-                f"Testo:\n{testo}")
+        return (
+            f"Testata: {(a.get('testata') or '').upper()}\n"
+            f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
+            f"Titolo: {a.get('titolo', '')}\n"
+            f"Testo:\n{testo}"
+        )
 
-    _ISTR_CLIENTE = (
+    # Istruzione GPT tier1 — senza tono (positivo/negativo/neutro)
+    _ISTR_TIER1 = (
         "Produci una voce per ogni articolo in questo formato ESATTO "
         "(rispetta maiuscole, grassetti, nessun campo aggiuntivo):\n\n"
         "*TESTATA IN MAIUSCOLO*, Nome Giornalista\n"
         "Titolo articolo\n"
-        "→ 2-3 righe: cosa dice sul cliente, tono (positivo/neutro/critico)\n\n"
+        "→ 2-3 righe: cosa dice sul cliente\n\n"
         "Separa ogni voce con una riga vuota.\n"
-        "Produci SOLO le voci, senza intestazioni aggiuntive.")
+        "Produci SOLO le voci, senza intestazioni aggiuntive.\n"
+        "NON indicare tono (non scrivere positivo/negativo/neutro)."
+    )
 
-    # Icone per i clienti (ciclo su lista)
     _ICONS = ["📌", "📎", "🔹", "🔸", "▪️", "🔷", "🟦", "🟧", "🟩", "🟥"]
 
+    # ── SEZIONI PER CLIENTE ───────────────────────────────────────────
     sezioni_clienti = []
 
     for idx, (nome_cliente, arts) in enumerate(client_articles.items()):
-        n_arts_cliente = len(arts)
         icon = _ICONS[idx % len(_ICONS)]
-        print(f"[DIGEST] GPT sezione: {nome_cliente} ({n_arts_cliente} art.)")
 
-        BATCH = 8
-        parti = []
-        for i in range(0, n_arts_cliente, BATCH):
-            batch = arts[i:i + BATCH]
-            blocchi = "\n\n---\n\n".join(_art_block_cliente(a) for a in batch)
-            msg = (
-                f"Cliente: {nome_cliente}\n"
-                f"Articoli che lo citano oggi ({n_arts_cliente} totali):\n\n"
-                f"{blocchi}\n\n"
-                f"{_ISTR_CLIENTE}")
-            resp = ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": _SYS
-                    },
-                    {
-                        "role": "user",
-                        "content": msg
-                    },
-                ],
-                temperature=0.0,
-                max_tokens=1500,
-            )
-            parti.append(resp.choices[0].message.content.strip())
+        # Separa tier1 e tier2 (sconosciute → tier2)
+        tier1_list = []  # lista di (ordine, articolo)
+        tier2_list = []  # lista di articolo
 
-        voci = "\n\n".join(parti)
-        label = "articolo" if n_arts_cliente == 1 else "articoli"
+        for a in arts:
+            info = _get_tier_info(a.get("testata", ""))
+            if info["tier"] == 1:
+                ordine = info["ordine"] if info["ordine"] is not None else 999
+                tier1_list.append((ordine, a))
+            else:
+                tier2_list.append(a)
+
+        # Tier1: ordine custom; tier2: alfabetico per testata
+        tier1_list.sort(key=lambda x: x[0])
+        tier1_arts = [a for _, a in tier1_list]
+        tier2_list.sort(key=lambda a: (a.get("testata") or "").upper())
+
+        n_tot = len(arts)
+        label = "articolo" if n_tot == 1 else "articoli"
+
+        # ── Tier1: GPT summary ─────────────────────────────────────
+        voci_tier1 = ""
+        if tier1_arts:
+            print(f"[DIGEST] GPT tier1 — {nome_cliente}: {len(tier1_arts)} art.")
+            BATCH = 8
+            parti = []
+            for i in range(0, len(tier1_arts), BATCH):
+                batch = tier1_arts[i:i + BATCH]
+                blocchi = "\n\n---\n\n".join(_art_block_gpt(a) for a in batch)
+                msg = (
+                    f"Cliente: {nome_cliente}\n"
+                    f"Articoli ({len(batch)}):\n\n"
+                    f"{blocchi}\n\n"
+                    f"{_ISTR_TIER1}"
+                )
+                resp = ai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": _SYS},
+                        {"role": "user", "content": msg},
+                    ],
+                    temperature=0.0,
+                    max_tokens=1500,
+                )
+                parti.append(resp.choices[0].message.content.strip())
+            voci_tier1 = "\n\n".join(parti)
+
+        # ── Tier2: solo riga testata / giornalista — titolo ────────
+        voci_tier2 = ""
+        if tier2_list:
+            righe = []
+            for a in tier2_list:
+                testata = (a.get("testata") or "").upper()
+                gior    = a.get("giornalista") or "Redazione"
+                titolo  = a.get("titolo") or ""
+                righe.append(f"*{testata}*, {gior} — {titolo}")
+            voci_tier2 = "\n".join(righe)
+
+        # ── Assembla sezione cliente ────────────────────────────────
+        parti_sezione = []
+        if voci_tier1:
+            parti_sezione.append(voci_tier1)
+        if voci_tier2:
+            if voci_tier1:
+                # separatore visivo tra tier1 e tier2
+                parti_sezione.append(f"_Altre testate:_\n{voci_tier2}")
+            else:
+                parti_sezione.append(voci_tier2)
+
+        corpo = "\n\n".join(parti_sezione) if parti_sezione else "Nessun articolo."
+
         sezioni_clienti.append(
-            f"{icon} *{nome_cliente.upper()}* — {n_arts_cliente} {label}\n\n"
-            f"{voci}")
+            f"{icon} *{nome_cliente.upper()}* — {n_tot} {label}\n\n{corpo}"
+        )
 
     if sezioni_clienti:
-        sezione_clienti = (
-            "\n\n————————————————————\n\n").join(sezioni_clienti)
+        sezione_clienti = ("\n\n————————————————————\n\n").join(sezioni_clienti)
     else:
         sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
     # ── Assemblaggio finale ───────────────────────────────────────────
-    text = (f"*MAIM DIGEST — {today_str}*\n\n"
-            f"————————————————————\n\n"
-            f"{sezione_temi}\n\n"
-            f"————————————————————\n\n"
-            f"*I TUOI CLIENTI SUI MEDIA*\n\n"
-            f"{sezione_clienti}\n\n"
-            f"————————————————————\n"
-            f"_MAIM Intelligence — uso interno_")
+    text = (
+        f"*MAIM DIGEST — {today_str}*\n\n"
+        f"————————————————————\n\n"
+        f"{sezione_temi}\n\n"
+        f"————————————————————\n\n"
+        f"*I TUOI CLIENTI SUI MEDIA*\n\n"
+        f"{sezione_clienti}\n\n"
+        f"————————————————————\n"
+        f"_MAIM Intelligence — uso interno_"
+    )
 
     return {
         "text": text,
