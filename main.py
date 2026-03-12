@@ -1030,7 +1030,7 @@ def _run_digest_job(job_id: str):
         articles_today = res_art.data or []
         print(f"[DIGEST] {len(articles_today)} articoli oggi")
 
-        res_cli = supabase.table("clients").select("id, name, keywords_press, keywords").execute()
+        res_cli = supabase.table("clients").select("id, name, keywords_press").execute()
         clients = res_cli.data or []
 
         result = generate_digest(articles_today=articles_today, clients=clients)
