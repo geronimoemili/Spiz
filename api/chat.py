@@ -687,14 +687,11 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     Genera il digest mattutino in testo piano per WhatsApp.
 
     Architettura:
-      - articles_today : articoli leggeri (NO testo_completo) — solo per conteggio e temi
-      - Per ogni cliente → query Supabase ilike su titolo+occhiello+testo_completo
-        così si trovano citazioni ovunque nell'articolo, senza limite di 300
-      - GPT: 1 chiamata per i temi + 1 chiamata per cliente (sezione ordinata)
-      - Output: una sezione per cliente, tutti i suoi articoli raggruppati
-
-    articles_today : lista leggera (titolo, testata, giornalista, data, tone, ave)
-    clients        : lista di dict con campo 'name'
+      - articles_today : articoli leggeri (NO testo_completo) — per conteggio e temi
+      - Per ogni cliente → query Supabase ilike su keywords_press (tutti i termini)
+        su titolo+occhiello+testo_completo, su tutti gli articoli del giorno
+      - GPT: 1 chiamata per i temi + 1 chiamata per cliente
+      - Output: sezione per cliente, articoli raggruppati, formato WA pulito
     """
     if not articles_today:
         return {
@@ -704,21 +701,19 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             "client_mentions": 0,
         }
 
-    today         = date.today().isoformat()
-    today_str     = date.today().strftime("%d/%m/%Y")
-    n_art         = len(articles_today)
-    client_names  = [c.get("name", "").strip() for c in (clients or []) if c.get("name")]
+    today     = date.today().isoformat()
+    today_str = date.today().strftime("%d/%m/%Y")
+    n_art     = len(articles_today)
 
     _SYS = (
         "Sei il sistema MAIM Intelligence. Produci contenuto per il digest "
         "mattutino interno dell'agenzia, da condividere su WhatsApp.\n"
-        "FORMATO: testo semplice, *grassetto* solo per titoli sezione e nomi clienti, "
-        "separatori ————————————————————, italiano professionale, no emoji eccessive."
+        "FORMATO: testo semplice, *grassetto* solo dove indicato, "
+        "italiano professionale, no emoji eccessive."
     )
 
     # ══════════════════════════════════════════════════════════════════
     # CHIAMATA 1 — TEMI DEL GIORNO
-    # Input: solo [Testata] Titolo di tutti gli articoli — token minimi
     # ══════════════════════════════════════════════════════════════════
     elenco_titoli = "\n".join(
         f"[{a.get('testata', '')}] {a.get('titolo', '')}"
@@ -746,14 +741,33 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     sezione_temi = resp1.choices[0].message.content.strip()
 
     # ══════════════════════════════════════════════════════════════════
-    # QUERY SUPABASE PER CLIENTE — ilike su testo_completo+titolo+occhiello
-    # Trova citazioni ovunque nell'articolo, senza limite di volume
+    # QUERY SUPABASE PER CLIENTE — usa keywords_press
+    # Ogni keyword → OR su titolo+occhiello+testo_completo
+    # Nessun limite di articoli
     # ══════════════════════════════════════════════════════════════════
-    # client_articles: { nome_cliente: [articoli con testo_completo] }
+    def _keywords_list(client: dict) -> list:
+        """Estrae lista di keyword da keywords_press, fallback su name."""
+        raw = client.get("keywords_press") or client.get("name") or ""
+        kws = [k.strip() for k in raw.split(",") if k.strip()]
+        return kws or [client.get("name", "").strip()]
+
     client_articles: dict = {}
     total_citazioni = 0
 
-    for name in client_names:
+    for client in (clients or []):
+        nome = (client.get("name") or "").strip()
+        if not nome:
+            continue
+        keywords = _keywords_list(client)
+
+        # Costruisce stringa OR per Supabase: tutti i termini su tutti e tre i campi
+        or_parts = []
+        for kw in keywords:
+            kw_esc = kw.replace("'", "''")  # escape apostrofi
+            or_parts.append(f"titolo.ilike.%{kw_esc}%")
+            or_parts.append(f"occhiello.ilike.%{kw_esc}%")
+            or_parts.append(f"testo_completo.ilike.%{kw_esc}%")
+
         try:
             res = (
                 supabase.table("articles")
@@ -762,64 +776,65 @@ def generate_digest(articles_today: list, clients: list) -> dict:
                     "testo_completo, tone, ave"
                 )
                 .eq("data", today)
-                .or_(
-                    f"titolo.ilike.%{name}%,"
-                    f"occhiello.ilike.%{name}%,"
-                    f"testo_completo.ilike.%{name}%"
-                )
+                .or_(",".join(or_parts))
                 .order("ave", desc=True)
                 .execute()
             )
             arts = res.data or []
             if arts:
-                client_articles[name] = arts
+                client_articles[nome] = arts
                 total_citazioni += len(arts)
-                print(f"[DIGEST] {name}: {len(arts)} articoli trovati")
+                print(f"[DIGEST] {nome}: {len(arts)} articoli | keywords: {keywords}")
             else:
-                print(f"[DIGEST] {name}: nessuna citazione oggi")
+                print(f"[DIGEST] {nome}: nessuna citazione oggi")
         except Exception as e:
-            print(f"[DIGEST] errore query per {name}: {e}")
+            print(f"[DIGEST] errore query per {nome}: {e}")
 
     print(f"[DIGEST] totale citazioni clienti: {total_citazioni}")
 
     # ══════════════════════════════════════════════════════════════════
-    # CHIAMATA 2+ — UNA PER CLIENTE
-    # Per ogni cliente: tutti i suoi articoli → sezione ordinata
-    # testo_completo troncato a 1500 chars per articolo
+    # CHIAMATA GPT PER CLIENTE
+    # Formato voce:
+    #   📰 *CORRIERE DELLA SERA*, Mario Rossi
+    #   Titolo articolo
+    #   → sintesi 2-3 righe, tono
     # ══════════════════════════════════════════════════════════════════
     def _art_block_cliente(a: dict) -> str:
         testo = (a.get("testo_completo") or "")[:1500]
         return (
-            f"Testata: {a.get('testata', '')}\n"
+            f"Testata: {a.get('testata', '').upper()}\n"
             f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
-            f"Data: {a.get('data', '')}\n"
             f"Titolo: {a.get('titolo', '')}\n"
             f"Testo:\n{testo}"
         )
 
     _ISTR_CLIENTE = (
-        "Produci una voce per ogni articolo in questo formato esatto:\n\n"
-        "[Testata] Giornalista — Data\n"
+        "Produci una voce per ogni articolo in questo formato ESATTO "
+        "(rispetta maiuscole, grassetti, nessun campo aggiuntivo):\n\n"
+        "*TESTATA IN MAIUSCOLO*, Nome Giornalista\n"
         "Titolo articolo\n"
         "→ 2-3 righe: cosa dice sul cliente, tono (positivo/neutro/critico)\n\n"
         "Separa ogni voce con una riga vuota.\n"
-        "Produci SOLO le voci, senza intestazioni."
+        "Produci SOLO le voci, senza intestazioni aggiuntive."
     )
+
+    # Icone per i clienti (ciclo su lista)
+    _ICONS = ["📌", "📎", "🔹", "🔸", "▪️", "🔷", "🟦", "🟧", "🟩", "🟥"]
 
     sezioni_clienti = []
 
-    for nome_cliente, arts in client_articles.items():
+    for idx, (nome_cliente, arts) in enumerate(client_articles.items()):
         n_arts_cliente = len(arts)
-        print(f"[DIGEST] GPT sezione cliente: {nome_cliente} ({n_arts_cliente} art.)")
+        icon = _ICONS[idx % len(_ICONS)]
+        print(f"[DIGEST] GPT sezione: {nome_cliente} ({n_arts_cliente} art.)")
 
-        # Batch da 8 articoli se sono molti
         BATCH = 8
         parti = []
         for i in range(0, n_arts_cliente, BATCH):
             batch = arts[i:i + BATCH]
             blocchi = "\n\n---\n\n".join(_art_block_cliente(a) for a in batch)
             msg = (
-                f"Cliente: *{nome_cliente}*\n"
+                f"Cliente: {nome_cliente}\n"
                 f"Articoli che lo citano oggi ({n_arts_cliente} totali):\n\n"
                 f"{blocchi}\n\n"
                 f"{_ISTR_CLIENTE}"
@@ -836,21 +851,20 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             parti.append(resp.choices[0].message.content.strip())
 
         voci = "\n\n".join(parti)
+        label = "articolo" if n_arts_cliente == 1 else "articoli"
         sezioni_clienti.append(
-            f"*{nome_cliente.upper()}* — {n_arts_cliente} "
-            f"{'articolo' if n_arts_cliente == 1 else 'articoli'}\n\n"
+            f"{icon} *{nome_cliente.upper()}* — {n_arts_cliente} {label}\n\n"
             f"{voci}"
         )
 
     if sezioni_clienti:
-        sezione_clienti = ("\n\n" + "·" * 20 + "\n\n").join(sezioni_clienti)
+        sezione_clienti = ("\n\n————————————————————\n\n").join(sezioni_clienti)
     else:
         sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
-    # ── Assemblaggio finale (nessuna AI) ─────────────────────────────
+    # ── Assemblaggio finale ───────────────────────────────────────────
     text = (
-        f"*MAIM DIGEST — {today_str}*\n"
-        f"{n_art} articoli raccolti oggi\n\n"
+        f"*MAIM DIGEST — {today_str}*\n\n"
         f"————————————————————\n\n"
         f"{sezione_temi}\n\n"
         f"————————————————————\n\n"
