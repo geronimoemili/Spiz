@@ -1014,15 +1014,67 @@ async def pitch_endpoint(message: str = Form(...), client_id: str = Form(""), hi
 # DAILY DIGEST
 # ══════════════════════════════════════════════════════════════════════
 
+def _send_digest_email(text: str, today_str: str):
+    """
+    Legge i destinatari attivi da digest_recipients su Supabase
+    e invia il digest in plain text via Resend.
+    Non solleva eccezioni — logga solo.
+    """
+    try:
+        import resend
+    except ImportError:
+        print("[EMAIL] resend non installato — esegui: pip install resend")
+        return
+
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key:
+        print("[EMAIL] RESEND_API_KEY non configurata — invio saltato")
+        return
+
+    resend.api_key = api_key
+
+    # Legge destinatari attivi
+    try:
+        res_rec = (
+            supabase.table("digest_recipients")
+            .select("email, name")
+            .eq("active", True)
+            .execute()
+        )
+        recipients = res_rec.data or []
+    except Exception as e:
+        print(f"[EMAIL] Errore lettura destinatari: {e}")
+        return
+
+    if not recipients:
+        print("[EMAIL] Nessun destinatario attivo — invio saltato")
+        return
+
+    to_list = [r["email"] for r in recipients if r.get("email")]
+    print(f"[EMAIL] Invio a {len(to_list)} destinatari: {to_list}")
+
+    try:
+        resend.Emails.send({
+            "from":    "MAIM Digest <digest@maim.it>",  # cambia con il tuo dominio verificato su Resend
+            "to":      to_list,
+            "subject": f"MAIM DIGEST — {today_str}",
+            "text":    text,
+        })
+        print(f"[EMAIL] Inviato correttamente a {len(to_list)} destinatari")
+    except Exception as e:
+        print(f"[EMAIL] Errore invio: {e}")
+
+
 def _run_digest_job(job_id: str):
-    """Eseguito in thread separato. Genera digest e salva su Supabase."""
+    """Eseguito in thread separato. Genera digest, invia email, salva su Supabase."""
     import traceback
     try:
-        today = date.today().isoformat()
+        today     = date.today().isoformat()
+        today_str = date.today().strftime("%d/%m/%Y")
 
         res_art = (
             supabase.table("articles")
-            .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave")
+            .select("id, testata, data, giornalista, titolo, occhiello, testo_completo, tone, ave, tipologia_articolo")
             .eq("data", today)
             .order("ave", desc=True)
             .execute()
@@ -1030,7 +1082,7 @@ def _run_digest_job(job_id: str):
         articles_today = res_art.data or []
         print(f"[DIGEST] {len(articles_today)} articoli oggi")
 
-        res_cli = supabase.table("clients").select("id, name, keywords_press").execute()
+        res_cli = supabase.table("clients").select("id, name, keywords_web").execute()
         clients = res_cli.data or []
 
         result = generate_digest(articles_today=articles_today, clients=clients)
@@ -1039,11 +1091,17 @@ def _run_digest_job(job_id: str):
             _set_job(job_id, "error", error=result["error"])
         else:
             _set_job(job_id, "done", result=result)
-            if result.get("text"):
+            digest_text = result.get("text", "")
+
+            if digest_text:
+                # 1. Invia email
+                _send_digest_email(digest_text, today_str)
+
+                # 2. Salva su Supabase
                 try:
                     supabase.table("digests").upsert({
                         "data":            today,
-                        "text":            result["text"],
+                        "text":            digest_text,
                         "articles_today":  result.get("articles_today", 0),
                         "client_mentions": result.get("client_mentions", 0),
                     }, on_conflict="data").execute()

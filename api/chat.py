@@ -827,14 +827,10 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         if not nome:
             continue
 
-        # Usa keywords_web (singola keyword più precisa)
+        # Usa SOLO keywords_web — nessun fallback
         kw_web = (client.get("keywords_web") or "").strip()
         if not kw_web:
-            # Fallback: prima keyword da keywords (press)
-            raw_press = (client.get("keywords") or client.get("keywords_press") or "").strip()
-            kw_web = raw_press.split(",")[0].strip() if raw_press else ""
-        if not kw_web:
-            print(f"[DIGEST] {nome}: nessuna keyword, skip")
+            print(f"[DIGEST] {nome}: keywords_web vuota, skip")
             continue
 
         kw_esc = kw_web.replace("'", "''")
