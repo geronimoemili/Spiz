@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
@@ -1174,6 +1174,48 @@ async def get_digest_by_date(data_str: str):
         raise
     except Exception as e:
         return {"error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# DIGEST AUDIO (OpenAI TTS)
+# ══════════════════════════════════════════════════════════════════════
+
+class DigestAudioRequest(BaseModel):
+    text: str
+
+@app.post("/api/digest-audio")
+async def digest_audio(req: DigestAudioRequest):
+    """
+    Riceve il testo del digest e restituisce un MP3 generato da OpenAI TTS.
+    Voce: shimmer — modello: tts-1.
+    """
+    from openai import OpenAI
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Testo vuoto")
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
+
+    try:
+        ai = OpenAI(api_key=api_key)
+        # Pulizia testo: rimuove formattazione WA non necessaria per audio
+        clean = req.text.replace("*", "").replace("_", "").replace("————————————————————", ". ")
+        response = ai.audio.speech.create(
+            model="tts-1",
+            voice="shimmer",
+            input=clean,
+            response_format="mp3",
+        )
+        audio_bytes = response.content
+        return StreamingResponse(
+            iter([audio_bytes]),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=digest.mp3"}
+        )
+    except Exception as e:
+        print(f"[AUDIO TTS] Errore: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ══════════════════════════════════════════════════════════════════════

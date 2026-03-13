@@ -391,24 +391,44 @@ function copyDigest() {
 }
 
 /* ─── TEXT TO SPEECH ── */
+let _ttsAudio = null;
+
 function _ttsStopDigest() {
-  window.speechSynthesis.cancel();
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
   const btn = document.getElementById('btn-tts');
-  if (btn) { btn.classList.remove('speaking'); btn.textContent = '🔊 Leggi'; }
+  if (btn) { btn.classList.remove('speaking'); btn.textContent = '🔊 Leggi'; btn.disabled = false; }
 }
 
-function toggleTTSDigest() {
-  if (window.speechSynthesis.speaking) { _ttsStopDigest(); return; }
+async function toggleTTSDigest() {
+  // Se sta già suonando → stop
+  if (_ttsAudio && !_ttsAudio.paused) { _ttsStopDigest(); return; }
+
   if (!currentDigestText) return;
-  const utt = new SpeechSynthesisUtterance(currentDigestText);
-  utt.lang  = 'it-IT';
-  utt.rate  = 0.95;
-  utt.onend  = () => _ttsStopDigest();
-  utt.onerror = () => _ttsStopDigest();
   const btn = document.getElementById('btn-tts');
-  btn.classList.add('speaking');
-  btn.textContent = '⏹ Stop';
-  window.speechSynthesis.speak(utt);
+  btn.disabled = true;
+  btn.textContent = '⏳ Carico…';
+
+  try {
+    const res = await fetch('/api/digest-audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: currentDigestText })
+    });
+    if (!res.ok) throw new Error('Errore server TTS');
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    _ttsAudio  = new Audio(url);
+    _ttsAudio.onended  = () => _ttsStopDigest();
+    _ttsAudio.onerror  = () => _ttsStopDigest();
+    _ttsAudio.play();
+    btn.classList.add('speaking');
+    btn.textContent = '⏹ Stop';
+    btn.disabled = false;
+  } catch(e) {
+    btn.textContent = '🔊 Leggi';
+    btn.disabled = false;
+    toast('Errore audio: ' + e.message, 'error');
+  }
 }
 
 function renderWA(html) {

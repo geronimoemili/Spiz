@@ -394,37 +394,50 @@ function copyShareLink(){
 }
 
 /* ─── TEXT TO SPEECH ── */
-let _ttsUtterance = null;
+let _ttsAudio = null;
 
 function _ttsStop(){
-  window.speechSynthesis.cancel();
-  _ttsUtterance = null;
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
   document.querySelectorAll('.btn-tts').forEach(b=>{
     b.classList.remove('speaking');
     b.textContent='🔊 Leggi';
+    b.disabled = false;
   });
 }
 
-function toggleTTS(scope){
-  const btn = document.getElementById('btn-tts-' + scope);
-  if(window.speechSynthesis.speaking){
-    _ttsStop(); return;
-  }
-  // Estrai testo leggibile dal dettaglio articolo
+async function toggleTTS(scope){
+  if (_ttsAudio && !_ttsAudio.paused) { _ttsStop(); return; }
+
   const detail = document.getElementById('detail-content');
-  if(!detail) return;
-  const raw = detail.innerText || detail.textContent || '';
-  if(!raw.trim()) return;
+  if (!detail) return;
+  const raw = (detail.innerText || detail.textContent || '').trim();
+  if (!raw) return;
 
-  _ttsUtterance = new SpeechSynthesisUtterance(raw);
-  _ttsUtterance.lang = 'it-IT';
-  _ttsUtterance.rate = 0.95;
-  _ttsUtterance.onend = () => _ttsStop();
-  _ttsUtterance.onerror = () => _ttsStop();
+  const btn = document.getElementById('btn-tts-' + scope);
+  btn.disabled = true;
+  btn.textContent = '⏳ Carico…';
 
-  btn.classList.add('speaking');
-  btn.textContent = '⏹ Stop';
-  window.speechSynthesis.speak(_ttsUtterance);
+  try {
+    const res = await fetch('/api/digest-audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: raw })
+    });
+    if (!res.ok) throw new Error('Errore server TTS');
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    _ttsAudio  = new Audio(url);
+    _ttsAudio.onended = () => _ttsStop();
+    _ttsAudio.onerror = () => _ttsStop();
+    _ttsAudio.play();
+    btn.classList.add('speaking');
+    btn.textContent = '⏹ Stop';
+    btn.disabled = false;
+  } catch(e) {
+    btn.textContent = '🔊 Leggi';
+    btn.disabled = false;
+    alert('Errore audio: ' + e.message);
+  }
 }
 
 window.onload=function(){ loadDashboard(); loadMacroGroups(); };
