@@ -674,12 +674,11 @@ def ask_spiz(
 def generate_digest(articles_today: list, clients: list) -> dict:
     """
     Struttura digest:
-      1. TEMI DEL GIORNO
-      2. INTERVISTE (tutti gli articoli tipologia=intervista, tier1 GPT summary)
-      3. I TUOI CLIENTI SUI MEDIA
-         - matching via keywords_web (singola keyword, più precisa)
-         - solo tier1, ordine custom
-         - icona fissa 🟧 per tutti i clienti
+      1. Header: *MAIM DIGEST* + data per esteso + meteo Roma
+      2. TEMI PRINCIPALI + DA TENERE D'OCCHIO
+      3. INTERVISTE (tipologia=intervista, tier1, GPT summary)
+      4. CLIENTI (keywords_web, tier1, icona 🟧)
+      5. Footer con conteggio testate e articoli
     """
     if not articles_today:
         return {
@@ -692,6 +691,31 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     today     = date.today().isoformat()
     today_str = date.today().strftime("%d/%m/%Y")
     n_art     = len(articles_today)
+
+    # ── Data per esteso in italiano ───────────────────────────────────
+    giorni   = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
+    mesi     = ["","gennaio","febbraio","marzo","aprile","maggio","giugno",
+                "luglio","agosto","settembre","ottobre","novembre","dicembre"]
+    _d       = date.today()
+    data_ext = f"{giorni[_d.weekday()]} {_d.day} {mesi[_d.month]} {_d.year}"
+
+    # ── Meteo Roma (Open-Meteo, no API key) ───────────────────────────
+    meteo_str = ""
+    try:
+        import urllib.request, json as _json
+        url_meteo = (
+            "https://api.open-meteo.com/v1/forecast"
+            "?latitude=41.9028&longitude=12.4964"
+            "&daily=temperature_2m_min,temperature_2m_max"
+            "&timezone=Europe/Rome&forecast_days=1"
+        )
+        with urllib.request.urlopen(url_meteo, timeout=5) as r:
+            mdata = _json.loads(r.read())
+        t_min = round(mdata["daily"]["temperature_2m_min"][0])
+        t_max = round(mdata["daily"]["temperature_2m_max"][0])
+        meteo_str = f"🌡️Min {t_min} Max {t_max}"
+    except Exception as me:
+        print(f"[DIGEST] Meteo non disponibile: {me}")
 
     _SYS = (
         "Sei il sistema MAIM Intelligence. Produci contenuto per il digest "
@@ -780,13 +804,11 @@ def generate_digest(articles_today: list, clients: list) -> dict:
                     f"Data: {today_str} | Totale articoli: {n_art}\n\n"
                     f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
                     f"Produci SOLO la sezione temi in questo formato esatto, senza aggiungere nulla fuori dal formato:\n\n"
-                    f"*SCENARIO DEL GIORNO*\n"
-                    f"[Tre righe secche. Qual è il fatto dominante della giornata. Solo fatti, nessuna interpretazione.]\n\n"
-                    f"*TEMI PRINCIPALI*\n"
+                    f"▶️*TEMI PRINCIPALI*\n"
                     f"[Massimo 5 temi. Per ognuno: *nome breve in grassetto* seguito da 2 righe max di fatti puri, niente interpretazioni né commenti. "
                     f"Rispetta questo ordine di priorità: prima politica estera, poi politica interna, poi economia, poi energia, poi cultura. "
                     f"Includi solo i temi effettivamente presenti negli articoli di oggi.]\n\n"
-                    f"*DA TENERE D'OCCHIO*\n"
+                    f"▶️*DA TENERE D'OCCHIO*\n"
                     f"[1-2 segnali deboli o sviluppi in corso che potrebbero diventare rilevanti nei prossimi giorni. "
                     f"Tono operativo, utile per chi fa comunicazione.]"
                 )
@@ -814,7 +836,7 @@ def generate_digest(articles_today: list, clients: list) -> dict:
     if interviste_raw:
         print(f"[DIGEST] Interviste tier1: {len(interviste_raw)}")
         voci_int = _gpt_voci(interviste_raw, "Articoli di tipo INTERVISTA di oggi")
-        sezione_interviste = f"*INTERVISTE*\n\n{voci_int}"
+        sezione_interviste = f"🎤*INTERVISTE*\n\n{voci_int}"
     else:
         print("[DIGEST] Nessuna intervista tier1 oggi")
 
@@ -884,32 +906,45 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         print(f"[DIGEST] GPT sezione — {nome_cliente}: {n_t1} art. tier1")
         voci = _gpt_voci(tier1_arts, f"Cliente: {nome_cliente}")
 
-        label = "articolo" if n_all == 1 else "articoli"
-        # Se n_all > n_t1 indica quante testate locali sono escluse
+        label = "articolo" if n_t1 == 1 else "articoli"
         extra = f" (+{n_all - n_t1} testate locali)" if n_all > n_t1 else ""
 
         sezioni_clienti.append(
-            f"🟧 *{nome_cliente.upper()}* — {n_all} {label}{extra}\n\n{voci}"
+            f"🟧 *{nome_cliente.upper()}* — {n_t1} {label}{extra}\n\n{voci}"
         )
 
     if sezioni_clienti:
-        sezione_clienti = ("\n\n————————————————————\n\n").join(sezioni_clienti)
+        sezione_clienti = "\n\n".join(sezioni_clienti)
     else:
         sezione_clienti = "Nessun cliente citato oggi nei media monitorati."
 
+    # ── Conteggi footer ───────────────────────────────────────────────
+    testate_uniche = len(set(
+        (a.get("testata") or "").strip()
+        for a in articles_today
+        if (a.get("testata") or "").strip()
+    ))
+
+    # ── Header ────────────────────────────────────────────────────────
+    header_lines = ["*MAIM DIGEST*", data_ext]
+    if meteo_str:
+        header_lines.append(meteo_str)
+    header = "\n".join(header_lines)
+
+    # ── Footer ────────────────────────────────────────────────────────
+    footer = (
+        f"*MAIM DIGEST* di {data_ext}\n"
+        f"Sono state lette {testate_uniche} testate e {n_art} articoli\n"
+        f"Realizzato da Maim Group."
+    )
+
     # ── Assemblaggio finale ───────────────────────────────────────────
-    blocchi = [
-        f"*MAIM DIGEST — {today_str}*",
-        "————————————————————",
-        sezione_temi,
-    ]
+    blocchi = [header, sezione_temi]
     if sezione_interviste:
-        blocchi += ["————————————————————", sezione_interviste]
+        blocchi.append(sezione_interviste)
     blocchi += [
-        "————————————————————",
-        f"*I TUOI CLIENTI SUI MEDIA*\n\n{sezione_clienti}",
-        "————————————————————",
-        "_MAIM Intelligence — uso interno_",
+        f"*CLIENTI*\n\n{sezione_clienti}",
+        footer,
     ]
     text = "\n\n".join(blocchi)
 
