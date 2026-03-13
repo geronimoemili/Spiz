@@ -748,25 +748,33 @@ def generate_digest(articles_today: list, clients: list) -> dict:
 
     def _art_block_gpt(a: dict) -> str:
         testo = (a.get("testo_completo") or "")[:1500]
+        tipologia = (a.get("tipologia_articolo") or "").strip().lower()
         return (
             f"Testata: {(a.get('testata') or '').upper()}\n"
             f"Giornalista: {a.get('giornalista') or 'Redazione'}\n"
+            f"Tipologia: {tipologia}\n"
             f"Titolo: {a.get('titolo', '')}\n"
             f"Testo:\n{testo}"
         )
 
     _ISTR_ARTICOLI = (
-        "Produci una voce per ogni articolo in questo formato ESATTO "
-        "(rispetta grassetti, corsivi, nessun campo aggiuntivo):\n\n"
-        "*TESTATA IN MAIUSCOLO, Nome Giornalista Titolo articolo* - _«occhiello o titolo breve»_\n"
+        "Produci una voce per ogni articolo nel formato seguente.\n\n"
+        "SE la tipologia è 'intervista':\n"
+        "*TESTATA IN MAIUSCOLO, Nome Giornalista, Intervista a Nome Intervistato*\n"
+        "_«Titolo articolo»_\n"
+        "→ 2-3 righe di sintesi\n\n"
+        "SE la tipologia NON è 'intervista':\n"
+        "*TESTATA IN MAIUSCOLO, Nome Giornalista*\n"
+        "_Titolo articolo_\n"
         "→ 2-3 righe di sintesi\n\n"
         "Regole:\n"
         "- TESTATA sempre in MAIUSCOLO\n"
-        "- Tutto nella prima riga fino al trattino: testata, giornalista, titolo in *grassetto*\n"
-        "- Occhiello o titolo breve in _corsivo_ dopo il trattino, tra «»\n"
-        "- Se non c'è occhiello usa il titolo abbreviato\n"
-        "- Separa ogni voce con UNA SOLA riga vuota, non di più\n"
-        "- Produci SOLO le voci, senza intestazioni o testo aggiuntivo\n"
+        "- Prima riga sempre in *grassetto*\n"
+        "- Titolo sempre in _corsivo_ nella seconda riga\n"
+        "- Per le interviste estrai il nome dell'intervistato dal titolo o dal testo\n"
+        "- NON aggiungere occhiello o altri campi\n"
+        "- Separa ogni voce con UNA SOLA riga vuota\n"
+        "- Produci SOLO le voci, senza intestazioni aggiuntive\n"
         "- NON indicare tono (non scrivere positivo/negativo/neutro)"
     )
 
