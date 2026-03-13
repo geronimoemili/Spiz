@@ -779,11 +779,16 @@ def generate_digest(articles_today: list, clients: list) -> dict:
                 "content": (
                     f"Data: {today_str} | Totale articoli: {n_art}\n\n"
                     f"ELENCO ARTICOLI DI OGGI:\n{elenco_titoli}\n\n"
-                    f"Produci SOLO la sezione temi, in questo formato esatto:\n\n"
-                    f"*TEMI DEL GIORNO*\n\n"
-                    f"Identifica 4-6 temi ricorrenti. "
-                    f"Per ogni tema: nome breve in *grassetto*, poi 2-3 righe di spiegazione. "
-                    f"Testo fluente, no elenchi puntati. Cita testata quando rilevante."
+                    f"Produci SOLO la sezione temi in questo formato esatto, senza aggiungere nulla fuori dal formato:\n\n"
+                    f"*SCENARIO DEL GIORNO*\n"
+                    f"[Tre righe secche. Qual è il fatto dominante della giornata. Solo fatti, nessuna interpretazione.]\n\n"
+                    f"*TEMI PRINCIPALI*\n"
+                    f"[Massimo 5 temi. Per ognuno: *nome breve in grassetto* seguito da 2 righe max di fatti puri, niente interpretazioni né commenti. "
+                    f"Rispetta questo ordine di priorità: prima politica estera, poi politica interna, poi economia, poi energia, poi cultura. "
+                    f"Includi solo i temi effettivamente presenti negli articoli di oggi.]\n\n"
+                    f"*DA TENERE D'OCCHIO*\n"
+                    f"[1-2 segnali deboli o sviluppi in corso che potrebbero diventare rilevanti nei prossimi giorni. "
+                    f"Tono operativo, utile per chi fa comunicazione.]"
                 )
             },
         ],
