@@ -757,17 +757,22 @@ def generate_digest(articles_today: list, clients: list) -> dict:
 
     _ISTR_ARTICOLI = (
         "Produci una voce per ogni articolo in questo formato ESATTO "
-        "(rispetta maiuscole, grassetti, nessun campo aggiuntivo):\n\n"
-        "*TESTATA IN MAIUSCOLO*, Nome Giornalista\n"
-        "Titolo articolo\n"
+        "(rispetta grassetti, corsivi, nessun campo aggiuntivo):\n\n"
+        "*TESTATA IN MAIUSCOLO, Nome Giornalista Titolo articolo* - _«occhiello o titolo breve»_\n"
         "→ 2-3 righe di sintesi\n\n"
-        "Separa ogni voce con una riga vuota.\n"
-        "Produci SOLO le voci, senza intestazioni aggiuntive.\n"
-        "NON indicare tono (non scrivere positivo/negativo/neutro)."
+        "Regole:\n"
+        "- TESTATA sempre in MAIUSCOLO\n"
+        "- Tutto nella prima riga fino al trattino: testata, giornalista, titolo in *grassetto*\n"
+        "- Occhiello o titolo breve in _corsivo_ dopo il trattino, tra «»\n"
+        "- Se non c'è occhiello usa il titolo abbreviato\n"
+        "- Separa ogni voce con UNA SOLA riga vuota, non di più\n"
+        "- Produci SOLO le voci, senza intestazioni o testo aggiuntivo\n"
+        "- NON indicare tono (non scrivere positivo/negativo/neutro)"
     )
 
     def _gpt_voci(arts: list, contesto: str) -> str:
         """Genera le voci GPT per una lista di articoli tier1."""
+        import re
         BATCH = 8
         parti = []
         for i in range(0, len(arts), BATCH):
@@ -783,7 +788,10 @@ def generate_digest(articles_today: list, clients: list) -> dict:
                 temperature=0.0,
                 max_tokens=1500,
             )
-            parti.append(resp.choices[0].message.content.strip())
+            # Normalizza: collassa qualsiasi sequenza di righe vuote a una sola
+            raw = resp.choices[0].message.content.strip()
+            raw = re.sub(r'\n{3,}', '\n\n', raw)
+            parti.append(raw)
         return "\n\n".join(parti)
 
     # ══════════════════════════════════════════════════════════════════
