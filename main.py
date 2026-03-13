@@ -1233,13 +1233,13 @@ async def digest_audio(req: DigestAudioRequest):
 @app.post("/api/web-digest/generate")
 async def generate_web_digest():
     """
-    Legge web_mentions di oggi create tra 08:00 e 13:00 (Europe/Rome),
+    Legge web_mentions pubblicate oggi dalle 07:00 fino al momento della generazione,
     genera temi via GPT, raggruppa per cliente, salva in web_digests,
     restituisce token per la pagina pubblica.
     """
     from openai import OpenAI
     from datetime import datetime, timezone, timedelta
-    import secrets, re
+    import secrets
 
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
@@ -1247,20 +1247,18 @@ async def generate_web_digest():
 
     ai = OpenAI(api_key=api_key)
 
-    # Finestra temporale 08:00–13:00 ora di Roma (UTC+1 o UTC+2)
-    # Usiamo UTC: Roma è UTC+1 in inverno, UTC+2 in estate
-    # Approssimiamo con offset fisso rilevato da created_at Supabase
-    rome_offset = timedelta(hours=1)  # CET; in estate cambia a 2
+    # Finestra: published_at = oggi, created_at >= 07:00 Roma (06:00 UTC) fino a ora
     today = date.today()
-    start_utc = (datetime(today.year, today.month, today.day, 8, 0, 0) - rome_offset).isoformat()
-    end_utc   = (datetime(today.year, today.month, today.day, 13, 0, 0) - rome_offset).isoformat()
+    now_utc   = datetime.now(timezone.utc).isoformat()
+    start_utc = datetime(today.year, today.month, today.day, 6, 0, 0, tzinfo=timezone.utc).isoformat()
 
     try:
         res = (
             supabase.table("web_mentions")
             .select("id, source_name, title, url, summary, matched_client, tone, published_at, created_at")
+            .eq("published_at", today.isoformat())
             .gte("created_at", start_utc)
-            .lte("created_at", end_utc)
+            .lte("created_at", now_utc)
             .order("created_at", desc=False)
             .execute()
         )
@@ -1269,7 +1267,7 @@ async def generate_web_digest():
         raise HTTPException(status_code=500, detail=f"Errore lettura web_mentions: {e}")
 
     if not mentions:
-        raise HTTPException(status_code=404, detail="Nessuna mention trovata nella finestra 08:00-13:00")
+        raise HTTPException(status_code=404, detail="Nessuna mention trovata per oggi")
 
     # ── Temi principali via GPT ───────────────────────────────────────
     titoli_block = "\n".join(
