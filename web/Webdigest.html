@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM · Web Digest</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#f4f6f9;--surface:#ffffff;--border:#dde3ed;--border2:#eef1f6;
+    --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+    --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+    --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+  a{text-decoration:none;color:inherit}
+
+  /* NAV */
+  nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+  .nav-links{display:flex;gap:2px;margin-left:auto}
+  .nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+  .nav-link:hover{color:var(--text)}
+  .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+  /* LAYOUT */
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px}
+
+  /* ACTION BAR */
+  .top-bar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+  .page-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint)}
+  .btn{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;border-radius:5px;padding:8px 16px;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:var(--grad);color:#fff}
+  .btn-primary:hover:not(:disabled){opacity:.88}
+  .btn-outline{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+  .btn-outline:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover:not(:disabled){opacity:.88}
+
+  /* FINESTRA INFO */
+  .window-info{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);margin-left:auto}
+
+  /* STATO */
+  .status-bar{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+  .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--faint)}
+  .status-dot.ok{background:var(--green)}
+  .status-dot.loading{background:var(--amber);animation:pulse 1s infinite}
+  .status-dot.error{background:var(--red)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* LINK PUBBLICO */
+  .link-bar{background:#e8f7fc;border:1px solid #b3dff0;border-radius:8px;padding:12px 16px;margin-bottom:20px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+  .link-bar.visible{display:flex}
+  .link-url{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cyan);flex:1;word-break:break-all}
+
+  /* SEZIONI */
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:16px}
+  .sec-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  .themes-body{font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+  .themes-body strong{font-weight:700}
+  .themes-body em{font-style:italic}
+
+  /* CLIENTI */
+  .client-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+  .client-head{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--bg);border-bottom:1px solid var(--border2)}
+  .client-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .client-count{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);margin-left:auto}
+  .article-item{padding:12px 18px;border-bottom:1px solid var(--border2)}
+  .article-item:last-child{border-bottom:none}
+  .article-source{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-bottom:3px}
+  .article-title{font-size:13px;font-weight:600;margin-bottom:3px;line-height:1.5}
+  .article-title a{color:var(--text);border-bottom:1px solid transparent;transition:border-color .15s}
+  .article-title a:hover{border-bottom-color:var(--cyan)}
+  .article-summary{font-size:12px;color:var(--muted);line-height:1.6}
+  .article-summary::before{content:"→ ";color:var(--faint)}
+
+  /* IDLE */
+  .idle-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;gap:12px;text-align:center;color:var(--faint)}
+  .idle-icon{font-size:40px;opacity:.3}
+  .idle-msg{font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.8}
+
+  /* MODAL WA */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border-radius:12px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+  .modal-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-head-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)}
+  .modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+  .modal-text{font-size:11px;line-height:1.75;white-space:pre-wrap;color:var(--text);font-family:'IBM Plex Mono',monospace}
+  .modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-left:3px solid var(--green)}
+  .toast.error{border-left:3px solid var(--red)}
+
+  footer{text-align:right;padding:16px 24px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--faint);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<nav>
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/press" class="nav-link">Press</a>
+    <a href="/web" class="nav-link">Web</a>
+    <a href="/webdigest" class="nav-link active">Web Digest</a>
+    <a href="/chat" class="nav-link">AI Analysis</a>
+    <a href="/pitch" class="nav-link">AI Pitch</a>
+    <a href="/clients" class="nav-link">Clienti</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <span class="page-title">🌐 Web Digest</span>
+    <button class="btn btn-primary" id="btn-genera" onclick="generaDigest()">⚡ Genera Digest</button>
+    <button class="btn btn-outline" id="btn-wa" onclick="showWaModal()" style="display:none">📱 Testo WA</button>
+    <button class="btn btn-green" id="btn-link" onclick="copyPublicLink()" style="display:none">🔗 Copia link pubblico</button>
+    <span class="window-info" id="window-info">Fonte: web_mentions · finestra 08:00–13:00</span>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar" id="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-msg">Premi ⚡ Genera per creare il digest web di oggi.</span>
+  </div>
+
+  <!-- LINK PUBBLICO -->
+  <div class="link-bar" id="link-bar">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan)">LINK PUBBLICO</span>
+    <span class="link-url" id="link-url"></span>
+    <button class="btn btn-outline" onclick="copyPublicLink()" style="padding:5px 10px;font-size:9px">📋 Copia</button>
+  </div>
+
+  <!-- CONTENUTO -->
+  <div id="digest-content">
+    <div class="idle-state">
+      <div class="idle-icon">🌐</div>
+      <div class="idle-msg">Nessun digest generato.<br>Premi ⚡ Genera per elaborare le mention web di oggi.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal WA -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-head-title">📱 Testo per WhatsApp</span>
+      <button class="modal-close" onclick="closeWaModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-text" id="wa-text-content"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeWaModal()">Chiudi</button>
+      <button class="btn btn-primary" onclick="copyWaText()">📋 Copia</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>MAIM Intelligence</footer>
+
+<script>
+let _currentToken = null;
+let _waText       = '';
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Status ────────────────────────────────────────────────────────────
+function setStatus(msg, state='idle') {
+  document.getElementById('status-msg').textContent = msg;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot' + (state === 'ok' ? ' ok' : state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+}
+
+// ── Render temi ───────────────────────────────────────────────────────
+function renderThemes(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*([^*\n]+)\*/g,'<strong>$1</strong>')
+    .replace(/_([^_\n]+)_/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+
+// ── Render digest ─────────────────────────────────────────────────────
+function renderDigest(d) {
+  const mentions  = d.mentions || {};
+  const nClienti  = Object.keys(mentions).length;
+  const nArticoli = Object.values(mentions).reduce((s,a) => s + (a?.length||0), 0);
+
+  let html = '';
+
+  // Temi
+  html += `
+    <div class="section">
+      <div class="sec-label">Temi del giorno</div>
+      <div class="themes-body">${renderThemes(d.themes || '')}</div>
+    </div>`;
+
+  // Clienti
+  if (nClienti === 0) {
+    html += `<div class="idle-state"><div class="idle-icon">📭</div><div class="idle-msg">Nessuna mention clienti nella finestra 08:00–13:00</div></div>`;
+  } else {
+    for (const [cliente, arts] of Object.entries(mentions)) {
+      if (!arts || arts.length === 0) continue;
+      html += `<div class="client-block"><div class="client-head"><span>🟧</span><span class="client-name">${cliente}</span><span class="client-count">${arts.length} articoli</span></div>`;
+      for (const a of arts) {
+        const src  = (a.source_name||'').toUpperCase();
+        const tit  = a.title||'';
+        const url  = a.url||'';
+        const summ = a.summary||'';
+        const titleHtml = url ? `<a href="${url}" target="_blank" rel="noopener">${tit}</a>` : tit;
+        html += `<div class="article-item">
+          <div class="article-source">${src}</div>
+          <div class="article-title">${titleHtml}</div>
+          ${summ ? `<div class="article-summary">${summ}</div>` : ''}
+        </div>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  document.getElementById('digest-content').innerHTML = html;
+  setStatus(`${nArticoli} articoli · ${nClienti} clienti · generato ora`, 'ok');
+
+  // Mostra bottoni azioni
+  document.getElementById('btn-wa').style.display   = 'inline-flex';
+  document.getElementById('btn-link').style.display = 'inline-flex';
+
+  // Link pubblico
+  const publicUrl = `${window.location.origin}/web-digest?token=${_currentToken}`;
+  document.getElementById('link-url').textContent = publicUrl;
+  document.getElementById('link-bar').classList.add('visible');
+
+  _waText = d.text_wa || '';
+}
+
+// ── Genera ────────────────────────────────────────────────────────────
+async function generaDigest() {
+  const btn = document.getElementById('btn-genera');
+  btn.disabled = true;
+  btn.textContent = '⏳ Elaborazione…';
+  setStatus('Lettura web_mentions e generazione temi in corso…', 'loading');
+  document.getElementById('btn-wa').style.display   = 'none';
+  document.getElementById('btn-link').style.display = 'none';
+  document.getElementById('link-bar').classList.remove('visible');
+
+  try {
+    const res = await fetch('/api/web-digest/generate', { method: 'POST' });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setStatus('Errore: ' + (data.detail || 'risposta non valida'), 'error');
+      return;
+    }
+
+    _currentToken = data.token;
+
+    // Carica il digest completo
+    const res2 = await fetch(`/api/web-digest/${_currentToken}`);
+    const digest = await res2.json();
+    renderDigest(digest);
+    toast('✅ Digest generato', 'success');
+
+  } catch(e) {
+    setStatus('Errore di connessione: ' + e.message, 'error');
+    toast('Errore: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Genera Digest';
+  }
+}
+
+// ── WA Modal ──────────────────────────────────────────────────────────
+function showWaModal() {
+  document.getElementById('wa-text-content').textContent = _waText;
+  document.getElementById('wa-modal').classList.add('open');
+}
+function closeWaModal() {
+  document.getElementById('wa-modal').classList.remove('open');
+}
+function copyWaText() {
+  navigator.clipboard.writeText(_waText)
+    .then(() => { toast('📋 Testo copiato!'); closeWaModal(); })
+    .catch(() => toast('Errore copia', 'error'));
+}
+
+// ── Link pubblico ─────────────────────────────────────────────────────
+function copyPublicLink() {
+  if (!_currentToken) return;
+  const url = `${window.location.origin}/web-digest?token=${_currentToken}`;
+  navigator.clipboard.writeText(url)
+    .then(() => toast('🔗 Link copiato!'))
+    .catch(() => toast('Errore copia link', 'error'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM Web Digest</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#f4f6f9;--surface:#ffffff;--border:#dde3ed;--border2:#eef1f6;
+    --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+    --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+    --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* NAV */
+  nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+  .nav-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-left:auto}
+
+  /* LAYOUT */
+  .wrap{max-width:860px;margin:0 auto;padding:32px 20px}
+
+  /* HEADER */
+  .digest-header{margin-bottom:28px}
+  .digest-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .digest-title{font-size:22px;font-weight:700;margin-bottom:4px}
+  .digest-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint)}
+
+  /* AZIONI */
+  .action-bar{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+  .btn{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;border-radius:5px;padding:7px 14px;cursor:pointer;border:none;transition:opacity .15s;white-space:nowrap}
+  .btn-primary{background:var(--grad);color:#fff}
+  .btn-primary:hover{opacity:.88}
+  .btn-outline{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+  .btn-outline:hover{border-color:var(--cyan);color:var(--cyan)}
+
+  /* SEZIONE TEMI */
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:16px}
+  .section-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  .themes-body{font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word}
+  .themes-body strong{color:var(--text);font-weight:700}
+
+  /* CLIENTI */
+  .client-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden}
+  .client-head{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border2);background:var(--bg)}
+  .client-icon{font-size:14px}
+  .client-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .client-count{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);margin-left:auto}
+
+  /* ARTICOLI */
+  .article-item{padding:14px 20px;border-bottom:1px solid var(--border2)}
+  .article-item:last-child{border-bottom:none}
+  .article-source{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);margin-bottom:4px}
+  .article-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.5}
+  .article-title a{color:inherit;text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+  .article-title a:hover{border-bottom-color:var(--cyan)}
+  .article-summary{font-size:12px;color:var(--muted);line-height:1.6;margin-top:4px}
+  .article-summary::before{content:"→ ";color:var(--faint)}
+
+  /* STATI */
+  .state-center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;text-align:center;color:var(--faint)}
+  .state-icon{font-size:36px;opacity:.4}
+  .state-msg{font-family:'IBM Plex Mono',monospace;font-size:11px}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-left:3px solid var(--green)}
+  .toast.error{border-left:3px solid var(--red)}
+
+  /* MODAL WA */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border-radius:12px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+  .modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-head-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1}
+  .modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+  .modal-text{font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--text);font-family:'IBM Plex Mono',monospace}
+  .modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+  footer{text-align:right;padding:16px 24px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--faint);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<nav>
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img" onerror="this.style.display='none'"/>
+  <span class="nav-badge">Web Digest</span>
+</nav>
+
+<div class="wrap" id="main-wrap">
+  <div class="state-center" id="loading-state">
+    <div class="state-icon">⏳</div>
+    <div class="state-msg">Caricamento digest…</div>
+  </div>
+</div>
+
+<!-- Modal testo WA -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-head-title">📋 Testo per WhatsApp</span>
+      <button class="modal-close" onclick="closeWaModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-text" id="wa-text-content"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeWaModal()">Chiudi</button>
+      <button class="btn btn-primary" onclick="copyWaText()">📋 Copia</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Token dall'URL ────────────────────────────────────────────────────
+const token = new URLSearchParams(window.location.search).get('token');
+let _waText = '';
+
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Render temi (formattazione WA → HTML) ─────────────────────────────
+function renderThemes(text) {
+  if (!text) return '';
+  let s = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
+    .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  return s;
+}
+
+// ── Render pagina ─────────────────────────────────────────────────────
+function renderDigest(d) {
+  const wrap = document.getElementById('main-wrap');
+
+  // Data leggibile
+  const dataObj = d.data ? new Date(d.data + 'T12:00:00') : new Date();
+  const dataFmt = dataObj.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const createdFmt = d.created_at
+    ? new Date(d.created_at).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})
+    : '';
+
+  // Clienti e articoli dal campo mentions (jsonb)
+  const mentions = d.mentions || {};
+  const nClienti = Object.keys(mentions).length;
+  const nArticoli = Object.values(mentions).reduce((s, arr) => s + (arr?.length || 0), 0);
+
+  // Header + azioni
+  let html = `
+    <div class="digest-header">
+      <div class="digest-label">MAIM Intelligence — Web Digest</div>
+      <div class="digest-title">${dataFmt}</div>
+      <div class="digest-meta">${nArticoli} articoli · ${nClienti} clienti · generato alle ${createdFmt}</div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="showWaModal()">📱 Testo WhatsApp</button>
+      <button class="btn btn-outline" onclick="copyLink()">🔗 Copia link</button>
+    </div>`;
+
+  // Temi
+  html += `
+    <div class="section">
+      <div class="section-title">Temi del giorno</div>
+      <div class="themes-body">${renderThemes(d.themes || '')}</div>
+    </div>`;
+
+  // Clienti
+  if (nClienti === 0) {
+    html += `<div class="state-center"><div class="state-icon">📭</div><div class="state-msg">Nessuna mention clienti in questa finestra</div></div>`;
+  } else {
+    for (const [cliente, arts] of Object.entries(mentions)) {
+      if (!arts || arts.length === 0) continue;
+      html += `
+        <div class="client-block">
+          <div class="client-head">
+            <span class="client-icon">🟧</span>
+            <span class="client-name">${cliente}</span>
+            <span class="client-count">${arts.length} articoli</span>
+          </div>`;
+      for (const a of arts) {
+        const src   = (a.source_name || '').toUpperCase();
+        const tit   = a.title || '';
+        const url   = a.url || '';
+        const summ  = a.summary || '';
+        const titleHtml = url
+          ? `<a href="${url}" target="_blank" rel="noopener">${tit}</a>`
+          : tit;
+        html += `
+          <div class="article-item">
+            <div class="article-source">${src}</div>
+            <div class="article-title">${titleHtml}</div>
+            ${summ ? `<div class="article-summary">${summ}</div>` : ''}
+          </div>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  html += `<footer>MAIM Intelligence — uso interno</footer>`;
+  wrap.innerHTML = html;
+  _waText = d.text_wa || '';
+}
+
+// ── WA Modal ──────────────────────────────────────────────────────────
+function showWaModal() {
+  document.getElementById('wa-text-content').textContent = _waText;
+  document.getElementById('wa-modal').classList.add('open');
+}
+function closeWaModal() {
+  document.getElementById('wa-modal').classList.remove('open');
+}
+function copyWaText() {
+  navigator.clipboard.writeText(_waText)
+    .then(() => { toast('📋 Testo copiato!'); closeWaModal(); })
+    .catch(() => toast('Errore copia', 'error'));
+}
+
+// ── Copia link ────────────────────────────────────────────────────────
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href)
+    .then(() => toast('🔗 Link copiato!'))
+    .catch(() => toast('Errore copia link', 'error'));
+}
+
+// ── Stato errore ──────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('main-wrap').innerHTML = `
+    <div class="state-center">
+      <div class="state-icon">⚠️</div>
+      <div class="state-msg">${msg}</div>
+    </div>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  if (!token) { showError('Token mancante — link non valido.'); return; }
+  try {
+    const res = await fetch(`/api/web-digest/${token}`);
+    if (res.status === 404) { showError('Digest non trovato.'); return; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDigest(data);
+  } catch(e) {
+    showError('Errore caricamento: ' + e.message);
+  }
+}
+
+window.onload = init;
+</script>
+</body>
+</html>

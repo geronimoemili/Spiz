@@ -185,6 +185,14 @@ async def clients_page():
 async def pitch_page():
     return FileResponse("web/pitch.html")
 
+@app.get("/web-digest")
+async def web_digest_page():
+    return FileResponse("web/web_digest.html")
+
+@app.get("/webdigest")
+async def webdigest_admin_page():
+    return FileResponse("web/webdigest.html")
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -1215,6 +1223,136 @@ async def digest_audio(req: DigestAudioRequest):
         )
     except Exception as e:
         print(f"[AUDIO TTS] Errore: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════════════════════════════════════
+# WEB DIGEST
+# ══════════════════════════════════════════════════════════════════════
+
+@app.post("/api/web-digest/generate")
+async def generate_web_digest():
+    """
+    Legge web_mentions di oggi create tra 08:00 e 13:00 (Europe/Rome),
+    genera temi via GPT, raggruppa per cliente, salva in web_digests,
+    restituisce token per la pagina pubblica.
+    """
+    from openai import OpenAI
+    from datetime import datetime, timezone, timedelta
+    import secrets, re
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
+
+    ai = OpenAI(api_key=api_key)
+
+    # Finestra temporale 08:00–13:00 ora di Roma (UTC+1 o UTC+2)
+    # Usiamo UTC: Roma è UTC+1 in inverno, UTC+2 in estate
+    # Approssimiamo con offset fisso rilevato da created_at Supabase
+    rome_offset = timedelta(hours=1)  # CET; in estate cambia a 2
+    today = date.today()
+    start_utc = (datetime(today.year, today.month, today.day, 8, 0, 0) - rome_offset).isoformat()
+    end_utc   = (datetime(today.year, today.month, today.day, 13, 0, 0) - rome_offset).isoformat()
+
+    try:
+        res = (
+            supabase.table("web_mentions")
+            .select("id, source_name, title, url, summary, matched_client, tone, published_at, created_at")
+            .gte("created_at", start_utc)
+            .lte("created_at", end_utc)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        mentions = res.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore lettura web_mentions: {e}")
+
+    if not mentions:
+        raise HTTPException(status_code=404, detail="Nessuna mention trovata nella finestra 08:00-13:00")
+
+    # ── Temi principali via GPT ───────────────────────────────────────
+    titoli_block = "\n".join(
+        f"[{m.get('source_name','')}] {m.get('title','')}"
+        for m in mentions
+    )
+    giorni = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
+    mesi   = ["","gennaio","febbraio","marzo","aprile","maggio","giugno",
+              "luglio","agosto","settembre","ottobre","novembre","dicembre"]
+    data_ext = f"{giorni[today.weekday()]} {today.day} {mesi[today.month]} {today.year}"
+
+    try:
+        resp_temi = ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Sei il sistema MAIM Intelligence. Produci contenuto conciso e professionale."},
+                {"role": "user", "content": (
+                    f"Data: {data_ext} | Fonte: web, ore 08:00-13:00 | Totale articoli: {len(mentions)}\n\n"
+                    f"TITOLI:\n{titoli_block}\n\n"
+                    f"Produci SOLO questo blocco, formato esatto:\n\n"
+                    f"▶️ *TEMI PRINCIPALI*\n"
+                    f"[Max 5 temi. Per ognuno: *nome breve in grassetto* + 2 righe di fatti puri. "
+                    f"Ordine: politica estera, politica interna, economia, energia, cultura. "
+                    f"Solo temi effettivamente presenti.]\n\n"
+                    f"▶️ *DA TENERE D'OCCHIO*\n"
+                    f"[1-2 segnali deboli utili per chi fa comunicazione.]"
+                )}
+            ],
+            temperature=0.1,
+            max_tokens=900,
+        )
+        themes_text = resp_temi.choices[0].message.content.strip()
+    except Exception as e:
+        themes_text = f"Errore generazione temi: {e}"
+
+    # ── Raggruppa mention per cliente ─────────────────────────────────
+    clients_map: dict = {}
+    for m in mentions:
+        raw = (m.get("matched_client") or "").strip()
+        if not raw:
+            continue
+        for cl in [c.strip() for c in raw.split(",") if c.strip()]:
+            clients_map.setdefault(cl, []).append(m)
+
+    # ── Testo WA (senza link) ─────────────────────────────────────────
+    wa_lines = [f"*MAIM WEB DIGEST*\n{data_ext}\n"]
+    wa_lines.append(themes_text)
+    for cl, arts in clients_map.items():
+        wa_lines.append(f"\n🟧 *{cl.upper()}* — {len(arts)} articoli\n")
+        for a in arts:
+            src  = (a.get("source_name") or "").upper()
+            tit  = (a.get("title") or "").strip()
+            summ = (a.get("summary") or "").strip()
+            wa_lines.append(f"*{src}*\n_{tit}_\n→ {summ}\n")
+    wa_text = "\n".join(wa_lines)
+
+    # ── Salva in web_digests ──────────────────────────────────────────
+    token = secrets.token_hex(8)
+    try:
+        supabase.table("web_digests").insert({
+            "token":    token,
+            "data":     today.isoformat(),
+            "themes":   themes_text,
+            "mentions": clients_map,
+            "text_wa":  wa_text,
+        }).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore salvataggio: {e}")
+
+    return {"token": token, "mentions": len(mentions), "clients": list(clients_map.keys())}
+
+
+@app.get("/api/web-digest/{token}")
+async def get_web_digest(token: str):
+    """Restituisce il web digest per token."""
+    try:
+        res = supabase.table("web_digests").select("*").eq("token", token).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Digest non trovato")
+        return res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
