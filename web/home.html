@@ -60,6 +60,9 @@
   .btn-digest-gen:disabled{opacity:.4;cursor:default}
   .btn-digest-copy{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--grad);border:none;border-radius:5px;padding:5px 12px;cursor:pointer;color:#fff;transition:opacity .15s;white-space:nowrap}
   .btn-digest-copy:hover{opacity:.85}
+  .btn-digest-tts{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:5px 10px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+  .btn-digest-tts:hover{border-color:var(--cyan);color:var(--cyan)}
+  .btn-digest-tts.speaking{border-color:#e03a5a;color:#e03a5a;background:#fff0f3}
   .digest-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);margin-bottom:10px;letter-spacing:.5px;min-height:14px}
   .digest-body{flex:1;overflow-y:auto;max-height:340px;font-size:12px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word;padding-right:4px}
   .digest-body::-webkit-scrollbar{width:4px}
@@ -154,6 +157,7 @@
             <option value="today">Oggi</option>
           </select>
           <button class="btn-digest-gen" id="btn-gen" onclick="generateDigest()">⚡ Genera</button>
+          <button class="btn-digest-tts" id="btn-tts" onclick="toggleTTSDigest()" style="display:none">🔊 Leggi</button>
           <button class="btn-digest-copy" id="btn-copy" onclick="copyDigest()" style="display:none">📋 Copia</button>
         </div>
       </div>
@@ -336,10 +340,10 @@ function showDigest(text, art, cli, createdAt) {
   if (cli) parts.push(cli + ' citazioni clienti');
   if (createdAt) parts.push('aggiornato ' + dtIT(createdAt));
   document.getElementById('digest-meta').textContent = parts.join(' · ');
-  // Renderizza senza esc() — il testo WA non ha HTML, esc() causa problemi con renderWA
   document.getElementById('digest-content').innerHTML =
     '<div class="digest-body">' + renderWA(text || '') + '</div>';
   document.getElementById('btn-copy').style.display = 'inline-block';
+  document.getElementById('btn-tts').style.display = 'inline-block';
 }
 
 function renderWA(text) {
@@ -362,12 +366,16 @@ function showDigestLoader() {
   document.getElementById('digest-content').innerHTML =
     '<div class="digest-loader"><div class="d"></div><div class="d"></div><div class="d"></div><span>Elaborazione…</span></div>';
   document.getElementById('btn-copy').style.display = 'none';
+  document.getElementById('btn-tts').style.display = 'none';
+  _ttsStopDigest();
 }
 
 function showDigestIdle(msg) {
   document.getElementById('digest-meta').textContent = '';
   document.getElementById('digest-content').innerHTML = '<div class="digest-idle">' + esc(msg) + '</div>';
   document.getElementById('btn-copy').style.display = 'none';
+  document.getElementById('btn-tts').style.display = 'none';
+  _ttsStopDigest();
 }
 
 function resetGenBtn() {
@@ -380,6 +388,27 @@ function copyDigest() {
   navigator.clipboard.writeText(currentDigestText)
     .then(() => toast('📋 Copiato!', 'success'))
     .catch(() => toast('Errore copia', 'error'));
+}
+
+/* ─── TEXT TO SPEECH ── */
+function _ttsStopDigest() {
+  window.speechSynthesis.cancel();
+  const btn = document.getElementById('btn-tts');
+  if (btn) { btn.classList.remove('speaking'); btn.textContent = '🔊 Leggi'; }
+}
+
+function toggleTTSDigest() {
+  if (window.speechSynthesis.speaking) { _ttsStopDigest(); return; }
+  if (!currentDigestText) return;
+  const utt = new SpeechSynthesisUtterance(currentDigestText);
+  utt.lang  = 'it-IT';
+  utt.rate  = 0.95;
+  utt.onend  = () => _ttsStopDigest();
+  utt.onerror = () => _ttsStopDigest();
+  const btn = document.getElementById('btn-tts');
+  btn.classList.add('speaking');
+  btn.textContent = '⏹ Stop';
+  window.speechSynthesis.speak(utt);
 }
 
 function renderWA(html) {
