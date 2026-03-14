@@ -6,118 +6,100 @@
 <title>MAIM · Web Monitor</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;--text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;--teal:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;--grad:linear-gradient(135deg,#0ea5c9,#d4367a);--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+:root{
+  --bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;
+  --text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;
+  --teal:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+  --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+a{text-decoration:none;color:inherit}
 
-/* ── NAV ── */
 nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
 .nav-links{display:flex;gap:2px;margin-left:auto}
-.nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-link{color:var(--text2);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
 .nav-link:hover{color:var(--text)}
 .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
 
-/* ── ACTION BAR ── */
-.action-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.btn-action{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.6px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.btn-action:hover{opacity:.9}
-.btn-action:disabled{opacity:.4;cursor:not-allowed}
-.btn-action.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
-.btn-action.secondary:hover{border-color:var(--teal);color:var(--teal);opacity:1}
-.scan-sep{width:1px;height:24px;background:var(--border2);flex-shrink:0}
-.scan-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap}
-.scan-date{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:4px}
-.scan-date:focus{outline:none;border-color:var(--teal)}
-.scan-info{font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto;text-align:right;line-height:1.6}
-.scan-info span{color:var(--teal)}
-.scan-log{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 20px;font-family:var(--mono);font-size:10px;color:var(--text2);display:none;max-height:50px;overflow-y:auto}
-.scan-log.show{display:block}
-.log-ok{color:var(--green)}
-.log-err{color:var(--red)}
-
-/* ── TABS ── */
 .tab-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex}
-.tab-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:11px 16px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--text2);transition:all .15s}
+.tab-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:12px 18px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--text2);transition:all .15s}
 .tab-btn:hover{color:var(--teal)}
 .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
 
-/* ── LAYOUT ── */
-.main-layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 56px - 57px - 40px)}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
-.section-header{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3)}
-.client-row{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.main-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 56px - 43px)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto}
+.sidebar-head{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.client-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
 .client-row:hover{background:var(--bg3)}
-.client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px}
-.client-row-count{font-family:var(--mono);font-size:11px;color:var(--teal)}
+.client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:11px}
+.client-row.active span:first-child{color:var(--teal);font-weight:600}
+.client-row-count{font-family:var(--mono);font-size:10px;color:var(--teal);flex-shrink:0}
 
-/* ── MAIN PANEL ── */
-.main-panel{display:flex;flex-direction:column}
-.panel-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.panel-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--text2);flex-shrink:0}
-.filter-select{font-family:var(--mono);font-size:11px;padding:4px 8px;margin-left:auto;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:3px}
-.filter-count{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.panel{display:flex;flex-direction:column;min-width:0}
+.panel-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.filter-select{font-family:var(--mono);font-size:10px;padding:5px 8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:4px;cursor:pointer;outline:none}
+.filter-select:focus{border-color:var(--teal)}
+.result-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto}
 
-/* ── ARTICLES ── */
-.articles-wrap{position:relative;flex:1;overflow-y:auto}
-.article-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid transparent;border-radius:6px;padding:12px 14px;margin:8px 16px;cursor:pointer;transition:all .12s}
-.article-card:hover{border-left-color:var(--teal);box-shadow:0 2px 8px rgba(14,165,201,.08)}
-.article-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px}
-.article-title{font-weight:600;color:var(--text);font-size:13px;line-height:1.4;flex:1}
+.search-wrap{display:flex;gap:6px;align-items:center}
+.search-input{font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);outline:none;width:220px}
+.search-input:focus{border-color:var(--teal);background:#fff}
+.search-clear{font-family:var(--mono);font-size:10px;padding:5px 10px;border:1px solid var(--border2);background:none;color:var(--text2);border-radius:4px;cursor:pointer;display:none}
+
+.articles-list{flex:1;overflow-y:auto}
+.article-card{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 18px;cursor:pointer;transition:background .1s;border-left:3px solid transparent}
+.article-card:hover{background:#f0f9fc;border-left-color:var(--teal)}
+.article-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:3px}
+.article-title{font-weight:600;font-size:13px;line-height:1.4;color:var(--text);flex:1}
 .article-date{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0;padding-top:2px}
-.article-source{font-size:11px;color:var(--text2);margin-bottom:7px}
-.article-source span{color:var(--amber);font-weight:600}
+.article-source{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);margin-bottom:5px}
+.article-snippet{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:6px}
 .badge-row{display:flex;gap:5px;flex-wrap:wrap}
 .badge-client{background:rgba(14,165,201,.07);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);font-weight:600}
 .badge-kw{background:rgba(212,54,122,.06);color:var(--pink);border:1px solid rgba(212,54,122,.18);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono)}
-.empty-state{text-align:center;padding:52px 20px;color:var(--text3)}
-.empty-state .icon{font-size:36px;opacity:.2;margin-bottom:10px}
-.empty-state p{font-family:var(--mono);font-size:10px;letter-spacing:.8px;line-height:1.9;text-transform:uppercase}
 
-/* ── DETAIL ── */
-#article-detail{position:absolute;inset:0;background:var(--bg);padding:30px;overflow-y:auto;display:none}
+.detail-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:28px 32px}
+.detail-overlay.open{display:block}
+.detail-back{font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 12px;border-radius:4px;margin-bottom:20px;color:var(--text2)}
+.detail-back:hover{border-color:var(--teal);color:var(--teal)}
 .detail-title{font-size:20px;font-weight:700;margin-bottom:10px;line-height:1.4}
-.detail-meta{font-size:13px;line-height:1.8;margin-bottom:20px;color:var(--text2)}
-.detail-meta strong{font-family:var(--mono);font-size:13px;color:var(--text)}
-.detail-body{line-height:1.75;font-size:14px}
-.back-btn{margin-bottom:20px;font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 10px;border-radius:3px}
-.back-btn:hover{border-color:var(--teal);color:var(--teal)}
-.btn-link{background:var(--grad);color:#fff;border:none;border-radius:5px;padding:7px 16px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;margin-top:20px}
+.detail-meta{font-size:12px;color:var(--text2);line-height:2;margin-bottom:16px;font-family:var(--mono)}
+.detail-body{font-size:14px;line-height:1.8;color:var(--text);margin-bottom:20px}
+.btn-link{display:inline-flex;align-items:center;gap:6px;background:var(--grad);color:#fff;border:none;border-radius:5px;padding:8px 18px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;text-decoration:none}
 
-/* ── FONTI ── */
-.fonti-layout{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
-.fonti-form{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;flex:0 0 320px}
-.fonti-form h6{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
-.form-field{margin-bottom:10px}
-.form-field label{display:block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
-.form-field input,.form-field select{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:7px 10px;border-radius:5px}
-.form-field input:focus,.form-field select:focus{outline:none;border-color:var(--teal)}
-.btn-add{background:var(--teal);color:#fff;border:none;border-radius:5px;padding:8px 20px;font-family:var(--mono);font-size:10px;font-weight:600;cursor:pointer;width:100%;margin-top:4px}
-.btn-add:hover{background:#0891b2}
-.fonti-list{flex:1;min-width:0}
-.source-row{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:11px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px}
-.source-row.inactive{opacity:.45}
-.source-info{flex:1;min-width:0}
-.source-name{font-weight:600;color:var(--text);font-size:12px}
-.source-url{font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono)}
-.source-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
-.badge-type{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;background:rgba(14,165,201,.08);color:var(--teal);border:1px solid rgba(14,165,201,.22)}
-.badge-type.scrape{background:rgba(212,54,122,.07);color:var(--pink);border-color:rgba(212,54,122,.22)}
-.btn-del{background:rgba(224,58,90,.06);border:1px solid rgba(224,58,90,.2);color:var(--red);border-radius:4px;padding:4px 9px;font-family:var(--mono);font-size:9px;cursor:pointer}
-.btn-del:hover{background:rgba(224,58,90,.12)}
-.toggle{position:relative;width:34px;height:19px;cursor:pointer;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0;position:absolute}
-.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background .2s}
-.toggle-slider::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
-.toggle input:checked + .toggle-slider{background:var(--teal)}
-.toggle input:checked + .toggle-slider::before{transform:translateX(15px)}
+.scan-panel{padding:32px;max-width:640px}
+.scan-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.scan-desc{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.btn-scan{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:12px 28px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn-scan:hover:not(:disabled){opacity:.88}
+.btn-scan:disabled{opacity:.4;cursor:not-allowed}
+.progress-box{margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;display:none}
+.progress-box.visible{display:block}
+.progress-bar-wrap{background:var(--border);border-radius:4px;height:6px;margin:10px 0 6px}
+.progress-bar{height:100%;background:var(--grad);border-radius:4px;transition:width .4s;width:0%}
+.progress-client{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:4px}
+.progress-stats{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.report-box{margin-top:20px;background:#e8f7ef;border:1px solid #a7d7b8;border-radius:8px;padding:16px 20px;display:none}
+.report-box.visible{display:block}
+.report-box.error{background:#fff0f3;border-color:#f5b8c4}
+.report-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+.report-box.error .report-title{color:var(--red)}
+.report-nums{display:flex;gap:24px;flex-wrap:wrap}
+.report-num-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--green);line-height:1}
+.report-box.error .report-num-val{color:var(--red)}
+.report-num-lab{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
 
-/* ── SPINNER ── */
-.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
-.spinner.dark{border-color:var(--border2);border-top-color:var(--teal)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text3);gap:12px;text-align:center}
+.empty-icon{font-size:36px;opacity:.25}
+.empty-msg{font-family:var(--mono);font-size:10px;letter-spacing:.8px;text-transform:uppercase;line-height:1.8}
+.spinner{width:16px;height:16px;border:2px solid rgba(14,165,201,.2);border-top-color:var(--teal);border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-.fade-in{animation:fadeIn .13s ease}
+.fade-in{animation:fadeIn .12s ease}
 </style>
 </head>
 <body>
@@ -125,216 +107,200 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 <div id="topnav"></div>
 <script src="/static/nav.js"></script>
 
-<!-- ACTION BAR -->
-<div class="action-bar">
-  <button class="btn-action" id="btn-scan" onclick="runScan()">🔍 Scansiona ora</button>
-  <div class="scan-sep"></div>
-  <span class="scan-label">Storica</span>
-  <input type="date" class="scan-date" id="scan-from"/>
-  <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">→</span>
-  <input type="date" class="scan-date" id="scan-to"/>
-  <button class="btn-action secondary" id="btn-historical" onclick="runHistorical()">📅 Scansione storica</button>
-  <div class="scan-info">
-    Ultima giornaliera: <span id="last-daily">--</span><br>
-    Ultima storica: <span id="last-hist">--</span>
-  </div>
-</div>
-<div class="scan-log" id="scan-log"></div>
-
-<!-- TABS -->
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-mentions-btn" onclick="switchTab('mentions')">📰 Web Mentions</button>
-  <button class="tab-btn" id="tab-fonti-btn" onclick="switchTab('fonti')">📡 Fonti</button>
+  <button class="tab-btn active" id="tab-oggi-btn"     onclick="switchTab('oggi')">📰 Oggi</button>
+  <button class="tab-btn"        id="tab-archivio-btn" onclick="switchTab('archivio')">🗂 Archivio</button>
+  <button class="tab-btn"        id="tab-scan-btn"     onclick="switchTab('scan')">⚡ Scansione</button>
 </div>
 
-<!-- MENTIONS LAYOUT -->
-<div class="main-layout" id="layout-mentions">
+<!-- TAB OGGI -->
+<div id="panel-oggi" class="main-layout">
   <div class="sidebar">
-    <div class="section-header">Clienti</div>
-    <div id="client-list-container"></div>
+    <div class="sidebar-head">Clienti</div>
+    <div id="sidebar-oggi"></div>
   </div>
-  <div class="main-panel">
-    <div class="panel-header">
-      <div class="panel-title">Web Mentions</div>
-      <select class="filter-select" id="filter-period" onchange="applyFilters()">
+  <div class="panel">
+    <div class="panel-bar">
+      <span class="panel-label">Web Mentions</span>
+      <select class="filter-select" id="oggi-period" onchange="applyOggi()">
         <option value="0">Oggi</option>
         <option value="7" selected>Ultimi 7 gg</option>
         <option value="30">Ultimi 30 gg</option>
         <option value="60">Ultimi 60 gg</option>
       </select>
-      <select class="filter-select" id="filter-limit" onchange="loadMentions()">
-        <option value="500">Max 500</option>
-        <option value="200">Max 200</option>
-        <option value="100">Max 100</option>
-      </select>
-      <span class="filter-count" id="filter-count"></span>
+      <span class="result-count" id="oggi-count"></span>
     </div>
-    <div class="articles-wrap">
-      <div id="mentions-list">
-        <div class="empty-state"><div class="icon">🌐</div><p>Caricamento...</p></div>
+    <div class="articles-list" id="oggi-list">
+      <div class="empty-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB ARCHIVIO -->
+<div id="panel-archivio" class="main-layout" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-head">Clienti</div>
+    <div id="sidebar-archivio"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-bar">
+      <span class="panel-label">Archivio</span>
+      <select class="filter-select" id="arch-period" onchange="applyArchivio()">
+        <option value="30">Ultimi 30 gg</option>
+        <option value="90">Ultimi 3 mesi</option>
+        <option value="180" selected>Ultimi 6 mesi</option>
+        <option value="365">Ultimo anno</option>
+      </select>
+      <div class="search-wrap">
+        <input type="text" class="search-input" id="arch-search" placeholder="Cerca titolo o snippet…" oninput="applyArchivio()"/>
+        <button class="search-clear" id="arch-clear" onclick="clearArchSearch()">✕</button>
       </div>
-      <div id="article-detail">
-        <button class="back-btn" onclick="backToList()">← LISTA</button>
-        <div id="detail-content"></div>
+      <span class="result-count" id="arch-count"></span>
+    </div>
+    <div class="articles-list" id="arch-list">
+      <div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-msg">Caricamento…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB SCANSIONE -->
+<div id="panel-scan" style="display:none">
+  <div class="scan-panel">
+    <div class="scan-title">🌐 Scansione Google News</div>
+    <p class="scan-desc">Cerca le ultime notizie per tutti i clienti configurati usando Google News. I nuovi risultati vengono salvati nell'archivio senza duplicati.</p>
+    <button class="btn-scan" id="btn-avvia" onclick="avviaScan()">⚡ Lancia scansione</button>
+    <div class="progress-box" id="progress-box">
+      <div class="progress-client" id="progress-client">Preparazione…</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="progress-stats" id="progress-stats"></div>
+    </div>
+    <div class="report-box" id="report-box">
+      <div class="report-title" id="report-title">✅ Scansione completata</div>
+      <div class="report-nums">
+        <div><div class="report-num-val" id="rep-found">0</div><div class="report-num-lab">Nuovi articoli</div></div>
+        <div><div class="report-num-val" id="rep-dupes">0</div><div class="report-num-lab">Duplicati saltati</div></div>
+        <div><div class="report-num-val" id="rep-clients">0</div><div class="report-num-lab">Clienti scansionati</div></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- FONTI LAYOUT -->
-<div style="display:none" id="layout-fonti">
-  <div class="fonti-layout">
-    <div class="fonti-form">
-      <h6>➕ Aggiungi fonte</h6>
-      <div class="form-field"><label>Nome testata</label><input type="text" id="new-name" placeholder="es. ANSA Economia"/></div>
-      <div class="form-field"><label>URL feed</label><input type="url" id="new-url" placeholder="https://..."/></div>
-      <div class="form-field"><label>Tipo</label>
-        <select id="new-type"><option value="rss">RSS</option><option value="scrape">Scraping</option></select>
-      </div>
-      <button class="btn-add" onclick="addSource()">+ Aggiungi fonte</button>
-    </div>
-    <div class="fonti-list" id="sources-list">
-      <div class="empty-state"><div class="icon">📡</div><p>Caricamento fonti...</p></div>
-    </div>
-  </div>
+<!-- DETAIL OVERLAY -->
+<div class="detail-overlay" id="detail-overlay">
+  <button class="detail-back" onclick="closeDetail()">← Torna alla lista</button>
+  <div id="detail-content"></div>
 </div>
 
 <script>
-let clients      = [];
-let allMentions  = [];   // tutto caricato dall'API, non filtrato
-let filtered     = [];   // risultato dopo filtro periodo + cliente
-let sources      = [];
-let activeClient = null;
+let clients        = [];
+let allMentions    = [];
+let activeOggi     = null;
+let activeArchivio = null;
+let archLoaded     = false;
+let _pollTimer     = null;
+let _currentDetailData = [];
+
+function todayISO(){ return new Date().toISOString().split('T')[0]; }
+function fmtDate(d){ if(!d) return '--'; return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function cutoffDate(days){ if(days===0) return todayISO(); const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString().split('T')[0]; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function matchKw(m, kw){ if(!kw) return true; return (m.matched_client||'').toLowerCase().includes(kw.toLowerCase()); }
 
 // ── TABS ──
-function switchTab(tab) {
-  document.getElementById('tab-mentions-btn').classList.toggle('active', tab==='mentions');
-  document.getElementById('tab-fonti-btn').classList.toggle('active', tab==='fonti');
-  document.getElementById('layout-mentions').style.display = tab==='mentions' ? 'grid' : 'none';
-  document.getElementById('layout-fonti').style.display    = tab==='fonti'    ? 'block' : 'none';
-  if (tab==='fonti') loadSources();
-}
-
-// ── DATE UTILS ──
-function todayISO()   { return new Date().toISOString().split('T')[0]; }
-function yearAgoISO() { const d=new Date(); d.setFullYear(d.getFullYear()-1); return d.toISOString().split('T')[0]; }
-function fmtDate(d)   { if(!d) return '--'; return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
-
-function periodCutoff() {
-  const days = parseInt(document.getElementById('filter-period').value, 10);
-  const d = new Date();
-  if (days === 0) {
-    // solo oggi
-    return todayISO();
-  }
-  d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0];
-}
-
-// ── FILTRI (client-side) ──
-function applyFilters() {
-  const days   = parseInt(document.getElementById('filter-period').value, 10);
-  const cutoff = periodCutoff();
-
-  // 1. Filtro periodo su tutto allMentions
-  const periodFiltered = allMentions.filter(m => {
-    const pub = (m.published_at || '').slice(0, 10);
-    if (days === 0) return pub === cutoff;
-    return pub >= cutoff;
+function switchTab(tab){
+  ['oggi','archivio','scan'].forEach(t=>{
+    document.getElementById('tab-'+t+'-btn').classList.toggle('active', t===tab);
+    const p = document.getElementById('panel-'+t);
+    if(p) p.style.display = t===tab ? (t==='scan'?'block':'grid') : 'none';
   });
-
-  // 2. Contatori sidebar — sempre sul periodo intero, indipendente dal cliente attivo
-  clients.forEach(c => {
-    const kw = (c.keywords_web || c.name).trim().toLowerCase();
-    c.count = periodFiltered.filter(m =>
-      m.matched_client && m.matched_client.toLowerCase().includes(kw)
-    ).length;
-  });
-
-  // 3. Filtro cliente su periodFiltered
-  if (activeClient?.kw) {
-    const kw = activeClient.kw.trim().toLowerCase();
-    filtered = periodFiltered.filter(m =>
-      m.matched_client && m.matched_client.toLowerCase().includes(kw)
-    );
-  } else {
-    filtered = periodFiltered;
-  }
-
-  renderSidebar();
-  renderMentions();
+  if(tab==='archivio' && !archLoaded){ archLoaded=true; applyArchivio(); }
 }
 
 // ── CLIENTS ──
-async function loadClients() {
-  try {
+async function loadClients(){
+  try{
     const data = await fetch('/api/clients').then(r=>r.json());
-    clients = (Array.isArray(data) ? data : []).sort((a,b) => a.name.localeCompare(b.name, 'it'));
-  } catch(e) {}
+    clients = (Array.isArray(data)?data:[]).sort((a,b)=>a.name.localeCompare(b.name,'it'));
+  }catch(e){}
 }
 
-function renderSidebar() {
-  // Conta "Tutti" = filtered corrente
-  const total = filtered.length;
-  let html = `<div class="client-row ${activeClient===null?'active':''}" onclick="selectClient(null)">
-    <span>Tutti</span><span class="client-row-count">${total}</span>
+function renderSidebar(sbId, periodId, activeClient, selectFn){
+  const days   = parseInt(document.getElementById(periodId).value, 10);
+  const cutoff = cutoffDate(days);
+  const periodMentions = allMentions.filter(m=>{
+    const pub=(m.published_at||'').slice(0,10);
+    return days===0 ? pub===cutoff : pub>=cutoff;
+  });
+
+  let html = `<div class="client-row ${!activeClient?'active':''}" onclick="${selectFn}(null)">
+    <span>Tutti</span><span class="client-row-count">${periodMentions.length}</span>
   </div>`;
-  html += clients.map(c => `
-    <div class="client-row ${activeClient===c.id?'active':''}" data-id="${c.id}" data-kw="${esc(c.keywords_web||c.name)}" onclick="selectClient(this)">
-      <span>${c.name}</span><span class="client-row-count">${c.count||0}</span>
-    </div>`).join('');
-  document.getElementById('client-list-container').innerHTML = html;
+  html += clients.map(c=>{
+    const kw = (c.keywords_web||c.name).trim();
+    const count = periodMentions.filter(m=>matchKw(m,kw)).length;
+    const isActive = activeClient && activeClient.id===c.id;
+    return `<div class="client-row ${isActive?'active':''}" data-id="${c.id}" data-kw="${esc(kw)}" onclick="${selectFn}(this)">
+      <span>${esc(c.name)}</span><span class="client-row-count">${count}</span>
+    </div>`;
+  }).join('');
+  document.getElementById(sbId).innerHTML = html;
 }
 
-function selectClient(el) {
-  document.querySelectorAll('.client-row').forEach(r => r.classList.remove('active'));
-  if (el === null) {
-    activeClient = null;
-    document.querySelector('.client-row').classList.add('active');
-  } else {
-    el.classList.add('active');
-    activeClient = { id: el.getAttribute('data-id'), kw: el.getAttribute('data-kw') };
-  }
-  applyFilters();
+// ── OGGI ──
+function selectOggi(el){
+  activeOggi = el ? {id:el.dataset.id, kw:el.dataset.kw} : null;
+  applyOggi();
+}
+function applyOggi(){
+  const days   = parseInt(document.getElementById('oggi-period').value,10);
+  const cutoff = cutoffDate(days);
+  let res = allMentions.filter(m=>{ const pub=(m.published_at||'').slice(0,10); return days===0?pub===cutoff:pub>=cutoff; });
+  if(activeOggi?.kw) res = res.filter(m=>matchKw(m,activeOggi.kw));
+  document.getElementById('oggi-count').textContent = res.length+' risultati';
+  renderSidebar('sidebar-oggi','oggi-period',activeOggi,'selectOggi');
+  renderList('oggi-list', res);
 }
 
-// ── MENTIONS ──
-async function loadMentions() {
-  const limit = document.getElementById('filter-limit').value;
-
-  document.getElementById('mentions-list').innerHTML =
-    '<div class="empty-state"><div class="icon"><div class="spinner dark"></div></div></div>';
-  document.getElementById('article-detail').style.display = 'none';
-  document.getElementById('mentions-list').style.display  = 'block';
-
-  try {
-    // Carica sempre tutto — il filtro cliente lo facciamo client-side
-    const data  = await fetch(`/api/web-mentions?limit=${limit}`).then(r=>r.json());
-    allMentions = Array.isArray(data) ? data : [];
-    applyFilters();
-  } catch(e) {
-    document.getElementById('mentions-list').innerHTML =
-      '<div class="empty-state"><p>Errore caricamento</p></div>';
-  }
+// ── ARCHIVIO ──
+function selectArchivio(el){
+  activeArchivio = el ? {id:el.dataset.id, kw:el.dataset.kw} : null;
+  applyArchivio();
 }
+function applyArchivio(){
+  const days   = parseInt(document.getElementById('arch-period').value,10);
+  const cutoff = cutoffDate(days);
+  const q      = (document.getElementById('arch-search').value||'').trim().toLowerCase();
+  document.getElementById('arch-clear').style.display = q?'inline-block':'none';
 
-function renderMentions() {
-  document.getElementById('filter-count').textContent = filtered.length + ' risultati';
+  let res = allMentions.filter(m=>{ const pub=(m.published_at||'').slice(0,10); return days===0?pub===cutoff:pub>=cutoff; });
+  if(activeArchivio?.kw) res = res.filter(m=>matchKw(m,activeArchivio.kw));
+  if(q) res = res.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.snippet||m.summary||'').toLowerCase().includes(q));
 
-  if (!filtered.length) {
-    document.getElementById('mentions-list').innerHTML =
-      '<div class="empty-state"><div class="icon">🔍</div><p>Nessuna mention trovata</p></div>';
+  document.getElementById('arch-count').textContent = res.length+' risultati';
+  renderSidebar('sidebar-archivio','arch-period',activeArchivio,'selectArchivio');
+  renderList('arch-list', res);
+}
+function clearArchSearch(){ document.getElementById('arch-search').value=''; applyArchivio(); }
+
+// ── RENDER LIST ──
+function renderList(containerId, articles){
+  const el = document.getElementById(containerId);
+  if(!articles.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-msg">Nessun risultato</div></div>';
+    el._data=[];
     return;
   }
-
-  document.getElementById('mentions-list').innerHTML = filtered.map((m,i) => {
-    const kws = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
-    return `<div class="article-card fade-in" onclick="openDetail(${i})">
+  el._data = articles;
+  el.innerHTML = articles.map((m,i)=>{
+    const snip = (m.snippet||m.summary||'').slice(0,180);
+    const kws  = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+    return `<div class="article-card fade-in" onclick="openDetail(${i},'${containerId}')">
       <div class="article-top">
         <span class="article-title">${esc(m.title||'Senza titolo')}</span>
         <span class="article-date">${fmtDate(m.published_at)}</span>
       </div>
-      <div class="article-source">📡 <span>${esc(m.source_name||'N/D')}</span></div>
+      <div class="article-source">${esc(m.source_name||'N/D')}</div>
+      ${snip?`<div class="article-snippet">${esc(snip)}${snip.length>=180?'…':''}</div>`:''}
       <div class="badge-row">
         ${m.matched_client?`<span class="badge-client">👤 ${esc(m.matched_client)}</span>`:''}
         ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join('')}
@@ -344,142 +310,86 @@ function renderMentions() {
 }
 
 // ── DETAIL ──
-function openDetail(idx) {
-  const m = filtered[idx];
-  document.getElementById('mentions-list').style.display  = 'none';
-  document.getElementById('article-detail').style.display = 'block';
-
-  const kws = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
-  document.getElementById('detail-content').innerHTML = `
+function openDetail(idx, containerId){
+  const data = document.getElementById(containerId)._data || [];
+  const m = data[idx]; if(!m) return;
+  const snip = m.snippet||m.summary||'Nessun sommario disponibile.';
+  document.getElementById('detail-content').innerHTML=`
     <div class="detail-title">${esc(m.title||'Senza titolo')}</div>
-    <div class="detail-meta">
-      <div><strong>${esc(m.source_name||'N/D')}</strong></div>
-      <div>Data: ${fmtDate(m.published_at)}</div>
-      ${m.matched_client?`<div>Cliente: ${esc(m.matched_client)}</div>`:''}
-      ${kws.length?`<div>Keyword: ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join(' ')}</div>`:''}
-    </div>
-    <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
-    <div class="detail-body">${esc(m.summary||'Nessun sommario disponibile.')}</div>
-    ${m.url?`<a class="btn-link" href="${esc(m.url)}" target="_blank">🔗 Articolo originale</a>`:''}
-  `;
+    <div class="detail-meta">📡 ${esc(m.source_name||'N/D')} &nbsp;·&nbsp; 📅 ${fmtDate(m.published_at)} &nbsp;·&nbsp; 👤 ${esc(m.matched_client||'—')}</div>
+    <div class="detail-body">${esc(snip)}</div>
+    ${m.url?`<a class="btn-link" href="${esc(m.url)}" target="_blank" rel="noopener">🔗 Articolo originale</a>`:''}`;
+  document.getElementById('detail-overlay').classList.add('open');
 }
+function closeDetail(){ document.getElementById('detail-overlay').classList.remove('open'); }
 
-function backToList() {
-  document.getElementById('article-detail').style.display = 'none';
-  document.getElementById('mentions-list').style.display  = 'block';
-}
-
-// ── FONTI ──
-async function loadSources() {
-  try {
-    const data = await fetch('/api/sources').then(r=>r.json());
-    sources = Array.isArray(data) ? data : [];
-    renderSources();
-  } catch(e) {}
-}
-
-function renderSources() {
-  const el = document.getElementById('sources-list');
-  if (!sources.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">📡</div><p>Nessuna fonte configurata</p></div>';
-    return;
+// ── SCANSIONE ──
+async function avviaScan(){
+  const btn = document.getElementById('btn-avvia');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Avvio…';
+  document.getElementById('progress-box').classList.add('visible');
+  document.getElementById('report-box').classList.remove('visible','error');
+  try{
+    const res  = await fetch('/api/web-scan/start',{method:'POST'});
+    const data = await res.json();
+    if(!data.job_id) throw new Error('Job non avviato');
+    startPoll(data.job_id);
+  }catch(e){
+    btn.disabled=false; btn.innerHTML='⚡ Lancia scansione';
+    alert('Errore: '+e.message);
   }
-  el.innerHTML = sources.map(s => {
-    const isOn = s.active !== false;
-    return `<div class="source-row ${isOn?'':'inactive'}">
-      <label class="toggle">
-        <input type="checkbox" ${isOn?'checked':''} onchange="toggleSource('${s.id}',this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
-      <div class="source-info">
-        <div class="source-name">${esc(s.name)}</div>
-        <div class="source-url">${esc(s.url)}</div>
-      </div>
-      <div class="source-actions">
-        <span class="badge-type ${(s.type||'rss')==='scrape'?'scrape':''}">${s.type||'rss'}</span>
-        <button class="btn-del" onclick="deleteSource('${s.id}')">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
-async function addSource() {
-  const name = document.getElementById('new-name').value.trim();
-  const url  = document.getElementById('new-url').value.trim();
-  const type = document.getElementById('new-type').value;
-  if (!name||!url) { alert('Inserisci nome e URL.'); return; }
-  try {
-    const r = await fetch('/api/sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,type})}).then(r=>r.json());
-    if (r.error) { alert('Errore: '+r.error); return; }
-    document.getElementById('new-name').value = '';
-    document.getElementById('new-url').value  = '';
-    loadSources();
-  } catch(e) { alert('Errore connessione'); }
+function startPoll(jobId){
+  _pollTimer = setInterval(async()=>{
+    try{
+      const data = await fetch('/api/web-scan/status/'+jobId).then(r=>r.json());
+      const pct  = data.total>0 ? Math.round(data.current/data.total*100) : 0;
+      document.getElementById('progress-bar').style.width    = pct+'%';
+      document.getElementById('progress-client').textContent = data.current_client
+        ? `Scansione ${data.current_client}… (${data.current}/${data.total})`
+        : 'In corso…';
+      document.getElementById('progress-stats').textContent  = `${data.found||0} nuovi · ${data.duplicates||0} duplicati`;
+
+      if(data.status==='done'||data.status==='error'){
+        clearInterval(_pollTimer);
+        const btn = document.getElementById('btn-avvia');
+        btn.disabled=false; btn.innerHTML='⚡ Lancia scansione';
+        document.getElementById('progress-bar').style.width='100%';
+        document.getElementById('progress-client').textContent = data.status==='done'?'Completata.':'Errore.';
+        const box = document.getElementById('report-box');
+        box.classList.add('visible');
+        if(data.status==='error'){
+          box.classList.add('error');
+          document.getElementById('report-title').textContent='⚠️ Errore durante la scansione';
+        } else {
+          document.getElementById('report-title').textContent='✅ Scansione completata';
+          document.getElementById('rep-found').textContent   = data.found||0;
+          document.getElementById('rep-dupes').textContent   = data.duplicates||0;
+          document.getElementById('rep-clients').textContent = data.total||0;
+          await loadMentions();
+          applyOggi();
+          archLoaded=false;
+        }
+      }
+    }catch(e){ clearInterval(_pollTimer); }
+  }, 3000);
 }
 
-async function deleteSource(id) {
-  if (!confirm('Eliminare questa fonte?')) return;
-  await fetch(`/api/sources/${id}`,{method:'DELETE'});
-  loadSources();
+// ── LOAD MENTIONS ──
+async function loadMentions(){
+  try{
+    const data = await fetch('/api/web-mentions?limit=2000').then(r=>r.json());
+    allMentions = Array.isArray(data)?data:[];
+  }catch(e){ allMentions=[]; }
 }
-
-async function toggleSource(id, active) {
-  await fetch(`/api/sources/${id}/toggle`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});
-  const s = sources.find(x=>String(x.id)===String(id));
-  if (s) s.active = active;
-  renderSources();
-}
-
-// ── SCAN ──
-function log(msg,cls='') {
-  const el = document.getElementById('scan-log');
-  el.classList.add('show');
-  el.innerHTML += `<span class="${cls}">» ${msg}  </span>`;
-}
-
-async function runScan() {
-  const btn = document.getElementById('btn-scan');
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Scansione...';
-  document.getElementById('scan-log').innerHTML='';
-  log('Avvio scansione fonti attive...');
-  try {
-    const data = await fetch('/api/monitor/run',{method:'POST'}).then(r=>r.json());
-    if (data.error) log('Errore: '+data.error,'log-err');
-    else { log(`Completata — ${data.found||0} nuovi, ${data.duplicates||0} duplicati`,'log-ok'); loadScanInfo(); loadClients(); loadMentions(); }
-  } catch(e) { log('Errore di connessione','log-err'); }
-  finally { btn.disabled=false; btn.innerHTML='🔍 Scansiona ora'; }
-}
-
-async function runHistorical() {
-  const from = document.getElementById('scan-from').value;
-  const to   = document.getElementById('scan-to').value;
-  if (!from||!to) { alert('Seleziona date.'); return; }
-  const btn = document.getElementById('btn-historical');
-  btn.disabled=true; btn.innerHTML='<div class="spinner dark"></div> In corso...';
-  document.getElementById('scan-log').innerHTML='';
-  log(`Storica ${from} → ${to}...`);
-  try {
-    const data = await fetch('/api/monitor/run-historical',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_date:from,to_date:to})}).then(r=>r.json());
-    if (data.error) log('Errore: '+data.error,'log-err');
-    else { log(`Completata — ${data.found||0} nuovi, ${data.duplicates||0} duplicati`,'log-ok'); loadScanInfo(); loadClients(); loadMentions(); }
-  } catch(e) { log('Errore di connessione','log-err'); }
-  finally { btn.disabled=false; btn.innerHTML='📅 Scansione storica'; }
-}
-
-async function loadScanInfo() {
-  try {
-    const data = await fetch('/api/monitor/scan-info').then(r=>r.json());
-    document.getElementById('last-daily').textContent = data.last_daily      ? fmtDate(data.last_daily)      : 'mai';
-    document.getElementById('last-hist').textContent  = data.last_historical ? fmtDate(data.last_historical) : 'mai';
-  } catch(e) {}
-}
-
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── INIT ──
-document.getElementById('scan-to').value   = todayISO();
-document.getElementById('scan-from').value = yearAgoISO();
-window.addEventListener('load', async () => { await loadClients(); loadMentions(); loadScanInfo(); });
+window.addEventListener('load', async()=>{
+  await loadClients();
+  await loadMentions();
+  applyOggi();
+});
 </script>
 </body>
 </html>

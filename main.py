@@ -936,7 +936,146 @@ async def get_web_mentions(client: Optional[str] = None, limit: int = 50):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# MONITOR
+# WEB SCAN — Google News RSS
+# ══════════════════════════════════════════════════════════════════════
+
+import feedparser
+import hashlib
+from urllib.parse import quote_plus
+
+# Job state esteso per web scan
+_scan_progress: dict = {}
+_scan_progress_lock = threading.Lock()
+
+def _set_scan_progress(job_id: str, **kwargs):
+    with _scan_progress_lock:
+        if job_id not in _scan_progress:
+            _scan_progress[job_id] = {}
+        _scan_progress[job_id].update(kwargs)
+
+def _get_scan_progress(job_id: str) -> dict:
+    with _scan_progress_lock:
+        return dict(_scan_progress.get(job_id, {}))
+
+def _run_web_scan(job_id: str):
+    """Scansione Google News RSS per tutti i clienti con keywords_web."""
+    import time as _time
+
+    _set_scan_progress(job_id,
+        status="running", current=0, total=0,
+        current_client="", found=0, duplicates=0, errors=[]
+    )
+
+    try:
+        # Carica clienti con keywords_web
+        res = supabase.table("clients").select("id, name, keywords_web").execute()
+        clients = [c for c in (res.data or []) if c.get("keywords_web", "").strip()]
+
+        _set_scan_progress(job_id, total=len(clients))
+
+        total_found = 0
+        total_dupes = 0
+        errors = []
+
+        for i, client in enumerate(clients):
+            kw   = client["keywords_web"].strip()
+            name = client["name"]
+            _set_scan_progress(job_id, current=i+1, current_client=name)
+
+            try:
+                url = f"https://news.google.com/rss/search?q={quote_plus(kw)}&hl=it&gl=IT&ceid=IT:it"
+                feed = feedparser.parse(url)
+                entries = feed.entries or []
+
+                for entry in entries:
+                    title     = (entry.get("title") or "").strip()
+                    link      = (entry.get("link") or "").strip()
+                    snippet   = (entry.get("summary") or "").strip()
+                    # Rimuove tag HTML dallo snippet
+                    import re
+                    snippet = re.sub(r"<[^>]+>", "", snippet).strip()
+
+                    pub_parsed = entry.get("published_parsed")
+                    if pub_parsed:
+                        pub_date = date(pub_parsed.tm_year, pub_parsed.tm_mon, pub_parsed.tm_mday).isoformat()
+                    else:
+                        pub_date = date.today().isoformat()
+
+                    source_name = ""
+                    if hasattr(entry, "source") and entry.source:
+                        source_name = entry.source.get("title", "")
+                    if not source_name and " - " in title:
+                        source_name = title.rsplit(" - ", 1)[-1].strip()
+
+                    if not link or not title:
+                        continue
+
+                    # Deduplicazione su URL hash
+                    content_hash = hashlib.md5(link.encode()).hexdigest()
+
+                    # Controlla se esiste già
+                    exists = supabase.table("web_mentions") \
+                        .select("id") \
+                        .eq("content_hash", content_hash) \
+                        .execute()
+
+                    if exists.data:
+                        total_dupes += 1
+                        continue
+
+                    # Salva
+                    supabase.table("web_mentions").insert({
+                        "source_name":      source_name or "Google News",
+                        "title":            title,
+                        "url":              link,
+                        "snippet":          snippet,
+                        "summary":          snippet,
+                        "published_at":     pub_date,
+                        "matched_client":   name,
+                        "matched_keywords": kw,
+                        "content_hash":     content_hash,
+                        "tone":             None,
+                    }).execute()
+
+                    total_found += 1
+
+            except Exception as e:
+                errors.append(f"{name}: {str(e)}")
+
+            _time.sleep(0.3)  # throttle per non sovraccaricare Google
+
+        _set_scan_progress(job_id,
+            status="done",
+            found=total_found,
+            duplicates=total_dupes,
+            errors=errors,
+            current_client=""
+        )
+
+    except Exception as e:
+        _set_scan_progress(job_id, status="error", error=str(e))
+
+
+@app.post("/api/web-scan/start")
+async def web_scan_start():
+    """Avvia scansione Google News in background."""
+    job_id = str(uuid.uuid4())[:8]
+    t = threading.Thread(target=_run_web_scan, args=(job_id,), daemon=True)
+    t.start()
+    return {"job_id": job_id}
+
+
+@app.get("/api/web-scan/status/{job_id}")
+async def web_scan_status(job_id: str):
+    """Polling stato scansione."""
+    data = _get_scan_progress(job_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Job non trovato")
+    return data
+
+
+# ══════════════════════════════════════════════════════════════════════
+# MONITOR (legacy — mantenuto per compatibilità)
 # ══════════════════════════════════════════════════════════════════════
 
 @app.post("/api/monitor/run")
