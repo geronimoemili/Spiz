@@ -236,34 +236,17 @@ function applyFilters() {
   const days   = parseInt(document.getElementById('filter-period').value, 10);
   const cutoff = periodCutoff();
 
-  // Filtro periodo
-  let result = allMentions.filter(m => {
-    const pub = (m.published_at || '').slice(0, 10);
-    if (days === 0) return pub === cutoff;   // solo oggi
-    return pub >= cutoff;
-  });
-
-  // Filtro cliente — usa keywords_web come fa il monitor
-  if (activeClient) {
-    const clientObj = clients.find(c => c.name === activeClient);
-    const kw = (clientObj?.keywords_web || activeClient).trim().toLowerCase();
-    result = result.filter(m =>
-      m.matched_client &&
-      m.matched_client.split(',').map(s => s.trim().toLowerCase()).includes(kw)
-    );
-  }
-
-  filtered = result;
-
-  // Aggiorna contatori sidebar con filtro periodo ma senza filtro cliente
-  let periodOnly = allMentions.filter(m => {
+  // Filtro periodo client-side
+  filtered = allMentions.filter(m => {
     const pub = (m.published_at || '').slice(0, 10);
     if (days === 0) return pub === cutoff;
     return pub >= cutoff;
   });
+
+  // Contatori sidebar (periodo corrente, tutti i clienti, senza filtro cliente)
   clients.forEach(c => {
     const kw = (c.keywords_web || c.name).trim().toLowerCase();
-    c.count = periodOnly.filter(m =>
+    c.count = filtered.filter(m =>
       m.matched_client &&
       m.matched_client.split(',').map(s => s.trim().toLowerCase()).includes(kw)
     ).length;
@@ -296,7 +279,8 @@ function renderSidebar() {
 
 function selectClient(name) {
   activeClient = name;
-  applyFilters();
+  renderSidebar();
+  loadMentions();
 }
 
 // ── MENTIONS ──
@@ -309,7 +293,14 @@ async function loadMentions() {
   document.getElementById('mentions-list').style.display  = 'block';
 
   try {
-    const data  = await fetch(`/api/web-mentions?limit=${limit}`).then(r=>r.json());
+    // Passa keywords_web come filtro client se selezionato
+    let url = `/api/web-mentions?limit=${limit}`;
+    if (activeClient) {
+      const clientObj = clients.find(c => c.name === activeClient);
+      const kw = clientObj?.keywords_web || activeClient;
+      url += `&client=${encodeURIComponent(kw)}`;
+    }
+    const data  = await fetch(url).then(r=>r.json());
     allMentions = Array.isArray(data) ? data : [];
     applyFilters();
   } catch(e) {
