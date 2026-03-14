@@ -236,20 +236,30 @@ function applyFilters() {
   const days   = parseInt(document.getElementById('filter-period').value, 10);
   const cutoff = periodCutoff();
 
-  // Filtro periodo client-side
-  filtered = allMentions.filter(m => {
+  // 1. Filtro periodo su tutto allMentions
+  const periodFiltered = allMentions.filter(m => {
     const pub = (m.published_at || '').slice(0, 10);
     if (days === 0) return pub === cutoff;
     return pub >= cutoff;
   });
 
-  // Contatori sidebar
+  // 2. Contatori sidebar — sempre sul periodo intero, indipendente dal cliente attivo
   clients.forEach(c => {
     const kw = (c.keywords_web || c.name).trim().toLowerCase();
-    c.count = filtered.filter(m =>
+    c.count = periodFiltered.filter(m =>
       m.matched_client && m.matched_client.toLowerCase().includes(kw)
     ).length;
   });
+
+  // 3. Filtro cliente su periodFiltered
+  if (activeClient?.kw) {
+    const kw = activeClient.kw.trim().toLowerCase();
+    filtered = periodFiltered.filter(m =>
+      m.matched_client && m.matched_client.toLowerCase().includes(kw)
+    );
+  } else {
+    filtered = periodFiltered;
+  }
 
   renderSidebar();
   renderMentions();
@@ -285,7 +295,7 @@ function selectClient(el) {
     el.classList.add('active');
     activeClient = { id: el.getAttribute('data-id'), kw: el.getAttribute('data-kw') };
   }
-  loadMentions();
+  applyFilters();
 }
 
 // ── MENTIONS ──
@@ -298,9 +308,8 @@ async function loadMentions() {
   document.getElementById('mentions-list').style.display  = 'block';
 
   try {
-    let url = `/api/web-mentions?limit=${limit}`;
-    if (activeClient?.kw) url += `&client=${encodeURIComponent(activeClient.kw)}`;
-    const data  = await fetch(url).then(r=>r.json());
+    // Carica sempre tutto — il filtro cliente lo facciamo client-side
+    const data  = await fetch(`/api/web-mentions?limit=${limit}`).then(r=>r.json());
     allMentions = Array.isArray(data) ? data : [];
     applyFilters();
   } catch(e) {
