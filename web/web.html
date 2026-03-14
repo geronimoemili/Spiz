@@ -243,12 +243,11 @@ function applyFilters() {
     return pub >= cutoff;
   });
 
-  // Contatori sidebar (periodo corrente, tutti i clienti, senza filtro cliente)
+  // Contatori sidebar
   clients.forEach(c => {
     const kw = (c.keywords_web || c.name).trim().toLowerCase();
     c.count = filtered.filter(m =>
-      m.matched_client &&
-      m.matched_client.split(',').map(s => s.trim().toLowerCase()).includes(kw)
+      m.matched_client && m.matched_client.toLowerCase().includes(kw)
     ).length;
   });
 
@@ -260,26 +259,32 @@ function applyFilters() {
 async function loadClients() {
   try {
     const data = await fetch('/api/clients').then(r=>r.json());
-    clients = Array.isArray(data) ? data : [];
+    clients = (Array.isArray(data) ? data : []).sort((a,b) => a.name.localeCompare(b.name, 'it'));
   } catch(e) {}
 }
 
 function renderSidebar() {
+  // Conta "Tutti" = filtered corrente
   const total = filtered.length;
-  const html = `
-    <div class="client-row ${activeClient===null?'active':''}" onclick="selectClient(null)">
-      <span>Tutti</span><span class="client-row-count">${total}</span>
-    </div>` +
-    clients.map(c=>`
-    <div class="client-row ${activeClient===c.name?'active':''}" data-name="${esc(c.name)}" onclick="selectClient(this.dataset.name)">
+  let html = `<div class="client-row ${activeClient===null?'active':''}" onclick="selectClient(null)">
+    <span>Tutti</span><span class="client-row-count">${total}</span>
+  </div>`;
+  html += clients.map(c => `
+    <div class="client-row ${activeClient===c.id?'active':''}" data-id="${c.id}" data-kw="${esc(c.keywords_web||c.name)}" onclick="selectClient(this)">
       <span>${c.name}</span><span class="client-row-count">${c.count||0}</span>
     </div>`).join('');
   document.getElementById('client-list-container').innerHTML = html;
 }
 
-function selectClient(name) {
-  activeClient = name;
-  renderSidebar();
+function selectClient(el) {
+  document.querySelectorAll('.client-row').forEach(r => r.classList.remove('active'));
+  if (el === null) {
+    activeClient = null;
+    document.querySelector('.client-row').classList.add('active');
+  } else {
+    el.classList.add('active');
+    activeClient = { id: el.getAttribute('data-id'), kw: el.getAttribute('data-kw') };
+  }
   loadMentions();
 }
 
@@ -293,13 +298,8 @@ async function loadMentions() {
   document.getElementById('mentions-list').style.display  = 'block';
 
   try {
-    // Passa keywords_web come filtro client se selezionato
     let url = `/api/web-mentions?limit=${limit}`;
-    if (activeClient) {
-      const clientObj = clients.find(c => c.name === activeClient);
-      const kw = clientObj?.keywords_web || activeClient;
-      url += `&client=${encodeURIComponent(kw)}`;
-    }
+    if (activeClient?.kw) url += `&client=${encodeURIComponent(activeClient.kw)}`;
     const data  = await fetch(url).then(r=>r.json());
     allMentions = Array.isArray(data) ? data : [];
     applyFilters();
