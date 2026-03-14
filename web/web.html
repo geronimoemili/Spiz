@@ -271,7 +271,7 @@ function renderSidebar() {
       <span>Tutti</span><span class="client-row-count">${total}</span>
     </div>` +
     clients.map(c=>`
-    <div class="client-row ${activeClient===c.name?'active':''}" onclick="selectClient(${JSON.stringify(c.name)})">
+    <div class="client-row ${activeClient===c.name?'active':''}" data-name="${esc(c.name)}" onclick="selectClient(this.dataset.name)">
       <span>${c.name}</span><span class="client-row-count">${c.count||0}</span>
     </div>`).join('');
   document.getElementById('client-list-container').innerHTML = html;
