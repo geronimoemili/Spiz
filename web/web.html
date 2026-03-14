@@ -243,28 +243,29 @@ function applyFilters() {
     return pub >= cutoff;
   });
 
-  // Filtro cliente
+  // Filtro cliente — usa keywords_web come fa il monitor
   if (activeClient) {
+    const clientObj = clients.find(c => c.name === activeClient);
+    const kw = (clientObj?.keywords_web || activeClient).trim().toLowerCase();
     result = result.filter(m =>
       m.matched_client &&
-      m.matched_client.split(',').map(s=>s.trim().toLowerCase())
-        .includes(activeClient.toLowerCase())
+      m.matched_client.split(',').map(s => s.trim().toLowerCase()).includes(kw)
     );
   }
 
   filtered = result;
 
-  // Aggiorna contatori sidebar con lo stesso filtro periodo ma senza filtro cliente
+  // Aggiorna contatori sidebar con filtro periodo ma senza filtro cliente
   let periodOnly = allMentions.filter(m => {
     const pub = (m.published_at || '').slice(0, 10);
     if (days === 0) return pub === cutoff;
     return pub >= cutoff;
   });
   clients.forEach(c => {
+    const kw = (c.keywords_web || c.name).trim().toLowerCase();
     c.count = periodOnly.filter(m =>
       m.matched_client &&
-      m.matched_client.split(',').map(s=>s.trim().toLowerCase())
-        .includes(c.name.toLowerCase())
+      m.matched_client.split(',').map(s => s.trim().toLowerCase()).includes(kw)
     ).length;
   });
 
