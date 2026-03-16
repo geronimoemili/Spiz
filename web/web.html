@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MAIM · Web Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:#f5f7fa;--bg2:#ffffff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;
+  --bg:#f5f7fa;--bg2:#fff;--bg3:#eef1f6;--border:#dde3ed;--border2:#c8d0e0;
   --text:#1a2236;--text2:#5a6a84;--text3:#9aabc0;
   --teal:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
   --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
@@ -17,89 +17,124 @@
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
 a{text-decoration:none;color:inherit}
 
+/* NAV */
 nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+.logo-img{height:38px;width:auto;flex-shrink:0}
 .nav-links{display:flex;gap:2px;margin-left:auto}
 .nav-link{color:var(--text2);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
 .nav-link:hover{color:var(--text)}
 .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
 
+/* TABS */
 .tab-bar{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex}
 .tab-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:12px 18px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;color:var(--text2);transition:all .15s}
 .tab-btn:hover{color:var(--teal)}
 .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
 
-.main-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 56px - 43px)}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto}
-.sidebar-head{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
-.client-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
-.client-row:hover{background:var(--bg3)}
-.client-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:11px}
-.client-row.active span:first-child{color:var(--teal);font-weight:600}
-.client-row-count{font-family:var(--mono);font-size:10px;color:var(--teal);flex-shrink:0}
+/* READER LAYOUT */
+.reader-layout{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 56px - 43px)}
 
-.panel{display:flex;flex-direction:column;min-width:0}
-.panel-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.panel-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
-.filter-select{font-family:var(--mono);font-size:10px;padding:5px 8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:4px;cursor:pointer;outline:none}
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-block{display:flex;flex-direction:column;min-height:0}
+.sb-block+.sb-block{border-top:2px solid var(--border)}
+.sb-head{padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);flex-shrink:0}
+.sb-list{overflow-y:auto;flex:1}
+.sb-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;gap:8px}
+.sb-row:hover{background:var(--bg3)}
+.sb-row.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:11px}
+.sb-row.active .sb-name{color:var(--teal);font-weight:600}
+.sb-name{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-count{font-family:var(--mono);font-size:10px;color:var(--teal);flex-shrink:0}
+
+/* FONTE TOGGLE ROW */
+.fonte-row{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border)}
+.fonte-name{font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.toggle{position:relative;width:30px;height:17px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:11px;height:11px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked+.toggle-slider{background:var(--teal)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(13px)}
+
+/* MAIN PANEL */
+.main-panel{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* TOOLBAR */
+.toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:5px;padding:7px 14px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:opacity .15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-primary:hover:not(:disabled){opacity:.88}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover:not(:disabled){opacity:.88}
+.btn-outline{background:var(--bg2);border:1px solid var(--border2);color:var(--text2)}
+.btn-outline:hover:not(:disabled){border-color:var(--teal);color:var(--teal)}
+.filter-select{font-family:var(--mono);font-size:10px;padding:6px 8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:4px;cursor:pointer;outline:none}
 .filter-select:focus{border-color:var(--teal)}
-.result-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto}
+.toolbar-count{font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:auto}
+.sel-count{font-family:var(--mono);font-size:10px;color:var(--pink);font-weight:700}
 
-.search-wrap{display:flex;gap:6px;align-items:center}
-.search-input{font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text);outline:none;width:220px}
-.search-input:focus{border-color:var(--teal);background:#fff}
-.search-clear{font-family:var(--mono);font-size:10px;padding:5px 10px;border:1px solid var(--border2);background:none;color:var(--text2);border-radius:4px;cursor:pointer;display:none}
+/* PROGRESS BAR */
+.scan-progress{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 16px;display:none;align-items:center;gap:12px;flex-shrink:0}
+.scan-progress.visible{display:flex}
+.progress-wrap{flex:1;background:var(--border);border-radius:3px;height:5px}
+.progress-fill{height:100%;background:var(--grad);border-radius:3px;transition:width .4s;width:0%}
+.progress-label{font-family:var(--mono);font-size:10px;color:var(--text2);white-space:nowrap;min-width:200px}
 
-.articles-list{flex:1;overflow-y:auto}
-.article-card{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 18px;cursor:pointer;transition:background .1s;border-left:3px solid transparent}
-.article-card:hover{background:#f0f9fc;border-left-color:var(--teal)}
-.article-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:3px}
-.article-title{font-weight:600;font-size:13px;line-height:1.4;color:var(--text);flex:1}
-.article-date{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0;padding-top:2px}
-.article-source{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);margin-bottom:5px}
-.article-snippet{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:6px}
-.badge-row{display:flex;gap:5px;flex-wrap:wrap}
-.badge-client{background:rgba(14,165,201,.07);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);font-weight:600}
+/* ARTICLES */
+.articles-wrap{flex:1;overflow-y:auto}
+.article-card{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+.article-card:hover{background:#f5fbfe}
+.article-card.selected{background:#e8f7fc}
+.art-check{flex-shrink:0;margin-top:3px;accent-color:var(--teal);width:14px;height:14px;cursor:pointer}
+.art-body{flex:1;min-width:0}
+.art-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:3px}
+.art-title{font-weight:600;font-size:13px;line-height:1.4;color:var(--text)}
+.art-title:hover{color:var(--teal)}
+.art-date{font-family:var(--mono);font-size:9px;color:var(--text3);flex-shrink:0;padding-top:2px}
+.art-source{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);margin-bottom:5px}
+.art-snippet{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:6px}
+.art-badges{display:flex;gap:5px;flex-wrap:wrap}
+.badge-cl{background:rgba(14,165,201,.07);color:var(--teal);border:1px solid rgba(14,165,201,.2);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono);font-weight:600}
 .badge-kw{background:rgba(212,54,122,.06);color:var(--pink);border:1px solid rgba(212,54,122,.18);border-radius:3px;padding:2px 7px;font-size:9px;font-family:var(--mono)}
+.art-link{font-family:var(--mono);font-size:9px;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+.art-link:hover{text-decoration:underline}
 
-.detail-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:28px 32px}
-.detail-overlay.open{display:block}
-.detail-back{font-family:var(--mono);font-size:11px;cursor:pointer;background:none;border:1px solid var(--border2);padding:5px 12px;border-radius:4px;margin-bottom:20px;color:var(--text2)}
-.detail-back:hover{border-color:var(--teal);color:var(--teal)}
-.detail-title{font-size:20px;font-weight:700;margin-bottom:10px;line-height:1.4}
-.detail-meta{font-size:12px;color:var(--text2);line-height:2;margin-bottom:16px;font-family:var(--mono)}
-.detail-body{font-size:14px;line-height:1.8;color:var(--text);margin-bottom:20px}
-.btn-link{display:inline-flex;align-items:center;gap:6px;background:var(--grad);color:#fff;border:none;border-radius:5px;padding:8px 18px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;text-decoration:none}
+/* FONTI TAB */
+.fonti-wrap{padding:24px;max-width:800px}
+.fonti-form{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:24px}
+.fonti-form h6{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:14px}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.form-field{display:flex;flex-direction:column;gap:4px}
+.form-field label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.form-field input,.form-field select{font-family:var(--sans);font-size:12px;padding:7px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);outline:none}
+.form-field input:focus,.form-field select:focus{border-color:var(--teal);background:#fff}
+.form-field.grow{flex:1;min-width:180px}
+.fonti-table{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.fonte-tr{display:grid;grid-template-columns:1fr 2fr 60px 60px 40px;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.fonte-tr:last-child{border-bottom:none}
+.fonte-tr.header{background:var(--bg3);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.fonte-name-cell{font-weight:600;font-size:12px}
+.fonte-url-cell{font-family:var(--mono);font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge-type{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;background:rgba(14,165,201,.08);color:var(--teal);border:1px solid rgba(14,165,201,.22)}
+.btn-del{background:rgba(224,58,90,.06);border:1px solid rgba(224,58,90,.2);color:var(--red);border-radius:4px;padding:4px 9px;font-family:var(--mono);font-size:9px;cursor:pointer}
+.btn-del:hover{background:rgba(224,58,90,.12)}
 
-.scan-panel{padding:32px;max-width:640px}
-.scan-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
-.scan-desc{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px}
-.btn-scan{background:var(--grad);color:#fff;border:none;border-radius:6px;padding:12px 28px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn-scan:hover:not(:disabled){opacity:.88}
-.btn-scan:disabled{opacity:.4;cursor:not-allowed}
-.progress-box{margin-top:24px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;display:none}
-.progress-box.visible{display:block}
-.progress-bar-wrap{background:var(--border);border-radius:4px;height:6px;margin:10px 0 6px}
-.progress-bar{height:100%;background:var(--grad);border-radius:4px;transition:width .4s;width:0%}
-.progress-client{font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:4px}
-.progress-stats{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.report-box{margin-top:20px;background:#e8f7ef;border:1px solid #a7d7b8;border-radius:8px;padding:16px 20px;display:none}
-.report-box.visible{display:block}
-.report-box.error{background:#fff0f3;border-color:#f5b8c4}
-.report-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:12px}
-.report-box.error .report-title{color:var(--red)}
-.report-nums{display:flex;gap:24px;flex-wrap:wrap}
-.report-num-val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--green);line-height:1}
-.report-box.error .report-num-val{color:var(--red)}
-.report-num-lab{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
-
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text3);gap:12px;text-align:center}
-.empty-icon{font-size:36px;opacity:.25}
+/* EMPTY / SPINNER */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text3);gap:12px;text-align:center}
+.empty-icon{font-size:36px;opacity:.2}
 .empty-msg{font-family:var(--mono);font-size:10px;letter-spacing:.8px;text-transform:uppercase;line-height:1.8}
 .spinner{width:16px;height:16px;border:2px solid rgba(14,165,201,.2);border-top-color:var(--teal);border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 .fade-in{animation:fadeIn .12s ease}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
 </style>
 </head>
 <body>
@@ -108,115 +143,117 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 <script src="/static/nav.js"></script>
 
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-oggi-btn"     onclick="switchTab('oggi')">📰 Oggi</button>
-  <button class="tab-btn"        id="tab-archivio-btn" onclick="switchTab('archivio')">🗂 Archivio</button>
-  <button class="tab-btn"        id="tab-scan-btn"     onclick="switchTab('scan')">⚡ Scansione</button>
+  <button class="tab-btn active" id="tab-reader-btn" onclick="switchTab('reader')">📰 Reader</button>
+  <button class="tab-btn"        id="tab-fonti-btn"  onclick="switchTab('fonti')">⚙️ Fonti</button>
 </div>
 
-<!-- TAB OGGI -->
-<div id="panel-oggi" class="main-layout">
+<!-- ═══ READER ═══ -->
+<div id="panel-reader" class="reader-layout">
+
+  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-head">Clienti</div>
-    <div id="sidebar-oggi"></div>
+
+    <!-- CLIENTI -->
+    <div class="sb-block" style="flex:1;min-height:0">
+      <div class="sb-head">Clienti</div>
+      <div class="sb-list" id="sb-clienti"></div>
+    </div>
+
+    <!-- FONTI -->
+    <div class="sb-block" style="flex:1;min-height:0">
+      <div class="sb-head">Fonti</div>
+      <div class="sb-list" id="sb-fonti"></div>
+    </div>
+
   </div>
-  <div class="panel">
-    <div class="panel-bar">
-      <span class="panel-label">Web Mentions</span>
-      <select class="filter-select" id="oggi-period" onchange="applyOggi()">
-        <option value="0">Oggi</option>
-        <option value="7" selected>Ultimi 7 gg</option>
+
+  <!-- MAIN -->
+  <div class="main-panel">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <button class="btn btn-primary" id="btn-scan" onclick="avviaScan()">⚡ Scansiona</button>
+      <div style="width:1px;height:20px;background:var(--border2);flex-shrink:0"></div>
+      <select class="filter-select" id="filter-period" onchange="applyFilters()">
+        <option value="0" selected>Oggi</option>
+        <option value="7">Ultimi 7 gg</option>
         <option value="30">Ultimi 30 gg</option>
         <option value="60">Ultimi 60 gg</option>
       </select>
-      <span class="result-count" id="oggi-count"></span>
+      <button class="btn btn-danger" id="btn-del" onclick="eliminaSelezionati()" style="display:none">🗑 Elimina selezionati (<span id="sel-n">0</span>)</button>
+      <span class="toolbar-count" id="toolbar-count"></span>
     </div>
-    <div class="articles-list" id="oggi-list">
-      <div class="empty-state"><div class="spinner"></div></div>
+
+    <!-- SCAN PROGRESS -->
+    <div class="scan-progress" id="scan-progress">
+      <div class="progress-label" id="progress-label">In corso…</div>
+      <div class="progress-wrap"><div class="progress-fill" id="progress-fill"></div></div>
     </div>
+
+    <!-- ARTICLES -->
+    <div class="articles-wrap" id="articles-wrap">
+      <div class="empty"><div class="spinner"></div></div>
+    </div>
+
   </div>
 </div>
 
-<!-- TAB ARCHIVIO -->
-<div id="panel-archivio" class="main-layout" style="display:none">
-  <div class="sidebar">
-    <div class="sidebar-head">Clienti</div>
-    <div id="sidebar-archivio"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-bar">
-      <span class="panel-label">Archivio</span>
-      <select class="filter-select" id="arch-period" onchange="applyArchivio()">
-        <option value="30">Ultimi 30 gg</option>
-        <option value="90">Ultimi 3 mesi</option>
-        <option value="180" selected>Ultimi 6 mesi</option>
-        <option value="365">Ultimo anno</option>
-      </select>
-      <div class="search-wrap">
-        <input type="text" class="search-input" id="arch-search" placeholder="Cerca titolo o snippet…" oninput="applyArchivio()"/>
-        <button class="search-clear" id="arch-clear" onclick="clearArchSearch()">✕</button>
-      </div>
-      <span class="result-count" id="arch-count"></span>
-    </div>
-    <div class="articles-list" id="arch-list">
-      <div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-msg">Caricamento…</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- TAB SCANSIONE -->
-<div id="panel-scan" style="display:none">
-  <div class="scan-panel">
-    <div class="scan-title">🌐 Scansione Google News</div>
-    <p class="scan-desc">Cerca le ultime notizie per tutti i clienti configurati usando Google News. I nuovi risultati vengono salvati nell'archivio senza duplicati.</p>
-    <button class="btn-scan" id="btn-avvia" onclick="avviaScan()">⚡ Lancia scansione</button>
-    <div class="progress-box" id="progress-box">
-      <div class="progress-client" id="progress-client">Preparazione…</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-      <div class="progress-stats" id="progress-stats"></div>
-    </div>
-    <div class="report-box" id="report-box">
-      <div class="report-title" id="report-title">✅ Scansione completata</div>
-      <div class="report-nums">
-        <div><div class="report-num-val" id="rep-found">0</div><div class="report-num-lab">Nuovi articoli</div></div>
-        <div><div class="report-num-val" id="rep-dupes">0</div><div class="report-num-lab">Duplicati saltati</div></div>
-        <div><div class="report-num-val" id="rep-clients">0</div><div class="report-num-lab">Clienti scansionati</div></div>
+<!-- ═══ FONTI TAB ═══ -->
+<div id="panel-fonti" style="display:none">
+  <div class="fonti-wrap">
+    <div class="fonti-form">
+      <h6>➕ Aggiungi fonte</h6>
+      <div class="form-row">
+        <div class="form-field grow"><label>Nome</label><input type="text" id="new-name" placeholder="es. ANSA Economia"/></div>
+        <div class="form-field grow" style="min-width:240px"><label>URL feed RSS</label><input type="url" id="new-url" placeholder="https://…"/></div>
+        <div class="form-field"><label>Tipo</label>
+          <select id="new-type"><option value="rss">RSS</option><option value="scrape">Scraping</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="addFonte()" style="margin-bottom:1px">+ Aggiungi</button>
       </div>
     </div>
+    <div class="fonti-table">
+      <div class="fonte-tr header"><div>Nome</div><div>URL</div><div>Tipo</div><div>Attiva</div><div></div></div>
+      <div id="fonti-list"><div class="empty"><div class="spinner"></div></div></div>
+    </div>
   </div>
 </div>
 
-<!-- DETAIL OVERLAY -->
-<div class="detail-overlay" id="detail-overlay">
-  <button class="detail-back" onclick="closeDetail()">← Torna alla lista</button>
-  <div id="detail-content"></div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
-let clients        = [];
-let allMentions    = [];
-let activeOggi     = null;
-let activeArchivio = null;
-let archLoaded     = false;
-let _pollTimer     = null;
-let _currentDetailData = [];
+// ── STATE ─────────────────────────────────────────────────────────────
+let clients      = [];
+let fonti        = [];         // tutte le fonti dal DB
+let allMentions  = [];         // tutte le mention caricate
+let filtered     = [];         // dopo tutti i filtri
+let activeClient = null;       // { id, kw } | null
+let activeFonti  = new Set();  // source_name attivi (Set vuoto = tutti)
+let selected     = new Set();  // id mention selezionate
+let _pollTimer   = null;
 
+// ── UTILS ─────────────────────────────────────────────────────────────
 function todayISO(){ return new Date().toISOString().split('T')[0]; }
 function fmtDate(d){ if(!d) return '--'; return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 function cutoffDate(days){ if(days===0) return todayISO(); const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString().split('T')[0]; }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function matchKw(m, kw){ if(!kw) return true; return (m.matched_client||'').toLowerCase().includes(kw.toLowerCase()); }
 
-// ── TABS ──
-function switchTab(tab){
-  ['oggi','archivio','scan'].forEach(t=>{
-    document.getElementById('tab-'+t+'-btn').classList.toggle('active', t===tab);
-    const p = document.getElementById('panel-'+t);
-    if(p) p.style.display = t===tab ? (t==='scan'?'block':'grid') : 'none';
-  });
-  if(tab==='archivio' && !archLoaded){ archLoaded=true; applyArchivio(); }
+function toast(msg, type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'), 2800);
 }
 
-// ── CLIENTS ──
+// ── TABS ──────────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.getElementById('tab-reader-btn').classList.toggle('active', tab==='reader');
+  document.getElementById('tab-fonti-btn').classList.toggle('active', tab==='fonti');
+  document.getElementById('panel-reader').style.display = tab==='reader' ? 'grid' : 'none';
+  document.getElementById('panel-fonti').style.display  = tab==='fonti'  ? 'block' : 'none';
+  if(tab==='fonti') loadFonti();
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────
 async function loadClients(){
   try{
     const data = await fetch('/api/clients').then(r=>r.json());
@@ -224,159 +261,15 @@ async function loadClients(){
   }catch(e){}
 }
 
-function renderSidebar(sbId, periodId, activeClient, selectFn){
-  const days   = parseInt(document.getElementById(periodId).value, 10);
-  const cutoff = cutoffDate(days);
-  const periodMentions = allMentions.filter(m=>{
-    const pub=(m.published_at||'').slice(0,10);
-    return days===0 ? pub===cutoff : pub>=cutoff;
-  });
-
-  let html = `<div class="client-row ${!activeClient?'active':''}" onclick="${selectFn}(null)">
-    <span>Tutti</span><span class="client-row-count">${periodMentions.length}</span>
-  </div>`;
-  html += clients.map(c=>{
-    const kw = (c.keywords_web||c.name).trim();
-    const count = periodMentions.filter(m=>matchKw(m,kw)).length;
-    const isActive = activeClient && activeClient.id===c.id;
-    return `<div class="client-row ${isActive?'active':''}" data-id="${c.id}" data-kw="${esc(kw)}" onclick="${selectFn}(this)">
-      <span>${esc(c.name)}</span><span class="client-row-count">${count}</span>
-    </div>`;
-  }).join('');
-  document.getElementById(sbId).innerHTML = html;
-}
-
-// ── OGGI ──
-function selectOggi(el){
-  activeOggi = el ? {id:el.dataset.id, kw:el.dataset.kw} : null;
-  applyOggi();
-}
-function applyOggi(){
-  const days   = parseInt(document.getElementById('oggi-period').value,10);
-  const cutoff = cutoffDate(days);
-  let res = allMentions.filter(m=>{ const pub=(m.published_at||'').slice(0,10); return days===0?pub===cutoff:pub>=cutoff; });
-  if(activeOggi?.kw) res = res.filter(m=>matchKw(m,activeOggi.kw));
-  document.getElementById('oggi-count').textContent = res.length+' risultati';
-  renderSidebar('sidebar-oggi','oggi-period',activeOggi,'selectOggi');
-  renderList('oggi-list', res);
-}
-
-// ── ARCHIVIO ──
-function selectArchivio(el){
-  activeArchivio = el ? {id:el.dataset.id, kw:el.dataset.kw} : null;
-  applyArchivio();
-}
-function applyArchivio(){
-  const days   = parseInt(document.getElementById('arch-period').value,10);
-  const cutoff = cutoffDate(days);
-  const q      = (document.getElementById('arch-search').value||'').trim().toLowerCase();
-  document.getElementById('arch-clear').style.display = q?'inline-block':'none';
-
-  let res = allMentions.filter(m=>{ const pub=(m.published_at||'').slice(0,10); return days===0?pub===cutoff:pub>=cutoff; });
-  if(activeArchivio?.kw) res = res.filter(m=>matchKw(m,activeArchivio.kw));
-  if(q) res = res.filter(m=>(m.title||'').toLowerCase().includes(q)||(m.snippet||m.summary||'').toLowerCase().includes(q));
-
-  document.getElementById('arch-count').textContent = res.length+' risultati';
-  renderSidebar('sidebar-archivio','arch-period',activeArchivio,'selectArchivio');
-  renderList('arch-list', res);
-}
-function clearArchSearch(){ document.getElementById('arch-search').value=''; applyArchivio(); }
-
-// ── RENDER LIST ──
-function renderList(containerId, articles){
-  const el = document.getElementById(containerId);
-  if(!articles.length){
-    el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-msg">Nessun risultato</div></div>';
-    el._data=[];
-    return;
-  }
-  el._data = articles;
-  el.innerHTML = articles.map((m,i)=>{
-    const snip = (m.snippet||m.summary||'').slice(0,180);
-    const kws  = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
-    return `<div class="article-card fade-in" onclick="openDetail(${i},'${containerId}')">
-      <div class="article-top">
-        <span class="article-title">${esc(m.title||'Senza titolo')}</span>
-        <span class="article-date">${fmtDate(m.published_at)}</span>
-      </div>
-      <div class="article-source">${esc(m.source_name||'N/D')}</div>
-      ${snip?`<div class="article-snippet">${esc(snip)}${snip.length>=180?'…':''}</div>`:''}
-      <div class="badge-row">
-        ${m.matched_client?`<span class="badge-client">👤 ${esc(m.matched_client)}</span>`:''}
-        ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── DETAIL ──
-function openDetail(idx, containerId){
-  const data = document.getElementById(containerId)._data || [];
-  const m = data[idx]; if(!m) return;
-  const snip = m.snippet||m.summary||'Nessun sommario disponibile.';
-  document.getElementById('detail-content').innerHTML=`
-    <div class="detail-title">${esc(m.title||'Senza titolo')}</div>
-    <div class="detail-meta">📡 ${esc(m.source_name||'N/D')} &nbsp;·&nbsp; 📅 ${fmtDate(m.published_at)} &nbsp;·&nbsp; 👤 ${esc(m.matched_client||'—')}</div>
-    <div class="detail-body">${esc(snip)}</div>
-    ${m.url?`<a class="btn-link" href="${esc(m.url)}" target="_blank" rel="noopener">🔗 Articolo originale</a>`:''}`;
-  document.getElementById('detail-overlay').classList.add('open');
-}
-function closeDetail(){ document.getElementById('detail-overlay').classList.remove('open'); }
-
-// ── SCANSIONE ──
-async function avviaScan(){
-  const btn = document.getElementById('btn-avvia');
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Avvio…';
-  document.getElementById('progress-box').classList.add('visible');
-  document.getElementById('report-box').classList.remove('visible','error');
+async function loadSources(){
   try{
-    const res  = await fetch('/api/web-scan/start',{method:'POST'});
-    const data = await res.json();
-    if(!data.job_id) throw new Error('Job non avviato');
-    startPoll(data.job_id);
-  }catch(e){
-    btn.disabled=false; btn.innerHTML='⚡ Lancia scansione';
-    alert('Errore: '+e.message);
-  }
+    const data = await fetch('/api/sources').then(r=>r.json());
+    fonti = Array.isArray(data)?data:[];
+    // Inizializza tutte le fonti attive
+    activeFonti = new Set(fonti.filter(f=>f.active!==false).map(f=>f.name));
+  }catch(e){}
 }
 
-function startPoll(jobId){
-  _pollTimer = setInterval(async()=>{
-    try{
-      const data = await fetch('/api/web-scan/status/'+jobId).then(r=>r.json());
-      const pct  = data.total>0 ? Math.round(data.current/data.total*100) : 0;
-      document.getElementById('progress-bar').style.width    = pct+'%';
-      document.getElementById('progress-client').textContent = data.current_client
-        ? `Scansione ${data.current_client}… (${data.current}/${data.total})`
-        : 'In corso…';
-      document.getElementById('progress-stats').textContent  = `${data.found||0} nuovi · ${data.duplicates||0} duplicati`;
-
-      if(data.status==='done'||data.status==='error'){
-        clearInterval(_pollTimer);
-        const btn = document.getElementById('btn-avvia');
-        btn.disabled=false; btn.innerHTML='⚡ Lancia scansione';
-        document.getElementById('progress-bar').style.width='100%';
-        document.getElementById('progress-client').textContent = data.status==='done'?'Completata.':'Errore.';
-        const box = document.getElementById('report-box');
-        box.classList.add('visible');
-        if(data.status==='error'){
-          box.classList.add('error');
-          document.getElementById('report-title').textContent='⚠️ Errore durante la scansione';
-        } else {
-          document.getElementById('report-title').textContent='✅ Scansione completata';
-          document.getElementById('rep-found').textContent   = data.found||0;
-          document.getElementById('rep-dupes').textContent   = data.duplicates||0;
-          document.getElementById('rep-clients').textContent = data.total||0;
-          await loadMentions();
-          applyOggi();
-          archLoaded=false;
-        }
-      }
-    }catch(e){ clearInterval(_pollTimer); }
-  }, 3000);
-}
-
-// ── LOAD MENTIONS ──
 async function loadMentions(){
   try{
     const data = await fetch('/api/web-mentions?limit=2000').then(r=>r.json());
@@ -384,11 +277,280 @@ async function loadMentions(){
   }catch(e){ allMentions=[]; }
 }
 
-// ── INIT ──
+// ── SIDEBAR CLIENTI ───────────────────────────────────────────────────
+function renderSbClienti(){
+  const days   = parseInt(document.getElementById('filter-period').value,10);
+  const cutoff = cutoffDate(days);
+
+  // Base: filtro periodo + fonti attive
+  const base = allMentions.filter(m=>{
+    const pub=(m.published_at||'').slice(0,10);
+    const inPeriod = days===0 ? pub===cutoff : pub>=cutoff;
+    const inFonti  = activeFonti.size===0 || activeFonti.has(m.source_name);
+    return inPeriod && inFonti;
+  });
+
+  let html = `<div class="sb-row ${!activeClient?'active':''}" onclick="selectClient(null)">
+    <span class="sb-name">Tutti</span>
+    <span class="sb-count">${base.length}</span>
+  </div>`;
+
+  html += clients.map(c=>{
+    const kw    = (c.keywords_web||c.name).trim();
+    const count = base.filter(m=>(m.matched_client||'').toLowerCase().includes(kw.toLowerCase())).length;
+    const isAct = activeClient && activeClient.id===c.id;
+    return `<div class="sb-row ${isAct?'active':''}" data-id="${c.id}" data-kw="${esc(kw)}" onclick="selectClient(this)">
+      <span class="sb-name">${esc(c.name)}</span>
+      <span class="sb-count">${count}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sb-clienti').innerHTML = html;
+}
+
+function selectClient(el){
+  activeClient = el ? {id:el.dataset.id, kw:el.dataset.kw} : null;
+  applyFilters();
+}
+
+// ── SIDEBAR FONTI ─────────────────────────────────────────────────────
+function renderSbFonti(){
+  if(!fonti.length){
+    document.getElementById('sb-fonti').innerHTML =
+      '<div style="padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--text3)">Nessuna fonte</div>';
+    return;
+  }
+  // Raggruppa source_name dalle mention per avere solo fonti con dati
+  const sourceNamesInDB = new Set(allMentions.map(m=>m.source_name).filter(Boolean));
+  // Mostra tutte le fonti configurate
+  document.getElementById('sb-fonti').innerHTML = fonti.map(f=>{
+    const on = activeFonti.has(f.name);
+    return `<div class="fonte-row">
+      <label class="toggle" title="${on?'Disattiva':'Attiva'} filtro">
+        <input type="checkbox" ${on?'checked':''} onchange="toggleFonte('${esc(f.name)}',this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="fonte-name" title="${esc(f.name)}">${esc(f.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleFonte(name, on){
+  if(on) activeFonti.add(name);
+  else   activeFonti.delete(name);
+  applyFilters();
+}
+
+// ── FILTRI ────────────────────────────────────────────────────────────
+function applyFilters(){
+  const days   = parseInt(document.getElementById('filter-period').value,10);
+  const cutoff = cutoffDate(days);
+
+  filtered = allMentions.filter(m=>{
+    const pub     = (m.published_at||'').slice(0,10);
+    const inPer   = days===0 ? pub===cutoff : pub>=cutoff;
+    const inFonti = activeFonti.size===0 || activeFonti.has(m.source_name);
+    const inCl    = !activeClient || (m.matched_client||'').toLowerCase().includes(activeClient.kw.toLowerCase());
+    return inPer && inFonti && inCl;
+  });
+
+  selected.clear();
+  updateSelUI();
+  document.getElementById('toolbar-count').textContent = filtered.length+' articoli';
+  renderSbClienti();
+  renderArticles();
+}
+
+// ── ARTICOLI ──────────────────────────────────────────────────────────
+function renderArticles(){
+  const wrap = document.getElementById('articles-wrap');
+  if(!filtered.length){
+    wrap.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-msg">Nessun articolo nel periodo selezionato</div></div>';
+    return;
+  }
+  wrap.innerHTML = filtered.map((m,i)=>{
+    const snip = (m.snippet||m.summary||'').slice(0,200);
+    const kws  = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+    const isSel= selected.has(m.id);
+    return `<div class="article-card fade-in ${isSel?'selected':''}" id="card-${m.id}">
+      <input type="checkbox" class="art-check" ${isSel?'checked':''} onclick="toggleSel('${m.id}',event)" title="Seleziona"/>
+      <div class="art-body">
+        <div class="art-top">
+          <span class="art-title">${esc(m.title||'Senza titolo')}</span>
+          <span class="art-date">${fmtDate(m.published_at)}</span>
+        </div>
+        <div class="art-source">${esc(m.source_name||'N/D')}</div>
+        ${snip?`<div class="art-snippet">${esc(snip)}${snip.length>=200?'…':''}</div>`:''}
+        <div class="art-badges">
+          ${m.matched_client?`<span class="badge-cl">👤 ${esc(m.matched_client)}</span>`:''}
+          ${kws.map(k=>`<span class="badge-kw">${esc(k)}</span>`).join('')}
+        </div>
+        ${m.url?`<a class="art-link" href="${esc(m.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🔗 Apri articolo originale</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SELEZIONE ─────────────────────────────────────────────────────────
+function toggleSel(id, e){
+  e.stopPropagation();
+  if(selected.has(id)){ selected.delete(id); } else { selected.add(id); }
+  const card = document.getElementById('card-'+id);
+  if(card) card.classList.toggle('selected', selected.has(id));
+  updateSelUI();
+}
+
+function updateSelUI(){
+  const n   = selected.size;
+  const btn = document.getElementById('btn-del');
+  btn.style.display = n>0 ? 'inline-flex' : 'none';
+  document.getElementById('sel-n').textContent = n;
+}
+
+async function eliminaSelezionati(){
+  if(!selected.size) return;
+  if(!confirm(`Eliminare ${selected.size} articoli dal database?`)) return;
+  try{
+    const res  = await fetch('/api/web-mentions/delete-bulk',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids:[...selected]})
+    });
+    const data = await res.json();
+    if(data.success){
+      allMentions = allMentions.filter(m=>!selected.has(m.id));
+      selected.clear();
+      updateSelUI();
+      applyFilters();
+      toast(`🗑 ${data.deleted} articoli eliminati`);
+    } else {
+      toast('Errore eliminazione','err');
+    }
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+// ── SCANSIONE ─────────────────────────────────────────────────────────
+async function avviaScan(){
+  const btn  = document.getElementById('btn-scan');
+  const prog = document.getElementById('scan-progress');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Avvio…';
+  prog.classList.add('visible');
+  document.getElementById('progress-fill').style.width='0%';
+  document.getElementById('progress-label').textContent='Avvio scansione…';
+
+  try{
+    const res  = await fetch('/api/web-scan/start',{method:'POST'});
+    const data = await res.json();
+    if(!data.job_id) throw new Error('Job non avviato');
+    startPoll(data.job_id, btn, prog);
+  }catch(e){
+    btn.disabled=false; btn.innerHTML='⚡ Scansiona';
+    prog.classList.remove('visible');
+    toast('Errore avvio: '+e.message,'err');
+  }
+}
+
+function startPoll(jobId, btn, prog){
+  _pollTimer = setInterval(async()=>{
+    try{
+      const data = await fetch('/api/web-scan/status/'+jobId).then(r=>r.json());
+      const pct  = data.total>0 ? Math.round(data.current/data.total*100) : 0;
+      document.getElementById('progress-fill').style.width = pct+'%';
+      document.getElementById('progress-label').textContent = data.current_client
+        ? `${data.current_client} (${data.current}/${data.total}) — ${data.found||0} nuovi`
+        : 'In corso…';
+
+      if(data.status==='done'||data.status==='error'){
+        clearInterval(_pollTimer);
+        btn.disabled=false; btn.innerHTML='⚡ Scansiona';
+        prog.classList.remove('visible');
+        if(data.status==='done'){
+          toast(`✅ ${data.found||0} nuovi articoli trovati`);
+          await loadMentions();
+          applyFilters();
+        } else {
+          toast('Errore durante la scansione','err');
+        }
+      }
+    }catch(e){ clearInterval(_pollTimer); }
+  }, 3000);
+}
+
+// ── FONTI TAB ─────────────────────────────────────────────────────────
+async function loadFonti(){
+  try{
+    const data = await fetch('/api/sources').then(r=>r.json());
+    fonti = Array.isArray(data)?data:[];
+    renderFontiTable();
+  }catch(e){}
+}
+
+function renderFontiTable(){
+  const el = document.getElementById('fonti-list');
+  if(!fonti.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📡</div><div class="empty-msg">Nessuna fonte configurata</div></div>';
+    return;
+  }
+  el.innerHTML = fonti.map(f=>{
+    const on = f.active!==false;
+    return `<div class="fonte-tr">
+      <div class="fonte-name-cell">${esc(f.name)}</div>
+      <div class="fonte-url-cell" title="${esc(f.url)}">${esc(f.url)}</div>
+      <div><span class="badge-type">${f.type||'rss'}</span></div>
+      <div>
+        <label class="toggle">
+          <input type="checkbox" ${on?'checked':''} onchange="toggleFonteDB('${f.id}',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div><button class="btn-del" onclick="deleteFonte('${f.id}')">🗑</button></div>
+    </div>`;
+  }).join('');
+}
+
+async function addFonte(){
+  const name = document.getElementById('new-name').value.trim();
+  const url  = document.getElementById('new-url').value.trim();
+  const type = document.getElementById('new-type').value;
+  if(!name||!url){ toast('Nome e URL obbligatori','err'); return; }
+  try{
+    const res  = await fetch('/api/sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,type,active:true})});
+    const data = await res.json();
+    if(data.error){ toast('Errore: '+data.error,'err'); return; }
+    document.getElementById('new-name').value='';
+    document.getElementById('new-url').value='';
+    toast('✅ Fonte aggiunta');
+    await loadFonti();
+    // Aggiorna anche sidebar fonti
+    await loadSources();
+    renderSbFonti();
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+}
+
+async function deleteFonte(id){
+  if(!confirm('Eliminare questa fonte?')) return;
+  try{
+    await fetch('/api/sources/'+id,{method:'DELETE'});
+    toast('Fonte eliminata');
+    await loadFonti();
+    await loadSources();
+    renderSbFonti();
+  }catch(e){ toast('Errore','err'); }
+}
+
+async function toggleFonteDB(id, active){
+  try{
+    await fetch('/api/sources/'+id+'/toggle',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});
+    const f = fonti.find(x=>String(x.id)===String(id));
+    if(f) f.active=active;
+  }catch(e){ toast('Errore toggle','err'); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
 window.addEventListener('load', async()=>{
-  await loadClients();
-  await loadMentions();
-  applyOggi();
+  await Promise.all([loadClients(), loadSources(), loadMentions()]);
+  renderSbFonti();
+  applyFilters();
 });
 </script>
 </body>

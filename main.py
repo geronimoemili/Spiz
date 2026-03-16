@@ -935,6 +935,18 @@ async def get_web_mentions(client: Optional[str] = None, limit: int = 50):
         return {"error": str(e)}
 
 
+class DeleteMentionsRequest(BaseModel):
+    ids: List[str]
+
+@app.post("/api/web-mentions/delete-bulk")
+async def delete_web_mentions_bulk(req: DeleteMentionsRequest):
+    try:
+        supabase.table("web_mentions").delete().in_("id", req.ids).execute()
+        return {"success": True, "deleted": len(req.ids)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ══════════════════════════════════════════════════════════════════════
 # WEB SCAN — Google News RSS
 # ══════════════════════════════════════════════════════════════════════
