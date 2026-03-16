@@ -951,7 +951,6 @@ async def delete_web_mentions_bulk(req: DeleteMentionsRequest):
 # WEB SCAN — Google News RSS
 # ══════════════════════════════════════════════════════════════════════
 
-import feedparser
 import hashlib
 from urllib.parse import quote_plus
 
@@ -970,7 +969,7 @@ def _get_scan_progress(job_id: str) -> dict:
         return dict(_scan_progress.get(job_id, {}))
 
 def _run_web_scan(job_id: str):
-    """Scansione Google News RSS per tutti i clienti con keywords_web."""
+    """Scansione fonti RSS/scrape da monitored_sources — usa run_monitoring esistente."""
     import time as _time
 
     _set_scan_progress(job_id,
@@ -979,93 +978,73 @@ def _run_web_scan(job_id: str):
     )
 
     try:
-        # Carica clienti con keywords_web
-        res = supabase.table("clients").select("id, name, keywords_web").execute()
-        clients = [c for c in (res.data or []) if c.get("keywords_web", "").strip()]
+        # Carica fonti attive per sapere quante sono (per il progress)
+        res_sources = supabase.table("monitored_sources").select("id, name").eq("active", True).execute()
+        sources = res_sources.data or []
+        _set_scan_progress(job_id, total=len(sources))
 
-        _set_scan_progress(job_id, total=len(clients))
+        if not sources:
+            _set_scan_progress(job_id, status="done", found=0, duplicates=0, current_client="Nessuna fonte attiva")
+            return
 
-        total_found = 0
-        total_dupes = 0
+        # Aggiorna progress fonte per fonte
+        from services.database import supabase as _sb
+        clients_res = _sb.table("clients").select("id, name, keywords_web").execute()
+        clients = clients_res.data or []
+
+        # Importa le funzioni da monitor
+        from services.monitor import fetch_rss, fetch_scrape, make_hash
+
+        import re as _re
+        all_records = []
         errors = []
 
-        for i, client in enumerate(clients):
-            kw   = client["keywords_web"].strip()
-            name = client["name"]
-            _set_scan_progress(job_id, current=i+1, current_client=name)
-
+        for i, source in enumerate(sources):
+            _set_scan_progress(job_id, current=i+1, current_client=source["name"])
             try:
-                url = f"https://news.google.com/rss/search?q={quote_plus(kw)}&hl=it&gl=IT&ceid=IT:it"
-                feed = feedparser.parse(url)
-                entries = feed.entries or []
-
-                for entry in entries:
-                    title     = (entry.get("title") or "").strip()
-                    link      = (entry.get("link") or "").strip()
-                    snippet   = (entry.get("summary") or "").strip()
-                    # Rimuove tag HTML dallo snippet
-                    import re
-                    snippet = re.sub(r"<[^>]+>", "", snippet).strip()
-
-                    pub_parsed = entry.get("published_parsed")
-                    if pub_parsed:
-                        pub_date = date(pub_parsed.tm_year, pub_parsed.tm_mon, pub_parsed.tm_mday).isoformat()
-                    else:
-                        pub_date = date.today().isoformat()
-
-                    source_name = ""
-                    if hasattr(entry, "source") and entry.source:
-                        source_name = entry.source.get("title", "")
-                    if not source_name and " - " in title:
-                        source_name = title.rsplit(" - ", 1)[-1].strip()
-
-                    if not link or not title:
-                        continue
-
-                    # Deduplicazione su URL hash
-                    content_hash = hashlib.md5(link.encode()).hexdigest()
-
-                    # Controlla se esiste già
-                    exists = supabase.table("web_mentions") \
-                        .select("id") \
-                        .eq("content_hash", content_hash) \
-                        .execute()
-
-                    if exists.data:
-                        total_dupes += 1
-                        continue
-
-                    # Salva
-                    supabase.table("web_mentions").insert({
-                        "source_name":      source_name or "Google News",
-                        "title":            title,
-                        "url":              link,
-                        "snippet":          snippet,
-                        "summary":          snippet,
-                        "published_at":     pub_date,
-                        "matched_client":   name,
-                        "matched_keywords": kw,
-                        "content_hash":     content_hash,
-                        "tone":             None,
-                    }).execute()
-
-                    total_found += 1
-
+                if source.get("type") == "scrape":
+                    from services.monitor import fetch_scrape as _fs
+                    records = _fs(source, clients)
+                else:
+                    from services.monitor import fetch_rss as _fr
+                    records = _fr(source, clients)
+                all_records.extend(records)
+                print(f"[SCAN] {source['name']}: {len(records)} match")
             except Exception as e:
-                errors.append(f"{name}: {str(e)}")
+                err_msg = f"{source['name']}: {str(e)}"
+                errors.append(err_msg)
+                print(f"[SCAN] ERRORE {err_msg}")
+            _time.sleep(0.1)
 
-            _time.sleep(0.3)  # throttle per non sovraccaricare Google
+        # Deduplicazione interna
+        seen, deduped = set(), []
+        for r in all_records:
+            if r["content_hash"] not in seen:
+                seen.add(r["content_hash"])
+                deduped.append(r)
+
+        # Upsert su Supabase
+        inserted = 0
+        duplicates = 0
+        if deduped:
+            result = supabase.table("web_mentions").upsert(
+                deduped, on_conflict="content_hash"
+            ).execute()
+            inserted   = len(result.data) if result.data else 0
+            duplicates = len(deduped) - inserted
 
         _set_scan_progress(job_id,
             status="done",
-            found=total_found,
-            duplicates=total_dupes,
+            found=inserted,
+            duplicates=duplicates,
             errors=errors,
             current_client=""
         )
+        print(f"[SCAN] Completata — {inserted} inseriti, {duplicates} duplicati")
 
     except Exception as e:
         _set_scan_progress(job_id, status="error", error=str(e))
+        print(f"[SCAN] ERRORE GENERALE: {e}")
 
 
 @app.post("/api/web-scan/start")
