@@ -530,7 +530,12 @@ async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[
 # TOP GIORNALISTI
 # ══════════════════════════════════════════════════════════════════════
 
-@app.get("/api/top-giornalisti")
+@app.get("/giornalisti")
+async def giornalisti_page():
+    return FileResponse("web/giornalisti.html")
+
+
+
 async def top_giornalisti(period: str = Query("30days"), limit: int = Query(20)):
     try:
         today = date.today()
