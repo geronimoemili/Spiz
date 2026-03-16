@@ -155,13 +155,24 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
 
     <!-- CLIENTI -->
     <div class="sb-block" style="flex:1;min-height:0">
-      <div class="sb-head">Clienti</div>
+      <div class="sb-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Clienti</span>
+        <span style="display:flex;gap:4px">
+          <button onclick="selectClient(null)" style="font-family:var(--mono);font-size:8px;border:1px solid var(--border2);background:none;padding:2px 6px;border-radius:3px;cursor:pointer;color:var(--text3)">Tutti</button>
+        </span>
+      </div>
       <div class="sb-list" id="sb-clienti"></div>
     </div>
 
     <!-- FONTI -->
     <div class="sb-block" style="flex:1;min-height:0">
-      <div class="sb-head">Fonti</div>
+      <div class="sb-head" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Fonti</span>
+        <span style="display:flex;gap:4px">
+          <button onclick="toggleAllFonti(true)" style="font-family:var(--mono);font-size:8px;border:1px solid var(--border2);background:none;padding:2px 6px;border-radius:3px;cursor:pointer;color:var(--text3)">On</button>
+          <button onclick="toggleAllFonti(false)" style="font-family:var(--mono);font-size:8px;border:1px solid var(--border2);background:none;padding:2px 6px;border-radius:3px;cursor:pointer;color:var(--text3)">Off</button>
+        </span>
+      </div>
       <div class="sb-list" id="sb-fonti"></div>
     </div>
 
@@ -175,8 +186,8 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
       <button class="btn btn-primary" id="btn-scan" onclick="avviaScan()">⚡ Scansiona</button>
       <div style="width:1px;height:20px;background:var(--border2);flex-shrink:0"></div>
       <select class="filter-select" id="filter-period" onchange="applyFilters()">
-        <option value="0">Oggi</option>
-        <option value="7" selected>Ultimi 7 gg</option>
+        <option value="0" selected>Oggi</option>
+        <option value="7">Ultimi 7 gg</option>
         <option value="30">Ultimi 30 gg</option>
         <option value="60">Ultimi 60 gg</option>
       </select>
@@ -341,6 +352,12 @@ function toggleFonte(name, on){
   applyFilters();
 }
 
+function toggleAllFonti(on){
+  fonti.forEach(f => on ? activeFonti.add(f.name) : activeFonti.delete(f.name));
+  renderSbFonti();
+  applyFilters();
+}
+
 // ── FILTRI ────────────────────────────────────────────────────────────
 function applyFilters(){
   const days   = parseInt(document.getElementById('filter-period').value,10);
@@ -353,6 +370,9 @@ function applyFilters(){
     const inCl    = !activeClient || (m.matched_client||'').toLowerCase().includes(activeClient.kw.toLowerCase());
     return inPer && inFonti && inCl;
   });
+
+  // Ordine cronologico inverso (più recente prima)
+  filtered.sort((a,b) => (b.published_at||'').localeCompare(a.published_at||''));
 
   selected.clear();
   updateSelUI();
@@ -368,7 +388,8 @@ function renderArticles(){
     wrap.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-msg">Nessun articolo nel periodo selezionato</div></div>';
     return;
   }
-  wrap.innerHTML = filtered.map((m,i)=>{
+  const toShow = filtered.slice(0, 50);
+  wrap.innerHTML = toShow.map((m,i)=>{
     const snip = (m.snippet||m.summary||'').slice(0,200);
     const kws  = (m.matched_keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
     const isSel= selected.has(m.id);
@@ -389,6 +410,9 @@ function renderArticles(){
       </div>
     </div>`;
   }).join('');
+  if(filtered.length > 50){
+    wrap.innerHTML += `<div style="padding:12px 16px;font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">Mostrati 50 di ${filtered.length} · Usa i filtri per restringere la selezione</div>`;
+  }
 }
 
 // ── SELEZIONE ─────────────────────────────────────────────────────────
