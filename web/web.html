@@ -175,8 +175,8 @@ nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;disp
       <button class="btn btn-primary" id="btn-scan" onclick="avviaScan()">⚡ Scansiona</button>
       <div style="width:1px;height:20px;background:var(--border2);flex-shrink:0"></div>
       <select class="filter-select" id="filter-period" onchange="applyFilters()">
-        <option value="0" selected>Oggi</option>
-        <option value="7">Ultimi 7 gg</option>
+        <option value="0">Oggi</option>
+        <option value="7" selected>Ultimi 7 gg</option>
         <option value="30">Ultimi 30 gg</option>
         <option value="60">Ultimi 60 gg</option>
       </select>
@@ -457,7 +457,7 @@ function startPoll(jobId, btn, prog){
       const pct  = data.total>0 ? Math.round(data.current/data.total*100) : 0;
       document.getElementById('progress-fill').style.width = pct+'%';
       document.getElementById('progress-label').textContent = data.current_client
-        ? `${data.current_client} (${data.current}/${data.total}) — ${data.found||0} nuovi`
+        ? `${data.current_client} (${data.current}/${data.total}) — ${data.found||0} nuovi · ${data.errors?.length||0} errori`
         : 'In corso…';
 
       if(data.status==='done'||data.status==='error'){

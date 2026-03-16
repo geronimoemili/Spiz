@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM · Testate</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f4f6f9;--surface:#fff;--border:#dde3ed;--border2:#eef1f6;
+  --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+  --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+  --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+a{text-decoration:none;color:inherit}
+
+nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.logo-img{height:38px;width:auto;flex-shrink:0}
+.nav-links{display:flex;gap:2px;margin-left:auto}
+.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px}
+.page-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint)}
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:5px;padding:8px 16px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--grad);color:#fff}
+.btn-primary:hover:not(:disabled){opacity:.88}
+.btn-outline{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--cyan);color:var(--cyan)}
+.saved-badge{font-family:var(--mono);font-size:10px;color:var(--green);display:none;align-items:center;gap:4px}
+.saved-badge.show{display:inline-flex}
+
+.wrap{max-width:1100px;margin:0 auto;padding:24px 20px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+.col-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.col-head{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.col-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.col-title.t1{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.col-title.t2{color:var(--faint)}
+.col-count{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.col-hint{font-size:11px;color:var(--faint);padding:8px 18px;border-bottom:1px solid var(--border2);background:var(--bg)}
+
+.drop-zone{min-height:200px;padding:8px}
+.drop-zone.drag-over{background:#e8f7fc}
+
+/* CARD TESTATA */
+.testata-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:grab;transition:box-shadow .15s,opacity .15s;user-select:none}
+.testata-card:active{cursor:grabbing}
+.testata-card.dragging{opacity:.4;box-shadow:none}
+.testata-card.drag-target{border-top:2px solid var(--cyan)}
+.drag-handle{color:var(--faint);font-size:14px;flex-shrink:0;cursor:grab}
+.testata-name{flex:1;font-size:13px;font-weight:600}
+.tier-badge{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
+.tier-badge.t1{background:rgba(14,165,201,.1);color:var(--cyan);border:1px solid rgba(14,165,201,.25)}
+.tier-badge.t2{background:var(--border2);color:var(--faint);border:1px solid var(--border)}
+.ordine-num{font-family:var(--mono);font-size:10px;color:var(--faint);min-width:24px;text-align:right;flex-shrink:0}
+
+.empty-zone{padding:24px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;border:2px dashed var(--border);border-radius:6px;margin:8px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+
+.spinner{width:14px;height:14px;border:2px solid rgba(14,165,201,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .65s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
+
+<div class="toolbar">
+  <span class="page-title">📰 Gestione Testate</span>
+  <button class="btn btn-primary" id="btn-save" onclick="saveAll()">💾 Salva ordine</button>
+  <span class="saved-badge" id="saved-badge">✅ Salvato</span>
+  <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint)" id="toolbar-info"></span>
+</div>
+
+<div class="wrap">
+  <div class="cols">
+
+    <!-- TIER 1 -->
+    <div class="col-card">
+      <div class="col-head">
+        <span class="col-title t1">TIER 1 — Principale</span>
+        <span class="col-count" id="count-t1">0 testate</span>
+      </div>
+      <div class="col-hint">Trascina per riordinare · Ordine = priorità nel digest</div>
+      <div class="drop-zone" id="zone-t1" ondragover="onDragOver(event,'t1')" ondragleave="onDragLeave(event,'t1')" ondrop="onDrop(event,'t1')"></div>
+    </div>
+
+    <!-- TIER 2 -->
+    <div class="col-card">
+      <div class="col-head">
+        <span class="col-title t2">TIER 2 — Secondario</span>
+        <span class="col-count" id="count-t2">0 testate</span>
+      </div>
+      <div class="col-hint">Trascina una testata in Tier 1 per promuoverla</div>
+      <div class="drop-zone" id="zone-t2" ondragover="onDragOver(event,'t2')" ondragleave="onDragLeave(event,'t2')" ondrop="onDrop(event,'t2')"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let tier1 = []; // array di { testata, tier, ordine }
+let tier2 = [];
+let dirty = false;
+
+// ── DRAG STATE ────────────────────────────────────────────────────────
+let dragItem   = null; // { testata, fromZone }
+let dragOverEl = null;
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function toast(msg, type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function setDirty(){
+  dirty=true;
+  document.getElementById('saved-badge').classList.remove('show');
+}
+
+// ── LOAD ──────────────────────────────────────────────────────────────
+async function load(){
+  document.getElementById('toolbar-info').textContent='Caricamento…';
+  try{
+    const data = await fetch('/api/testate-tier').then(r=>r.json());
+    const t1 = data.filter(t=>t.tier===1).sort((a,b)=>(a.ordine??999)-(b.ordine??999));
+    const t2 = data.filter(t=>t.tier!==1).sort((a,b)=>a.testata.localeCompare(b.testata,'it'));
+    tier1 = t1;
+    tier2 = t2;
+    render();
+    document.getElementById('toolbar-info').textContent=`${data.length} testate totali`;
+  }catch(e){
+    toast('Errore caricamento: '+e.message,'err');
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function render(){
+  renderZone('zone-t1', tier1, 't1');
+  renderZone('zone-t2', tier2, 't2');
+  document.getElementById('count-t1').textContent = tier1.length+' testate';
+  document.getElementById('count-t2').textContent = tier2.length+' testate';
+}
+
+function renderZone(zoneId, items, zone){
+  const el = document.getElementById(zoneId);
+  if(!items.length){
+    el.innerHTML='<div class="empty-zone">Trascina qui una testata</div>';
+    return;
+  }
+  el.innerHTML = items.map((t,i)=>`
+    <div class="testata-card"
+      draggable="true"
+      data-testata="${esc(t.testata)}"
+      data-zone="${zone}"
+      ondragstart="onDragStart(event,'${esc(t.testata)}','${zone}')"
+      ondragend="onDragEnd(event)"
+      ondragover="onDragOverCard(event)"
+      ondrop="onDropCard(event,'${zone}')">
+      <span class="drag-handle">⠿</span>
+      <span class="testata-name">${esc(t.testata)}</span>
+      ${zone==='t1'?`<span class="ordine-num">#${i+1}</span>`:''}
+      <span class="tier-badge ${zone}">${zone==='t1'?'Tier 1':'Tier 2'}</span>
+    </div>`).join('');
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────
+function onDragStart(e, testata, fromZone){
+  dragItem = { testata, fromZone };
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(e){
+  e.target.classList.remove('dragging');
+  // Pulisci tutti gli indicatori
+  document.querySelectorAll('.drag-target').forEach(el=>el.classList.remove('drag-target'));
+  document.querySelectorAll('.drop-zone').forEach(el=>el.classList.remove('drag-over'));
+}
+
+function onDragOver(e, zone){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.getElementById('zone-'+zone).classList.add('drag-over');
+}
+
+function onDragLeave(e, zone){
+  document.getElementById('zone-'+zone).classList.remove('drag-over');
+}
+
+function onDragOverCard(e){
+  e.preventDefault();
+  e.stopPropagation();
+  // Rimuovi da tutti, aggiungi solo a questo
+  document.querySelectorAll('.drag-target').forEach(el=>el.classList.remove('drag-target'));
+  e.currentTarget.classList.add('drag-target');
+}
+
+function onDrop(e, toZone){
+  e.preventDefault();
+  document.getElementById('zone-'+toZone).classList.remove('drag-over');
+  if(!dragItem) return;
+
+  const { testata, fromZone } = dragItem;
+  if(fromZone === toZone) return; // stessa zona senza card target — non fa nulla
+
+  moveTestata(testata, fromZone, toZone, null);
+}
+
+function onDropCard(e, toZone){
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.drag-target').forEach(el=>el.classList.remove('drag-target'));
+  if(!dragItem) return;
+
+  const { testata, fromZone } = dragItem;
+  const targetTestata = e.currentTarget.getAttribute('data-testata');
+
+  if(testata === targetTestata) return;
+
+  if(fromZone === toZone){
+    // Riordino nella stessa zona
+    reorderInZone(testata, targetTestata, toZone);
+  } else {
+    // Sposta tra zone, inserisce sopra il target
+    moveTestata(testata, fromZone, toZone, targetTestata);
+  }
+}
+
+function reorderInZone(testata, targetTestata, zone){
+  const arr = zone==='t1' ? tier1 : tier2;
+  const fromIdx  = arr.findIndex(t=>t.testata===testata);
+  const toIdx    = arr.findIndex(t=>t.testata===targetTestata);
+  if(fromIdx<0||toIdx<0) return;
+  const [item] = arr.splice(fromIdx,1);
+  arr.splice(toIdx,0,item);
+  // Ricalcola ordine
+  if(zone==='t1') tier1.forEach((t,i)=>t.ordine=i+1);
+  setDirty();
+  render();
+}
+
+function moveTestata(testata, fromZone, toZone, beforeTestata){
+  const fromArr = fromZone==='t1' ? tier1 : tier2;
+  const toArr   = toZone==='t1'   ? tier1 : tier2;
+
+  const idx = fromArr.findIndex(t=>t.testata===testata);
+  if(idx<0) return;
+  const [item] = fromArr.splice(idx,1);
+
+  // Aggiorna tier
+  item.tier = toZone==='t1' ? 1 : 2;
+
+  if(beforeTestata){
+    const toIdx = toArr.findIndex(t=>t.testata===beforeTestata);
+    toArr.splice(toIdx>=0?toIdx:toArr.length, 0, item);
+  } else {
+    toArr.push(item);
+  }
+
+  // Ricalcola ordine tier1
+  tier1.forEach((t,i)=>t.ordine=i+1);
+  // tier2 ordine = null
+  tier2.forEach(t=>t.ordine=null);
+
+  setDirty();
+  render();
+}
+
+// ── SAVE ──────────────────────────────────────────────────────────────
+async function saveAll(){
+  const btn = document.getElementById('btn-save');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Salvo…';
+
+  const allTestate = [
+    ...tier1.map((t,i)=>({ testata:t.testata, tier:1, ordine:i+1 })),
+    ...tier2.map(t=>({ testata:t.testata, tier:2, ordine:null }))
+  ];
+
+  try{
+    const res  = await fetch('/api/testate-tier/save',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ testate: allTestate })
+    });
+    const data = await res.json();
+    if(data.success){
+      dirty=false;
+      document.getElementById('saved-badge').classList.add('show');
+      toast(`✅ Salvate ${data.saved} testate`);
+    } else {
+      toast('Errore salvataggio','err');
+    }
+  }catch(e){
+    toast('Errore: '+e.message,'err');
+  }finally{
+    btn.disabled=false; btn.innerHTML='💾 Salva ordine';
+  }
+}
+
+// Avvisa se si esce con modifiche non salvate
+window.addEventListener('beforeunload', e=>{
+  if(dirty){ e.preventDefault(); e.returnValue=''; }
+});
+
+window.addEventListener('load', load);
+</script>
+</body>
+</html>

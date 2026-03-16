@@ -1485,6 +1485,42 @@ async def get_web_digest(token: str):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# TESTATE TIER
+# ══════════════════════════════════════════════════════════════════════
+
+class TestataUpdate(BaseModel):
+    testata: str
+    tier:    int
+    ordine:  Optional[int] = None
+
+class TestateUpdateRequest(BaseModel):
+    testate: List[TestataUpdate]
+
+@app.get("/api/testate-tier")
+async def get_testate_tier():
+    """Restituisce tutte le testate con tier e ordine."""
+    try:
+        res = supabase.table("testate_tier").select("testata, tier, ordine").order("tier").execute()
+        return res.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/testate-tier/save")
+async def save_testate_tier(req: TestateUpdateRequest):
+    """Salva l'intero stato tier (upsert bulk)."""
+    try:
+        rows = [{"testata": t.testata, "tier": t.tier, "ordine": t.ordine} for t in req.testate]
+        supabase.table("testate_tier").upsert(rows, on_conflict="testata").execute()
+        return {"success": True, "saved": len(rows)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/testate")
+async def testate_page():
+    return FileResponse("web/testate.html")
+
+
+# ══════════════════════════════════════════════════════════════════════
 # AVVIO
 # ══════════════════════════════════════════════════════════════════════
 

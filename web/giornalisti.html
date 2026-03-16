@@ -16,45 +16,31 @@
         *{margin:0;padding:0;box-sizing:border-box;}
         body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;}
 
-        /* NAV */
-        .topnav{background:var(--bg2);border-bottom:2px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;gap:12px;}
-        .logo-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
-        .logo-img{height:36px;width:auto;}
-        .logo-divider{width:1px;height:28px;background:var(--border2);}
-        .logo-sub{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
-        .nav-links{display:flex;gap:2px;}
-        .nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;padding:6px 12px;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
-        .nav-link:hover{color:var(--teal);border-bottom-color:var(--teal);}
-        .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta);}
-        .hamburger{display:none;background:none;border:1px solid var(--border2);padding:6px 10px;border-radius:3px;cursor:pointer;font-size:14px;color:var(--text2);}
-        .nav-mobile-menu{display:none;flex-direction:column;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:8px;position:absolute;top:64px;right:16px;z-index:200;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.1);}
-        .nav-mobile-menu a{padding:8px 12px;color:var(--text2);text-decoration:none;font-size:12px;font-weight:600;border-radius:3px;}
-        .nav-mobile-menu a:hover{background:var(--bg3);color:var(--teal);}
-        @media(max-width:768px){.hamburger{display:block;}.nav-links{display:none;}.logo-sub{display:none;}}
+        nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+        .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+        .nav-links{display:flex;gap:2px;margin-left:auto}
+        .nav-link{color:var(--text2);text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+        .nav-link:hover{color:var(--text)}
+        .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta)}
 
-        /* PAGE HEADER */
         .page-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
         .page-header h1{font-size:18px;font-weight:700;}
         .page-header p{font-size:12px;color:var(--text2);margin-top:3px;}
         .grad-text{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
-        /* PERIOD FILTER */
         .period-wrap{display:flex;gap:4px;align-items:center;}
         .period-btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;padding:5px 12px;border-radius:3px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all 0.15s;}
         .period-btn:hover{border-color:var(--teal);color:var(--teal);}
         .period-btn.active{background:rgba(14,165,201,0.1);border-color:var(--teal);color:var(--teal);}
 
-        /* LAYOUT */
-        .main-layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px - 55px - 56px);}
+        .main-layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 56px - 55px);}
         @media(max-width:900px){.main-layout{grid-template-columns:1fr;}}
 
-        /* SIDEBAR */
         .sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
         .sidebar-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;justify-content:space-between;align-items:center;}
         .sidebar-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
         .sidebar-count{font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:600;}
 
-        /* JOURNALIST LIST */
         .journalist-item{display:flex;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;gap:10px;}
         .journalist-item:hover{background:var(--bg3);}
         .journalist-item.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px;}
@@ -67,40 +53,32 @@
         .journalist-bar-wrap{height:3px;background:var(--bg3);border-radius:2px;margin-top:4px;}
         .journalist-bar{height:3px;background:var(--grad);border-radius:2px;transition:width 0.3s;}
 
-        /* SEARCH */
         .search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);}
         .search-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;font-size:12px;color:var(--text);font-family:var(--sans);transition:border-color 0.15s;}
         .search-input:focus{outline:none;border-color:var(--teal);}
         .search-input::placeholder{color:var(--text3);}
 
-        /* DETAIL PANEL */
         .detail-panel{display:flex;flex-direction:column;background:var(--bg);}
-
-        /* EMPTY STATE */
         .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:12px;padding:48px 20px;text-align:center;}
         .empty-state .icon{font-size:48px;opacity:0.2;}
         .empty-state p{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:1.8;}
 
-        /* JOURNALIST DETAIL */
         .detail-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:20px 24px;}
         .detail-header-top{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
         .detail-avatar-lg{width:52px;height:52px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
         .detail-name{font-size:20px;font-weight:700;color:var(--text);}
         .detail-sub{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px;}
 
-        /* STATS ROW */
         .stats-row{display:flex;gap:16px;flex-wrap:wrap;}
         .stat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;display:flex;flex-direction:column;gap:2px;}
         .stat-pill-val{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--teal);}
         .stat-pill-label{font-family:var(--mono);font-size:9px;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);}
 
-        /* TESTATE TAGS */
         .testate-section{padding:12px 24px;background:var(--bg2);border-bottom:1px solid var(--border);}
         .testate-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
         .testate-list{display:flex;flex-wrap:wrap;gap:6px;}
         .testata-tag{background:rgba(14,165,201,0.08);color:var(--teal);border:1px solid rgba(14,165,201,0.2);border-radius:20px;padding:3px 12px;font-size:11px;font-family:var(--mono);}
 
-        /* ARTICLES LIST */
         .articles-section{padding:16px 24px;flex:1;}
         .section-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
         .article-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;animation:fadeIn 0.15s ease;}
@@ -115,10 +93,7 @@
         .article-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;}
         .article-topic{font-size:11px;color:var(--text3);margin-top:4px;}
 
-        /* LOADING */
         .loading{padding:32px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.8px;}
-
-        /* TOAST */
         .toast{position:fixed;bottom:24px;right:24px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:6px;font-family:var(--mono);font-size:11px;z-index:2000;opacity:0;transition:opacity 0.2s;pointer-events:none;}
         .toast.show{opacity:1;}
 
@@ -129,53 +104,25 @@
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="topnav">
-    <div class="logo-wrap">
-        <span class="logo-sub">MAIM</span>
-        <div class="logo-divider"></div>
-        <span class="logo-sub">Giornalisti</span>
-    </div>
-    <div class="nav-links">
-        <a href="/"             class="nav-link">Home</a>
-        <a href="/press"        class="nav-link">Press</a>
-        <a href="/web"          class="nav-link">Web</a>
-        <a href="/chat"         class="nav-link">AI Analysis</a>
-        <a href="/pitch"        class="nav-link">AI Pitch</a>
-        <a href="/clients"      class="nav-link">Clienti</a>
-        <a href="/giornalisti"  class="nav-link active">Giornalisti</a>
-    </div>
-    <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
-    <div class="nav-mobile-menu" id="mobile-menu">
-        <a href="/">Home</a>
-        <a href="/press">Press</a>
-        <a href="/web">Web</a>
-        <a href="/chat">AI Analysis</a>
-        <a href="/pitch">AI Pitch</a>
-        <a href="/clients">Clienti</a>
-        <a href="/giornalisti">Giornalisti</a>
-    </div>
-</nav>
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
 
-<!-- PAGE HEADER -->
 <div class="page-header">
     <div>
         <h1>✍️ <span class="grad-text">Giornalisti</span></h1>
         <p>Esplora i giornalisti che parlano dei tuoi clienti e analizza i loro articoli</p>
     </div>
     <div class="period-wrap">
-        <button class="period-btn" data-p="today" onclick="setPeriod('today')">Oggi</button>
-        <button class="period-btn" data-p="7days" onclick="setPeriod('7days')">7g</button>
+        <button class="period-btn" data-p="today"    onclick="setPeriod('today')">Oggi</button>
+        <button class="period-btn" data-p="7days"    onclick="setPeriod('7days')">7g</button>
         <button class="period-btn active" data-p="30days" onclick="setPeriod('30days')">30g</button>
-        <button class="period-btn" data-p="6months" onclick="setPeriod('6months')">6m</button>
-        <button class="period-btn" data-p="year" onclick="setPeriod('year')">1a</button>
+        <button class="period-btn" data-p="6months"  onclick="setPeriod('6months')">6m</button>
+        <button class="period-btn" data-p="year"     onclick="setPeriod('year')">1a</button>
     </div>
 </div>
 
-<!-- MAIN LAYOUT -->
 <div class="main-layout">
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header">
             <span class="sidebar-title">Classifica</span>
@@ -189,7 +136,6 @@
         </div>
     </div>
 
-    <!-- DETAIL PANEL -->
     <div class="detail-panel" id="detail-panel">
         <div class="empty-state">
             <div class="icon">✍️</div>
@@ -199,7 +145,6 @@
 
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -207,19 +152,31 @@ let allJournalists = [];
 let filteredJournalists = [];
 let currentPeriod = '30days';
 let selectedJournalist = null;
-let mobileMenuOpen = false;
 
-// ── AVATAR COLOR ──────────────────────────────────────────────────
+// Mappa index → nome per gestire click senza problemi di escaping
+let _journalistMap = {};
+
 const COLORS = ['#0ea5c9','#d4367a','#7c3aed','#059669','#d97706','#e03a5a','#0891b2','#7e22ce'];
+
 function avatarColor(name) {
     let h = 0;
     for (let c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
     return COLORS[Math.abs(h) % COLORS.length];
 }
+
 function initials(name) {
     const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
     return name.slice(0,2).toUpperCase();
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function periodLabel(p) {
+    return { today:'Oggi', '7days':'Ultimi 7 giorni', '30days':'Ultimi 30 giorni', '6months':'Ultimi 6 mesi', year:'Ultimo anno' }[p] || p;
 }
 
 // ── PERIOD ────────────────────────────────────────────────────────
@@ -230,7 +187,7 @@ function setPeriod(p) {
     loadJournalists();
 }
 
-// ── LOAD JOURNALISTS ──────────────────────────────────────────────
+// ── LOAD ──────────────────────────────────────────────────────────
 async function loadJournalists() {
     document.getElementById('journalist-list').innerHTML = '<div class="loading">CARICAMENTO...</div>';
     document.getElementById('detail-panel').innerHTML = `
@@ -257,13 +214,18 @@ function renderList() {
         return;
     }
     const max = filteredJournalists[0]?.articoli || 1;
+    _journalistMap = {};
+
     list.innerHTML = filteredJournalists.map((j, i) => {
-        const pct = Math.round((j.articoli / max) * 100);
+        const idx = i;
+        _journalistMap[idx] = j.nome;
+        const pct    = Math.round((j.articoli / max) * 100);
         const active = selectedJournalist === j.nome ? 'active' : '';
-        const color = avatarColor(j.nome);
+        const color  = avatarColor(j.nome);
+        const rank   = allJournalists.indexOf(j) + 1;
         return `
-        <div class="journalist-item ${active}" onclick="selectJournalist('${escapeAttr(j.nome)}')">
-            <span class="journalist-rank">${allJournalists.indexOf(j) + 1}</span>
+        <div class="journalist-item ${active}" data-idx="${idx}" onclick="selectJournalistByIdx(${idx})">
+            <span class="journalist-rank">${rank}</span>
             <div class="journalist-avatar" style="background:${color}">${initials(j.nome)}</div>
             <div class="journalist-info">
                 <div class="journalist-name">${escapeHtml(j.nome)}</div>
@@ -274,14 +236,20 @@ function renderList() {
     }).join('');
 }
 
-// ── SEARCH / FILTER ───────────────────────────────────────────────
+// ── FILTER ────────────────────────────────────────────────────────
 function filterJournalists() {
     const q = document.getElementById('search-input').value.toLowerCase().trim();
     filteredJournalists = q ? allJournalists.filter(j => j.nome.toLowerCase().includes(q)) : [...allJournalists];
     renderList();
 }
 
-// ── SELECT JOURNALIST ─────────────────────────────────────────────
+// ── SELECT — usa indice invece di nome inline nell'onclick ────────
+function selectJournalistByIdx(idx) {
+    const nome = _journalistMap[idx];
+    if (!nome) return;
+    selectJournalist(nome);
+}
+
 async function selectJournalist(nome) {
     selectedJournalist = nome;
     renderList();
@@ -292,17 +260,21 @@ async function selectJournalist(nome) {
         const res = await fetch(`/api/giornalista-articoli?nome=${encodeURIComponent(nome)}&period=${currentPeriod}&limit=100`);
         const articles = await res.json();
 
-        // Build stats
         const testate = [...new Set(articles.map(a => a.testata).filter(Boolean))];
-        const tones = articles.reduce((acc, a) => {
+        const tones   = articles.reduce((acc, a) => {
             const t = (a.tone || 'neutro').toLowerCase();
             acc[t] = (acc[t] || 0) + 1;
             return acc;
         }, {});
         const posCount = Object.entries(tones).filter(([k]) => k.includes('positiv')).reduce((s, [,v]) => s+v, 0);
         const negCount = Object.entries(tones).filter(([k]) => k.includes('negativ')).reduce((s, [,v]) => s+v, 0);
-
         const color = avatarColor(nome);
+
+        // Mappa articoli per apertura dettaglio
+        const artMap = {};
+        articles.forEach((a, i) => { artMap[i] = a.id; });
+        window._artMap = artMap;
+
         panel.innerHTML = `
         <div class="detail-header fade-in">
             <div class="detail-header-top">
@@ -313,22 +285,10 @@ async function selectJournalist(nome) {
                 </div>
             </div>
             <div class="stats-row">
-                <div class="stat-pill">
-                    <span class="stat-pill-val">${articles.length}</span>
-                    <span class="stat-pill-label">Articoli</span>
-                </div>
-                <div class="stat-pill">
-                    <span class="stat-pill-val" style="color:var(--teal)">${testate.length}</span>
-                    <span class="stat-pill-label">Testate</span>
-                </div>
-                <div class="stat-pill">
-                    <span class="stat-pill-val" style="color:var(--green)">${posCount}</span>
-                    <span class="stat-pill-label">Positivi</span>
-                </div>
-                <div class="stat-pill">
-                    <span class="stat-pill-val" style="color:var(--red)">${negCount}</span>
-                    <span class="stat-pill-label">Negativi</span>
-                </div>
+                <div class="stat-pill"><span class="stat-pill-val">${articles.length}</span><span class="stat-pill-label">Articoli</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" style="color:var(--teal)">${testate.length}</span><span class="stat-pill-label">Testate</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" style="color:var(--green)">${posCount}</span><span class="stat-pill-label">Positivi</span></div>
+                <div class="stat-pill"><span class="stat-pill-val" style="color:var(--red)">${negCount}</span><span class="stat-pill-label">Negativi</span></div>
             </div>
         </div>
         ${testate.length ? `
@@ -338,25 +298,27 @@ async function selectJournalist(nome) {
         </div>` : ''}
         <div class="articles-section">
             <div class="section-title">${articles.length} Articoli · ${periodLabel(currentPeriod)}</div>
-            ${articles.length ? articles.map(a => articleCard(a)).join('') : '<div class="loading">NESSUN ARTICOLO IN QUESTO PERIODO</div>'}
+            ${articles.length
+                ? articles.map((a, i) => articleCard(a, i)).join('')
+                : '<div class="loading">NESSUN ARTICOLO IN QUESTO PERIODO</div>'}
         </div>`;
+
     } catch(e) {
         panel.innerHTML = '<div class="loading">ERRORE NEL CARICAMENTO</div>';
     }
 }
 
-function articleCard(a) {
+function articleCard(a, idx) {
     const tone = (a.tone || '').toLowerCase();
-    let toneClass = 'tone-neu', toneLabel = '●';
+    let toneClass = 'tone-neu', toneLabel = '● Neutro';
     if (tone.includes('positiv')) { toneClass = 'tone-pos'; toneLabel = '▲ Positivo'; }
     else if (tone.includes('negativ')) { toneClass = 'tone-neg'; toneLabel = '▼ Negativo'; }
-    else if (tone) { toneLabel = '● Neutro'; }
-    const date = a.data ? new Date(a.data).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'}) : '';
+    const dateStr = a.data ? new Date(a.data).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'}) : '';
     return `
-    <div class="article-card fade-in" onclick="openArticle(${a.id})">
+    <div class="article-card fade-in" onclick="openArticleByIdx(${idx})">
         <div class="article-meta">
             ${a.testata ? `<span class="article-testata">${escapeHtml(a.testata)}</span>` : ''}
-            ${date ? `<span class="article-date">${date}</span>` : ''}
+            ${dateStr ? `<span class="article-date">${dateStr}</span>` : ''}
             ${tone ? `<span class="article-tone ${toneClass}">${toneLabel}</span>` : ''}
         </div>
         <div class="article-title">${escapeHtml(a.titolo || 'Titolo non disponibile')}</div>
@@ -364,44 +326,13 @@ function articleCard(a) {
     </div>`;
 }
 
-function openArticle(id) {
+function openArticleByIdx(idx) {
+    const id = window._artMap?.[idx];
     if (id) window.open(`/press?article=${id}`, '_blank');
-}
-
-function periodLabel(p) {
-    return { today:'Oggi', '7days':'Ultimi 7 giorni', '30days':'Ultimi 30 giorni', '6months':'Ultimi 6 mesi', year:'Ultimo anno' }[p] || p;
-}
-
-// ── MOBILE MENU ───────────────────────────────────────────────────
-function toggleMobileMenu() {
-    mobileMenuOpen = !mobileMenuOpen;
-    document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
-}
-document.addEventListener('click', e => {
-    if (mobileMenuOpen && !e.target.closest('.hamburger') && !e.target.closest('#mobile-menu')) {
-        document.getElementById('mobile-menu').style.display = 'none';
-        mobileMenuOpen = false;
-    }
-});
-
-// ── UTILS ─────────────────────────────────────────────────────────
-function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escapeAttr(s) {
-    return String(s || '').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-}
-function showToast(msg, duration=2500) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), duration);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
 loadJournalists().then(() => {
-    // Se arriva da press con ?nome=... lo seleziono automaticamente
     const params = new URLSearchParams(window.location.search);
     const nome = params.get('nome');
     if (nome) selectJournalist(decodeURIComponent(nome));

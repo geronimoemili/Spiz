@@ -142,29 +142,8 @@
 </head>
 <body>
 
-<!-- NAV -->
-<nav class="topnav">
-    <div class="logo-wrap">
-        <span class="logo-sub">MAIM</span>
-        <div class="logo-divider"></div>
-        <span class="logo-sub">Gestione Clienti</span>
-    </div>
-    <div class="nav-links">
-        <a href="/" class="nav-link">Dashboard</a>
-        <a href="/chat" class="nav-link">AI Analysis</a>
-        <a href="/pitch" class="nav-link">Pitch Advisor</a>
-        <a href="/monitor" class="nav-link">Web Monitor</a>
-        <a href="/clients" class="nav-link active">Clienti</a>
-    </div>
-    <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
-    <div class="nav-mobile-menu" id="mobile-menu">
-        <a href="/">Dashboard</a>
-        <a href="/chat">AI Analysis</a>
-        <a href="/pitch">Pitch Advisor</a>
-        <a href="/monitor">Web Monitor</a>
-        <a href="/clients">Clienti</a>
-    </div>
-</nav>
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
 
 <!-- PAGE HEADER -->
 <div class="page-header">
@@ -341,6 +320,7 @@
                 fetch('/api/macro-groups').then(r=>r.json()).catch(()=>({}))
             ]);
             allClients = clients;
+            // API returns {groups: [...]}
             const macroArr = Array.isArray(macros) ? macros : (macros?.groups || []);
             allMacros = macroArr.filter(m => m.active !== false);
             renderClientList(allClients);
@@ -351,10 +331,9 @@
     function updateHeaderStats() {
         document.getElementById('stat-total').innerText    = allClients.length;
         document.getElementById('client-count').innerText  = allClients.length;
-        // FIX: usa keywords_press invece di keywords
         const kwTotal = allClients.reduce((s,c)=>{
             return s
-                + (c.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean).length
+                + (c.keywords||'').split(',').map(k=>k.trim()).filter(Boolean).length
                 + (c.keywords_web||'').split(',').map(k=>k.trim()).filter(Boolean).length;
         }, 0);
         document.getElementById('stat-keywords').innerText = kwTotal;
@@ -368,8 +347,7 @@
             return;
         }
         el.innerHTML = clients.map(c => {
-            // FIX: usa keywords_press invece di keywords
-            const pressKw = (c.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean).length;
+            const pressKw = (c.keywords||'').split(',').map(k=>k.trim()).filter(Boolean).length;
             const webKw   = (c.keywords_web||'').split(',').map(k=>k.trim()).filter(Boolean).length;
             const active  = currentClient?.id===c.id ? 'active' : '';
             return `<div class="client-item ${active}" onclick="selectClient('${c.id}')">
@@ -410,8 +388,7 @@
     }
 
     function renderPressKeywords() {
-        // FIX: usa keywords_press invece di keywords
-        const kws = (currentClient.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean);
+        const kws = (currentClient.keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
         document.getElementById('kw-press-list').innerHTML = kws.length
             ? kws.map((k,i) => `<span class="kw-tag">${k}<button class="kw-del" onclick="removeKeyword('press',${i})" title="Rimuovi">×</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessuna keyword</span>';
@@ -425,13 +402,16 @@
     }
 
     function renderMacros() {
+        // Active macros from client field (comma-separated names or IDs)
         const activeMacros = (currentClient.macro_strategici||'').split(',').map(k=>k.trim()).filter(Boolean);
 
+        // Active tags
         const activeEl = document.getElementById('macro-active-list');
         activeEl.innerHTML = activeMacros.length
             ? activeMacros.map(m => `<span class="kw-tag macro">${m}<button class="kw-del" onclick="removeMacro('${m}')" title="Rimuovi">×</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessun tema strategico associato</span>';
 
+        // Picker — show all macros not already active
         const pickerEl = document.getElementById('macro-picker');
         const emptyEl  = document.getElementById('macro-empty');
 
@@ -453,8 +433,7 @@
     // ── Keyword actions ──────────────────────────────────────
     async function addKeyword(type) {
         const inputId = type==='press' ? 'kw-press-input' : 'kw-web-input';
-        // FIX: usa keywords_press invece di keywords per il tipo press
-        const field   = type==='press' ? 'keywords_press' : 'keywords_web';
+        const field   = type==='press' ? 'keywords'       : 'keywords_web';
         const input   = document.getElementById(inputId);
         const kw      = input.value.trim();
         if (!kw || !currentClient) return;
@@ -466,8 +445,7 @@
     }
 
     async function removeKeyword(type, idx) {
-        // FIX: usa keywords_press invece di keywords per il tipo press
-        const field = type==='press' ? 'keywords_press' : 'keywords_web';
+        const field = type==='press' ? 'keywords' : 'keywords_web';
         const kws   = (currentClient[field]||'').split(',').map(k=>k.trim()).filter(Boolean);
         kws.splice(idx, 1);
         await patchClient({[field]: kws.join(', ')});
@@ -495,7 +473,7 @@
                 body: JSON.stringify(payload)
             });
             const d = await res.json();
-            if (d.error) { alert('Errore: '+JSON.stringify(d.error)); return; }
+            if (d.error) { alert('Errore: '+d.error); return; }
             Object.assign(currentClient, payload);
             const idx = allClients.findIndex(c=>c.id===currentClient.id);
             if (idx>=0) Object.assign(allClients[idx], payload);
@@ -517,11 +495,10 @@
         try {
             const res = await fetch('/api/clients', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                // FIX: usa keywords_press invece di keywords
-                body: JSON.stringify({name, keywords_press: kw})
+                body: JSON.stringify({name, keywords:kw})
             });
             const d = await res.json();
-            if (d.error) { alert('Errore: '+JSON.stringify(d.error)); return; }
+            if (d.error) { alert('Errore: '+d.error); return; }
             document.getElementById('new-client-name').value = '';
             document.getElementById('new-client-kw').value   = '';
             await loadAll();
@@ -565,7 +542,7 @@
         try {
             const res = await fetch(`/api/clients/${currentClient.id}`, {method:'DELETE'});
             const d   = await res.json();
-            if (d.error) { alert('Errore: '+JSON.stringify(d.error)); return; }
+            if (d.error) { alert('Errore: '+d.error); return; }
             currentClient = null;
             document.getElementById('client-detail').style.display = 'none';
             document.getElementById('empty-state').style.display   = 'flex';
