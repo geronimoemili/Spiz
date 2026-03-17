@@ -31,8 +31,18 @@ try:
     from apscheduler.schedulers.background import BackgroundScheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(run_monitoring, 'cron', hour=6, minute=0)
+
+    # ── Gmail IMAP scheduler: ogni 15 min dalle 07:00 alle 11:00 ──
+    def _scheduled_gmail_check():
+        from datetime import datetime
+        now = datetime.now()
+        if 7 <= now.hour < 11:
+            print(f"[GMAIL] Controllo automatico ore {now.strftime('%H:%M')}")
+            _run_gmail_import(auto=True)
+
+    scheduler.add_job(_scheduled_gmail_check, 'interval', minutes=15)
     scheduler.start()
-    print("✅ Scheduler monitoraggio avviato (ogni giorno alle 06:00)")
+    print("✅ Scheduler avviato (monitor 06:00 + Gmail ogni 15 min)")
 except Exception as e:
     print(f"⚠️ Scheduler non avviato: {e}")
 
@@ -1523,6 +1533,220 @@ async def save_testate_tier(req: TestateUpdateRequest):
 @app.get("/testate")
 async def testate_page():
     return FileResponse("web/testate.html")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# GMAIL IMAP — IMPORT RASSEGNA
+# ══════════════════════════════════════════════════════════════════════
+
+import imaplib
+import email as _email_lib
+import hashlib as _hashlib
+from email.header import decode_header as _decode_header
+
+_gmail_state = {
+    "status":      "idle",
+    "last_check":  None,
+    "last_import": None,
+    "found":       0,
+    "imported":    0,
+    "errors":      [],
+    "log":         [],
+}
+
+def _gmail_log(msg: str):
+    print(f"[GMAIL] {msg}")
+    _gmail_state["log"] = ([msg] + _gmail_state["log"])[:50]
+
+def _run_gmail_import(auto: bool = False):
+    """Connette a Gmail via IMAP, cerca mail da Ufficio.Stampa@snam.it,
+    parsa gli articoli e li ingestiona nel DB."""
+    import imaplib, re, requests
+    from bs4 import BeautifulSoup
+    from datetime import datetime
+
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+
+    if not gmail_user or not gmail_pass:
+        _gmail_state["status"] = "error"
+        _gmail_log("GMAIL_USER o GMAIL_APP_PASSWORD non configurati")
+        return
+
+    _gmail_state["status"]     = "running"
+    _gmail_state["last_check"] = datetime.now().isoformat()
+    _gmail_state["errors"]     = []
+    _gmail_log(f"Connessione a Gmail ({gmail_user})…")
+
+    try:
+        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail.login(gmail_user, gmail_pass)
+        mail.select("INBOX")
+
+        # Cerca mail non lette da entrambi i mittenti autorizzati
+        allowed_senders = ["Ufficio.Stampa@snam.it", "stampa@maimgroup.com"]
+        mail_ids_all = set()
+        for sender in allowed_senders:
+            _, data = mail.search(None, f'(UNSEEN FROM "{sender}")')
+            for mid in data[0].split():
+                mail_ids_all.add(mid)
+        mail_ids = list(mail_ids_all)
+        _gmail_log(f"Mail non lette trovate: {len(mail_ids)}")
+
+        if not mail_ids:
+            _gmail_state["status"]  = "idle"
+            _gmail_state["found"]   = 0
+            _gmail_state["imported"]= 0
+            mail.logout()
+            return
+
+        total_imported = 0
+        total_found    = 0
+
+        for mid in mail_ids:
+            _, msg_data = mail.fetch(mid, "(RFC822)")
+            raw = msg_data[0][1]
+            msg = _email_lib.message_from_bytes(raw)
+
+            # Estrai soggetto
+            subj = ""
+            for part, enc in _decode_header(msg.get("Subject", "")):
+                if isinstance(part, bytes):
+                    subj += part.decode(enc or "utf-8", errors="ignore")
+                else:
+                    subj += part
+
+            _gmail_log(f"Processo: {subj[:60]}")
+
+            # Estrai HTML
+            html_body = ""
+            for part in msg.walk():
+                if part.get_content_type() == "text/html":
+                    html_body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                    break
+
+            if not html_body:
+                _gmail_log("Nessuna parte HTML — salto")
+                continue
+
+            # Parsa articoli
+            articoli = _parse_rassegna_html(html_body)
+            total_found += len(articoli)
+            _gmail_log(f"Articoli estratti: {len(articoli)}")
+
+            # Fetcha testo e ingestiona
+            for art in articoli:
+                try:
+                    resp = requests.get(art["url"], timeout=10,
+                        headers={"User-Agent": "Mozilla/5.0"})
+                    testo = resp.text.strip() if resp.ok else ""
+                except Exception as e:
+                    testo = ""
+                    _gmail_state["errors"].append(f"{art['testata']}: {e}")
+
+                # Deduplicazione su hash testata+titolo+data
+                h = _hashlib.md5(f"{art['testata']}|{art['titolo']}|{art['data']}".encode()).hexdigest()
+
+                exists = supabase.table("articles").select("id").eq("content_hash_mail", h).execute()
+                if exists.data:
+                    continue
+
+                supabase.table("articles").insert({
+                    "testata":          art["testata"],
+                    "titolo":           art["titolo"],
+                    "data":             art["data"],
+                    "testo_completo":   testo,
+                    "giornalista":      "",
+                    "content_hash_mail": h,
+                    "fonte":            "gmail_rassegna",
+                }).execute()
+                total_imported += 1
+
+            # Marca mail come letta
+            mail.store(mid, "+FLAGS", "\\Seen")
+
+        _gmail_state["found"]    = total_found
+        _gmail_state["imported"] = total_imported
+        _gmail_state["last_import"] = datetime.now().isoformat()
+        _gmail_state["status"]   = "idle"
+        _gmail_log(f"Completato: {total_imported}/{total_found} articoli importati")
+        mail.logout()
+
+    except Exception as e:
+        _gmail_state["status"] = "error"
+        _gmail_state["errors"].append(str(e))
+        _gmail_log(f"ERRORE: {e}")
+
+
+def _parse_rassegna_html(html: str) -> list:
+    """Parsa il body HTML della mail e restituisce lista di articoli."""
+    import re
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    articoli = []
+    seen_urls = set()
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"].replace("&amp;", "&")
+        if "tiplink=4" not in href:
+            continue
+        # Salta duplicati con : nel imgatt
+        if re.search(r"imgatt=:", href):
+            continue
+        if href in seen_urls:
+            continue
+        seen_urls.add(href)
+
+        tr_curr = a.find_parent("tr")
+        if not tr_curr:
+            continue
+
+        # Titolo = testo riga corrente senza testi link
+        titolo_raw = tr_curr.get_text(separator=" ", strip=True)
+        titolo = re.sub(r"\[.*?\]", "", titolo_raw).strip()
+        if not titolo:
+            continue
+
+        # Testata e data = riga precedente
+        tr_prev = tr_curr.find_previous_sibling("tr")
+        testata_data = tr_prev.get_text(strip=True) if tr_prev else ""
+        m = re.match(r"^(.+?)\s*[·•]\s*(\d{2}-\d{2}-\d{4})", testata_data)
+        if m:
+            testata  = m.group(1).strip()
+            d, mo, y = m.group(2).split("-")
+            data     = f"{y}-{mo}-{d}"
+        else:
+            testata = testata_data
+            data    = date.today().isoformat()
+
+        # Pulisci testata da " pag.XX"
+        testata = re.sub(r"\s+pag\.\S+.*$", "", testata, flags=re.IGNORECASE).strip()
+
+        articoli.append({
+            "testata": testata,
+            "titolo":  titolo,
+            "data":    data,
+            "url":     href,
+        })
+
+    return articoli
+
+
+@app.post("/api/gmail/import")
+async def gmail_import_manual():
+    """Avvia import manuale Gmail in background."""
+    if _gmail_state["status"] == "running":
+        return {"status": "already_running"}
+    t = threading.Thread(target=_run_gmail_import, args=(False,), daemon=True)
+    t.start()
+    return {"status": "started"}
+
+
+@app.get("/api/gmail/status")
+async def gmail_status():
+    """Stato corrente del Gmail importer."""
+    return _gmail_state
 
 
 # ══════════════════════════════════════════════════════════════════════

@@ -44,3 +44,9 @@ waitForPort = 8080
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+GMAIL_APP_PASSWORD = "rlnm cqup gzyf afbl"
+GMAIL_USER = "rassegnamaim@gmail.com"
