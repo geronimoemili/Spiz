@@ -34,13 +34,13 @@ args = "FastAPI Server"
 name = "FastAPI Server"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3.11 main.py"
 waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 expertMode = true

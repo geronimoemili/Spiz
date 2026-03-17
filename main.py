@@ -1662,17 +1662,21 @@ def _run_gmail_import(auto: bool = False):
                 if exists.data:
                     continue
 
-                supabase.table("articles").insert({
-                    "testata":           art["testata"],
-                    "titolo":            art["titolo"],
-                    "data":              art["data"],
-                    "testo_completo":    testo,
-                    "giornalista":       "",
-                    "content_hash":      h,
-                    "content_hash_mail": h,
-                    "fonte":             "gmail_rassegna",
-                }).execute()
-                total_imported += 1
+                try:
+                    supabase.table("articles").insert({
+                        "testata":           art["testata"],
+                        "titolo":            art["titolo"],
+                        "data":              art["data"],
+                        "testo_completo":    testo,
+                        "giornalista":       "",
+                        "content_hash":      h,
+                        "content_hash_mail": h,
+                        "fonte":             "gmail_rassegna",
+                    }).execute()
+                    total_imported += 1
+                except Exception as ins_err:
+                    _gmail_state["errors"].append(f"Insert {art['testata']}: {ins_err}")
+                    _gmail_log(f"Errore insert {art['testata']}: {ins_err}")
 
             # Salva un record sentinella con mid_hash per non riprocessare la mail
             if message_id:
