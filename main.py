@@ -1648,9 +1648,31 @@ def _run_gmail_import(auto: bool = False):
             # Fetcha testo e ingestiona
             for art in articoli:
                 try:
-                    resp = requests.get(art["url"], timeout=10,
-                        headers={"User-Agent": "Mozilla/5.0"})
-                    testo = resp.text.strip() if resp.ok else ""
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Connection": "keep-alive",
+                        "Upgrade-Insecure-Requests": "1",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "Cache-Control": "max-age=0",
+                    }
+                    session = requests.Session()
+                    # Prima richiesta alla home per ottenere cookie
+                    session.get("https://rassegna.snam.it", headers=headers, timeout=10)
+                    # Poi fetcha l'articolo con i cookie ottenuti
+                    resp = session.get(art["url"], headers=headers, timeout=15)
+                    body = resp.text.strip() if resp.ok else ""
+                    # Verifica che non sia la pagina Octofence
+                    if "Checking your browser" in body or "octofence" in body.lower() or len(body) < 100:
+                        testo = ""
+                        _gmail_log(f"Octofence su {art['testata']} — testo non disponibile")
+                    else:
+                        testo = body
                 except Exception as e:
                     testo = ""
                     _gmail_state["errors"].append(f"{art['testata']}: {e}")
