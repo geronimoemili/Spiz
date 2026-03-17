@@ -1583,15 +1583,17 @@ def _run_gmail_import(auto: bool = False):
         mail.login(gmail_user, gmail_pass)
         mail.select("INBOX")
 
-        # Cerca mail non lette da entrambi i mittenti autorizzati
+        # Cerca mail delle ultime 24 ore da mittenti autorizzati (lette e non lette)
+        from datetime import datetime, timedelta
+        since_date = (datetime.now() - timedelta(hours=24)).strftime("%d-%b-%Y")
         allowed_senders = ["Ufficio.Stampa@snam.it", "stampa@maimgroup.com"]
         mail_ids_all = set()
         for sender in allowed_senders:
-            _, data = mail.search(None, f'(UNSEEN FROM "{sender}")')
+            _, data = mail.search(None, f'(FROM "{sender}" SINCE "{since_date}")')
             for mid in data[0].split():
                 mail_ids_all.add(mid)
         mail_ids = list(mail_ids_all)
-        _gmail_log(f"Mail non lette trovate: {len(mail_ids)}")
+        _gmail_log(f"Mail trovate (ultime 24h): {len(mail_ids)}")
 
         if not mail_ids:
             _gmail_state["status"]  = "idle"
@@ -1607,6 +1609,15 @@ def _run_gmail_import(auto: bool = False):
             _, msg_data = mail.fetch(mid, "(RFC822)")
             raw = msg_data[0][1]
             msg = _email_lib.message_from_bytes(raw)
+
+            # Deduplicazione per Message-ID — evita reimport
+            message_id = msg.get("Message-ID", "").strip()
+            if message_id:
+                mid_hash = f"mid:{_hashlib.md5(message_id.encode()).hexdigest()}"
+                exists = supabase.table("articles").select("id").eq("content_hash_mail", mid_hash).limit(1).execute()
+                if exists.data:
+                    _gmail_log(f"Mail già processata — salto")
+                    continue
 
             # Estrai soggetto
             subj = ""
@@ -1652,18 +1663,28 @@ def _run_gmail_import(auto: bool = False):
                     continue
 
                 supabase.table("articles").insert({
-                    "testata":          art["testata"],
-                    "titolo":           art["titolo"],
-                    "data":             art["data"],
-                    "testo_completo":   testo,
-                    "giornalista":      "",
+                    "testata":           art["testata"],
+                    "titolo":            art["titolo"],
+                    "data":              art["data"],
+                    "testo_completo":    testo,
+                    "giornalista":       "",
                     "content_hash_mail": h,
-                    "fonte":            "gmail_rassegna",
+                    "fonte":             "gmail_rassegna",
                 }).execute()
                 total_imported += 1
 
-            # Marca mail come letta
-            mail.store(mid, "+FLAGS", "\\Seen")
+            # Salva un record sentinella con mid_hash per non riprocessare la mail
+            if message_id:
+                try:
+                    supabase.table("articles").insert({
+                        "testata":           "_gmail_processed_",
+                        "titolo":            f"Processata: {subj[:100]}",
+                        "data":              date.today().isoformat(),
+                        "content_hash_mail": mid_hash,
+                        "fonte":             "gmail_sentinel",
+                    }).execute()
+                except Exception:
+                    pass
 
         _gmail_state["found"]    = total_found
         _gmail_state["imported"] = total_imported
