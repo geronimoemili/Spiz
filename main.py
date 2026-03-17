@@ -1668,6 +1668,7 @@ def _run_gmail_import(auto: bool = False):
                     "data":              art["data"],
                     "testo_completo":    testo,
                     "giornalista":       "",
+                    "content_hash":      h,
                     "content_hash_mail": h,
                     "fonte":             "gmail_rassegna",
                 }).execute()
@@ -1680,6 +1681,7 @@ def _run_gmail_import(auto: bool = False):
                         "testata":           "_gmail_processed_",
                         "titolo":            f"Processata: {subj[:100]}",
                         "data":              date.today().isoformat(),
+                        "content_hash":      mid_hash,
                         "content_hash_mail": mid_hash,
                         "fonte":             "gmail_sentinel",
                     }).execute()
