@@ -193,6 +193,19 @@
   </div>
 </div>
 
+<div class="wrap" style="padding-top:0">
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header">
+      <div class="sec-label" style="margin-bottom:0">📧 Rassegna da Gmail</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="gmail-status-badge" style="font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 8px;border-radius:3px;background:#eef1f6;color:var(--faint)">In attesa</span>
+        <button onclick="gmailImport()" id="btn-gmail" style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:5px;padding:6px 14px;cursor:pointer">📥 Importa ora</button>
+      </div>
+    </div>
+    <div id="gmail-log" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);line-height:1.8;min-height:20px"></div>
+  </div>
+</div>
+
 <footer>Geronimo Emili project</footer>
 <div class="toast" id="toast"></div>
 
@@ -525,7 +538,59 @@ async function doUpload() {
   },2000);
 }
 
-// ─── UTILS ─────────────────────────────────────────────────
+// ─── GMAIL ─────────────────────────────────────────────────
+async function gmailImport() {
+  const btn = document.getElementById('btn-gmail');
+  btn.disabled = true; btn.textContent = '⏳ Importo…';
+  await fetch('/api/gmail/import', {method:'POST'});
+  pollGmail();
+}
+
+function pollGmail() {
+  const iv = setInterval(async () => {
+    const d = await fetch('/api/gmail/status').then(r=>r.json());
+    const badge = document.getElementById('gmail-status-badge');
+    const log   = document.getElementById('gmail-log');
+    const btn   = document.getElementById('btn-gmail');
+
+    if (d.status === 'running') {
+      badge.style.background = '#fef3c7'; badge.style.color = '#d97706';
+      badge.textContent = 'In corso…';
+    } else {
+      badge.style.background = '#d1fae5'; badge.style.color = '#059669';
+      badge.textContent = d.last_import
+        ? `Ultimo import: ${new Date(d.last_import).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`
+        : 'Idle';
+      btn.disabled = false; btn.textContent = '📥 Importa ora';
+      clearInterval(iv);
+    }
+
+    // Log
+    if (d.log?.length) {
+      log.innerHTML = d.log.slice(0,5).map(l => `<div>› ${l}</div>`).join('');
+    }
+    if (d.imported > 0) {
+      log.innerHTML += `<div style="color:var(--green);font-weight:700">✅ ${d.imported} articoli importati</div>`;
+    }
+  }, 2000);
+}
+
+// Carica stato Gmail all'avvio
+(async () => {
+  try {
+    const d = await fetch('/api/gmail/status').then(r=>r.json());
+    if (d.last_import) {
+      document.getElementById('gmail-status-badge').textContent =
+        `Ultimo: ${new Date(d.last_import).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}`;
+      document.getElementById('gmail-status-badge').style.background = '#d1fae5';
+      document.getElementById('gmail-status-badge').style.color = '#059669';
+    }
+    if (d.log?.length) {
+      document.getElementById('gmail-log').innerHTML =
+        d.log.slice(0,3).map(l=>`<div>› ${l}</div>`).join('');
+    }
+  } catch(e) {}
+})();
 function fmt(n) { return Number(n).toLocaleString('it-IT'); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function isoDate(d) { const dd=new Date(d); return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`; }
