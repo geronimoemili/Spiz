@@ -406,7 +406,7 @@ async function loadBubble(){
   if(cId) params.set('client_id',cId);
   if(mId) params.set('macro_id',mId);
   try{
-    const d=await fetch('/api/journalists/bubble-data?'+params).then(r=>r.json());
+    const d=await fetch('/api/journalists-bubble-data?'+params).then(r=>r.json());
     bubbleData=d.nodes||[];
     bubbleLevel='testate'; selectedTestata=null;
     document.getElementById('bubble-back').style.display='none';

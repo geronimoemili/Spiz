@@ -672,7 +672,7 @@ async def list_journalists(
         return {"error": str(e)}
 
 
-@app.get("/api/journalists/bubble-data")
+@app.get("/api/journalists-bubble-data")
 async def journalists_bubble_data(
     client_id: Optional[str] = None,
     macro_id:  Optional[str] = None,
