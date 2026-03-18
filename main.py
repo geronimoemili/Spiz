@@ -571,114 +571,181 @@ async def list_journalists(
     macro_id:     Optional[str] = None,
     q:            Optional[str] = None,
 ):
-    """Lista giornalisti dal CRM + conteggio articoli + merge con archivio."""
+    """Lista giornalisti dal CRM + archivio con filtri corretti."""
     try:
+        from collections import Counter as _Counter
         SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
 
-        # 1. Giornalisti nel CRM
+        # 1. CRM
         crm_res = supabase.table("journalists").select("*").order("nome").execute()
         crm = {j["nome"].strip().lower(): j for j in (crm_res.data or [])}
 
-        # 2. Giornalisti dall'archivio articoli
+        # 2. Articoli — carico tutti i campi necessari
         arts_res = supabase.table("articles").select(
-            "giornalista, testata, macrosettori, data"
+            "giornalista, testata, macrosettori, titolo, occhiello, testo_completo"
         ).execute()
         articles = arts_res.data or []
 
-        # Conta articoli per giornalista e deduce testata principale
-        from collections import Counter as _Counter
+        # Indici per giornalista
         art_count:   dict = {}
         art_testate: dict = {}
-        art_macro:   dict = {}
+        art_macro_str: dict = {}  # giornalista_lower → set di stringhe macrosettori
 
         for a in articles:
             g = (a.get("giornalista") or "").strip()
             if not g or g.lower() in SKIP:
                 continue
             gl = g.lower()
-            art_count[gl]   = art_count.get(gl, 0) + 1
+            art_count[gl] = art_count.get(gl, 0) + 1
             art_testate.setdefault(gl, _Counter())[a.get("testata","") or ""] += 1
-            for m in (a.get("macrosettori") or "").split(","):
-                ms = m.strip()
-                if ms:
-                    art_macro.setdefault(gl, _Counter())[ms] += 1
+            macro_raw = (a.get("macrosettori") or "").upper()
+            if macro_raw:
+                art_macro_str.setdefault(gl, set()).add(macro_raw)
 
-        # 3. Filtro cliente
-        client_journalists: set = set()
+        # 3. Filtro cliente — cerca keyword negli articoli
+        client_journalists: set | None = None
         if client_id:
-            cl_res = supabase.table("clients").select("*").eq("id", client_id).execute()
+            cl_res = supabase.table("clients").select("keywords_press, keywords").eq("id", client_id).execute()
             if cl_res.data:
                 cl = cl_res.data[0]
                 kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+                client_journalists = set()
                 if kws:
                     for a in articles:
                         g = (a.get("giornalista") or "").strip()
                         if not g or g.lower() in SKIP:
                             continue
-                        txt = f"{a.get('titolo','')} {a.get('testo_completo','')} {a.get('occhiello','')}".lower()
+                        txt = f"{a.get('titolo','')} {a.get('occhiello','')} {a.get('testo_completo','')}".lower()
                         if any(kw in txt for kw in kws):
                             client_journalists.add(g.lower())
 
-        # 4. Filtro macro
-        macro_journalists: set = set()
+        # 4. Filtro macro — usa ILIKE: cerca se il nome del macrosettore è CONTENUTO nella stringa
+        macro_journalists: set | None = None
         if macro_id:
             lnk_res = supabase.table("macro_group_links").select("official_macro_id").eq("macro_group_id", macro_id).execute()
             oids = [l["official_macro_id"] for l in (lnk_res.data or [])]
             if oids:
                 mac_res = supabase.table("official_macrosectors").select("name").in_("id", oids).execute()
-                mac_names = {m["name"] for m in (mac_res.data or [])}
-                for a in articles:
-                    g = (a.get("giornalista") or "").strip()
-                    if not g or g.lower() in SKIP:
-                        continue
-                    if a.get("macrosettori") and any(m.strip() in mac_names for m in a["macrosettori"].split(",")):
-                        macro_journalists.add(g.lower())
+                mac_names = [m["name"].upper() for m in (mac_res.data or [])]
+                macro_journalists = set()
+                for gl, macro_set in art_macro_str.items():
+                    for macro_str in macro_set:
+                        if any(mn in macro_str for mn in mac_names):
+                            macro_journalists.add(gl)
+                            break
 
-        # 5. Unisci CRM + archivio
-        all_names: set = set(crm.keys()) | set(art_count.keys())
+        # 5. Unisci e filtra
+        all_names = set(crm.keys()) | set(art_count.keys())
         result = []
         for gl in all_names:
-            # Filtri
-            if client_id and gl not in client_journalists:
-                # Controlla anche clienti_associati nel CRM
-                crm_entry = crm.get(gl, {})
-                assoc = (crm_entry.get("clienti_associati") or "").lower()
-                if gl not in client_journalists and client_id not in assoc:
-                    continue
-            if macro_id and gl not in macro_journalists:
+            if client_journalists is not None and gl not in client_journalists:
+                continue
+            if macro_journalists is not None and gl not in macro_journalists:
                 continue
             if q and q.lower() not in gl:
                 continue
 
             crm_entry = crm.get(gl, {})
-            # Deduce testata principale dall'archivio se non nel CRM
-            testata_arch = ""
-            if gl in art_testate:
-                testata_arch = art_testate[gl].most_common(1)[0][0]
-
-            # Deduce tipo testata
+            testata_arch = art_testate[gl].most_common(1)[0][0] if gl in art_testate else ""
             tipo = crm_entry.get("tipo_testata") or _deduce_tipo(testata_arch)
 
-            # Filtro tipo testata
             if tipo_testata and tipo != tipo_testata:
                 continue
 
-            entry = {
-                "id":               crm_entry.get("id"),
-                "nome":             crm_entry.get("nome") or gl.title(),
+            result.append({
+                "id":                 crm_entry.get("id"),
+                "nome":               crm_entry.get("nome") or gl.title(),
                 "testata_principale": crm_entry.get("testata_principale") or testata_arch,
-                "tipo_testata":     tipo,
-                "email":            crm_entry.get("email"),
-                "cellulare":        crm_entry.get("cellulare"),
-                "note":             crm_entry.get("note"),
-                "clienti_associati": crm_entry.get("clienti_associati"),
-                "n_articoli":       art_count.get(gl, 0),
-                "in_crm":           bool(crm_entry.get("id")),
-            }
-            result.append(entry)
+                "tipo_testata":       tipo,
+                "email":              crm_entry.get("email"),
+                "cellulare":          crm_entry.get("cellulare"),
+                "note":               crm_entry.get("note"),
+                "clienti_associati":  crm_entry.get("clienti_associati"),
+                "n_articoli":         art_count.get(gl, 0),
+                "in_crm":             bool(crm_entry.get("id")),
+            })
 
         result.sort(key=lambda x: (-x["n_articoli"], x["nome"]))
         return result
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/journalists/bubble-data")
+async def journalists_bubble_data(
+    client_id: Optional[str] = None,
+    macro_id:  Optional[str] = None,
+):
+    """Dati per bubble map: testate → giornalisti con conteggi."""
+    try:
+        from collections import Counter as _Counter
+        SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
+
+        arts_res = supabase.table("articles").select(
+            "giornalista, testata, macrosettori, titolo, occhiello, testo_completo"
+        ).execute()
+        articles = arts_res.data or []
+
+        # Filtro cliente
+        client_art_ids: set | None = None
+        if client_id:
+            cl_res = supabase.table("clients").select("keywords_press, keywords").eq("id", client_id).execute()
+            if cl_res.data:
+                cl = cl_res.data[0]
+                kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+                if kws:
+                    client_art_ids = set()
+                    for i, a in enumerate(articles):
+                        txt = f"{a.get('titolo','')} {a.get('occhiello','')} {a.get('testo_completo','')}".lower()
+                        if any(kw in txt for kw in kws):
+                            client_art_ids.add(i)
+
+        # Filtro macro
+        mac_names: list = []
+        if macro_id:
+            lnk_res = supabase.table("macro_group_links").select("official_macro_id").eq("macro_group_id", macro_id).execute()
+            oids = [l["official_macro_id"] for l in (lnk_res.data or [])]
+            if oids:
+                mac_res = supabase.table("official_macrosectors").select("name").in_("id", oids).execute()
+                mac_names = [m["name"].upper() for m in (mac_res.data or [])]
+
+        # Costruisci struttura testata → giornalisti
+        testata_data: dict = {}  # testata → {count, giornalisti: {nome → count}}
+
+        for i, a in enumerate(articles):
+            if client_art_ids is not None and i not in client_art_ids:
+                continue
+            if mac_names:
+                macro_str = (a.get("macrosettori") or "").upper()
+                if not any(mn in macro_str for mn in mac_names):
+                    continue
+
+            t = (a.get("testata") or "").strip()
+            g = (a.get("giornalista") or "").strip()
+            if not t:
+                continue
+
+            if t not in testata_data:
+                testata_data[t] = {"testata": t, "count": 0, "giornalisti": {}}
+            testata_data[t]["count"] += 1
+
+            if g and g.lower() not in SKIP:
+                testata_data[t]["giornalisti"][g] = testata_data[t]["giornalisti"].get(g, 0) + 1
+
+        # Serializza
+        nodes = []
+        for t, d in testata_data.items():
+            nodes.append({
+                "testata": t,
+                "count":   d["count"],
+                "giornalisti": [
+                    {"nome": nome, "count": cnt}
+                    for nome, cnt in sorted(d["giornalisti"].items(), key=lambda x: -x[1])
+                ]
+            })
+        nodes.sort(key=lambda x: -x["count"])
+        return {"nodes": nodes}
 
     except Exception as e:
         return {"error": str(e)}
