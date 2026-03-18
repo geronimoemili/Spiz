@@ -537,7 +537,7 @@ async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[
 
 
 # ══════════════════════════════════════════════════════════════════════
-# TOP GIORNALISTI
+# GIORNALISTI CRM
 # ══════════════════════════════════════════════════════════════════════
 
 @app.get("/giornalisti")
@@ -545,7 +545,266 @@ async def giornalisti_page():
     return FileResponse("web/giornalisti.html")
 
 
+class JournalistModel(BaseModel):
+    nome:               str
+    testata_principale: Optional[str] = None
+    tipo_testata:       Optional[str] = None
+    email:              Optional[str] = None
+    cellulare:          Optional[str] = None
+    note:               Optional[str] = None
+    clienti_associati:  Optional[str] = None
 
+class JournalistUpdate(BaseModel):
+    nome:               Optional[str] = None
+    testata_principale: Optional[str] = None
+    tipo_testata:       Optional[str] = None
+    email:              Optional[str] = None
+    cellulare:          Optional[str] = None
+    note:               Optional[str] = None
+    clienti_associati:  Optional[str] = None
+
+
+@app.get("/api/journalists/list")
+async def list_journalists(
+    client_id:    Optional[str] = None,
+    tipo_testata: Optional[str] = None,
+    macro_id:     Optional[str] = None,
+    q:            Optional[str] = None,
+):
+    """Lista giornalisti dal CRM + conteggio articoli + merge con archivio."""
+    try:
+        SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
+
+        # 1. Giornalisti nel CRM
+        crm_res = supabase.table("journalists").select("*").order("nome").execute()
+        crm = {j["nome"].strip().lower(): j for j in (crm_res.data or [])}
+
+        # 2. Giornalisti dall'archivio articoli
+        arts_res = supabase.table("articles").select(
+            "giornalista, testata, macrosettori, data"
+        ).execute()
+        articles = arts_res.data or []
+
+        # Conta articoli per giornalista e deduce testata principale
+        from collections import Counter as _Counter
+        art_count:   dict = {}
+        art_testate: dict = {}
+        art_macro:   dict = {}
+
+        for a in articles:
+            g = (a.get("giornalista") or "").strip()
+            if not g or g.lower() in SKIP:
+                continue
+            gl = g.lower()
+            art_count[gl]   = art_count.get(gl, 0) + 1
+            art_testate.setdefault(gl, _Counter())[a.get("testata","") or ""] += 1
+            for m in (a.get("macrosettori") or "").split(","):
+                ms = m.strip()
+                if ms:
+                    art_macro.setdefault(gl, _Counter())[ms] += 1
+
+        # 3. Filtro cliente
+        client_journalists: set = set()
+        if client_id:
+            cl_res = supabase.table("clients").select("*").eq("id", client_id).execute()
+            if cl_res.data:
+                cl = cl_res.data[0]
+                kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+                if kws:
+                    for a in articles:
+                        g = (a.get("giornalista") or "").strip()
+                        if not g or g.lower() in SKIP:
+                            continue
+                        txt = f"{a.get('titolo','')} {a.get('testo_completo','')} {a.get('occhiello','')}".lower()
+                        if any(kw in txt for kw in kws):
+                            client_journalists.add(g.lower())
+
+        # 4. Filtro macro
+        macro_journalists: set = set()
+        if macro_id:
+            lnk_res = supabase.table("macro_group_links").select("official_macro_id").eq("macro_group_id", macro_id).execute()
+            oids = [l["official_macro_id"] for l in (lnk_res.data or [])]
+            if oids:
+                mac_res = supabase.table("official_macrosectors").select("name").in_("id", oids).execute()
+                mac_names = {m["name"] for m in (mac_res.data or [])}
+                for a in articles:
+                    g = (a.get("giornalista") or "").strip()
+                    if not g or g.lower() in SKIP:
+                        continue
+                    if a.get("macrosettori") and any(m.strip() in mac_names for m in a["macrosettori"].split(",")):
+                        macro_journalists.add(g.lower())
+
+        # 5. Unisci CRM + archivio
+        all_names: set = set(crm.keys()) | set(art_count.keys())
+        result = []
+        for gl in all_names:
+            # Filtri
+            if client_id and gl not in client_journalists:
+                # Controlla anche clienti_associati nel CRM
+                crm_entry = crm.get(gl, {})
+                assoc = (crm_entry.get("clienti_associati") or "").lower()
+                if gl not in client_journalists and client_id not in assoc:
+                    continue
+            if macro_id and gl not in macro_journalists:
+                continue
+            if q and q.lower() not in gl:
+                continue
+
+            crm_entry = crm.get(gl, {})
+            # Deduce testata principale dall'archivio se non nel CRM
+            testata_arch = ""
+            if gl in art_testate:
+                testata_arch = art_testate[gl].most_common(1)[0][0]
+
+            # Deduce tipo testata
+            tipo = crm_entry.get("tipo_testata") or _deduce_tipo(testata_arch)
+
+            # Filtro tipo testata
+            if tipo_testata and tipo != tipo_testata:
+                continue
+
+            entry = {
+                "id":               crm_entry.get("id"),
+                "nome":             crm_entry.get("nome") or gl.title(),
+                "testata_principale": crm_entry.get("testata_principale") or testata_arch,
+                "tipo_testata":     tipo,
+                "email":            crm_entry.get("email"),
+                "cellulare":        crm_entry.get("cellulare"),
+                "note":             crm_entry.get("note"),
+                "clienti_associati": crm_entry.get("clienti_associati"),
+                "n_articoli":       art_count.get(gl, 0),
+                "in_crm":           bool(crm_entry.get("id")),
+            }
+            result.append(entry)
+
+        result.sort(key=lambda x: (-x["n_articoli"], x["nome"]))
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _deduce_tipo(testata: str) -> str:
+    """Deduce tipo testata dal nome."""
+    if not testata:
+        return "altro"
+    t = testata.lower()
+    if any(x in t for x in ["ansa", "adnkronos", "askanews", "agenzia", "dire "]):
+        return "agenzia"
+    if any(x in t for x in [".it", "web", "online", "blog", "news"]):
+        return "web"
+    if any(x in t for x in ["radio", "tv", "rai", "mediaset", "tg", "tele"]):
+        return "radio_tv"
+    if any(x in t for x in ["settimana", "mensile", "rivista", "magazine"]):
+        return "periodico"
+    return "quotidiano"
+
+
+@app.get("/api/journalists/{journalist_id}")
+async def get_journalist(journalist_id: str):
+    try:
+        res = supabase.table("journalists").select("*").eq("id", journalist_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Giornalista non trovato")
+        return res.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/journalists")
+async def create_journalist(data: JournalistModel):
+    try:
+        res = supabase.table("journalists").insert({
+            "nome":               data.nome.strip(),
+            "testata_principale": data.testata_principale,
+            "tipo_testata":       data.tipo_testata,
+            "email":              data.email,
+            "cellulare":          data.cellulare,
+            "note":               data.note,
+            "clienti_associati":  data.clienti_associati,
+        }).execute()
+        return {"success": True, "journalist": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.put("/api/journalists/{journalist_id}")
+async def update_journalist(journalist_id: str, data: JournalistUpdate):
+    try:
+        update = {k: v for k, v in data.dict().items() if v is not None}
+        update["updated_at"] = datetime.now(timezone.utc).isoformat()
+        res = supabase.table("journalists").update(update).eq("id", journalist_id).execute()
+        return {"success": True, "journalist": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/journalists/{journalist_id}")
+async def delete_journalist(journalist_id: str):
+    try:
+        supabase.table("journalists").delete().eq("id", journalist_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/journalists/sync-from-articles")
+async def sync_journalists_from_articles():
+    """Importa nel CRM tutti i giornalisti dell'archivio non ancora presenti."""
+    try:
+        SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
+        arts_res = supabase.table("articles").select("giornalista, testata").execute()
+        crm_res  = supabase.table("journalists").select("nome").execute()
+        existing = {j["nome"].strip().lower() for j in (crm_res.data or [])}
+
+        from collections import Counter as _Counter
+        testate: dict = {}
+        for a in (arts_res.data or []):
+            g = (a.get("giornalista") or "").strip()
+            if not g or g.lower() in SKIP:
+                continue
+            testate.setdefault(g.lower(), _Counter())[a.get("testata","") or ""] += 1
+
+        inserted = 0
+        for gl, tc in testate.items():
+            if gl in existing:
+                continue
+            nome_display = gl.title()
+            testata_main = tc.most_common(1)[0][0]
+            tipo = _deduce_tipo(testata_main)
+            supabase.table("journalists").insert({
+                "nome":               nome_display,
+                "testata_principale": testata_main,
+                "tipo_testata":       tipo,
+            }).execute()
+            inserted += 1
+
+        return {"success": True, "inserted": inserted}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/giornalista-articoli")
+async def giornalista_articoli(nome: str = Query(...), period: str = Query("all"), limit: int = Query(200)):
+    try:
+        today = date.today()
+        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365, "all": None}
+        days = days_map.get(period)
+        query = supabase.table("articles").select(
+            "id, titolo, testata, data, giornalista, tone, dominant_topic, macrosettori"
+        ).eq("giornalista", nome)
+        if days is not None:
+            from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+            query = query.gte("data", from_date)
+        res = query.order("data", desc=True).limit(limit).execute()
+        return res.data or []
+    except Exception as e:
+        return []
+
+
+@app.get("/api/top-giornalisti")
 async def top_giornalisti(period: str = Query("30days"), limit: int = Query(20)):
     try:
         today = date.today()
@@ -563,7 +822,6 @@ async def top_giornalisti(period: str = Query("30days"), limit: int = Query(20))
 
 @app.get("/api/top-giornalisti-ave")
 async def top_giornalisti_ave(period: str = Query("today"), limit: int = Query(15)):
-    """Giornalisti per AVE massima del loro miglior articolo nel periodo."""
     try:
         today = date.today()
         days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180}
@@ -582,22 +840,6 @@ async def top_giornalisti_ave(period: str = Query("today"), limit: int = Query(1
                 best[g] = {"nome": g, "testata": a.get("testata",""), "titolo": a.get("titolo",""), "ave": ave}
         ranked = sorted(best.values(), key=lambda x: x["ave"], reverse=True)[:limit]
         return ranked
-    except Exception as e:
-        return []
-
-
-@app.get("/api/giornalista-articoli")
-async def giornalista_articoli(nome: str = Query(...), period: str = Query("30days"), limit: int = Query(100)):
-    try:
-        today = date.today()
-        days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365}
-        days = days_map.get(period, 30)
-        from_date = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
-        res = (supabase.table("articles")
-               .select("id, titolo, testata, data, giornalista, tone, dominant_topic")
-               .eq("giornalista", nome).gte("data", from_date).lte("data", today.isoformat())
-               .order("data", desc=True).limit(limit).execute())
-        return res.data or []
     except Exception as e:
         return []
 
