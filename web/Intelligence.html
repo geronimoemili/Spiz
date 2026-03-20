@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM · Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f4f6f9;--surface:#fff;--border:#dde3ed;--border2:#eef1f6;
+  --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+  --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;--purple:#7c3aed;
+  --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+a{text-decoration:none;color:inherit}
+
+nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100}
+.logo-img{height:38px;width:auto;flex-shrink:0}
+.nav-links{display:flex;gap:2px;margin-left:auto}
+.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+.page{display:flex;height:calc(100vh - 56px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sb-section{padding:11px 13px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:6px}
+.sb-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint)}
+.sb-sublabel{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:-2px}
+select,input[type=text]{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:4px;background:var(--border2);color:var(--text);outline:none;width:100%;cursor:pointer;-webkit-appearance:auto;appearance:auto}
+select:focus,input:focus{border-color:var(--cyan);background:#fff}
+.sb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 6px;border-radius:4px;cursor:pointer;transition:background .1s;margin:0 -6px}
+.sb-stat-row:hover{background:var(--border2)}
+.sb-stat-row.active{background:#e8f7fc}
+.sb-stat-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.sb-stat-row.active .sb-stat-name{color:var(--cyan);font-weight:600}
+.sb-stat-count{font-family:var(--mono);font-size:10px;color:var(--cyan);font-weight:700;flex-shrink:0;margin-left:6px}
+.sb-bottom{padding:11px 13px;border-top:1px solid var(--border);margin-top:auto;display:flex;flex-direction:column;gap:6px}
+.btn-reset{font-family:var(--mono);font-size:9px;color:var(--cyan);background:none;border:none;cursor:pointer;padding:0;text-align:left}
+
+/* ── CENTRO ── */
+.center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.view-toggle{display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.view-btn{font-family:var(--mono);font-size:10px;font-weight:700;padding:6px 14px;background:none;border:none;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+.view-btn.active{background:var(--cyan);color:#fff}
+.toolbar-search{flex:1;min-width:140px;max-width:220px}
+.toolbar-info{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:auto;white-space:nowrap}
+
+.table-wrap{flex:1;overflow-y:auto}
+.j-table{width:100%;border-collapse:collapse}
+.j-table thead th{background:var(--surface);border-bottom:2px solid var(--border);padding:8px 13px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--faint);text-align:left;position:sticky;top:0;z-index:10;white-space:nowrap;cursor:pointer;user-select:none}
+.j-table thead th:hover{color:var(--cyan)}
+.j-table thead th.asc::after{content:' ▲';color:var(--cyan)}
+.j-table thead th.desc::after{content:' ▼';color:var(--cyan)}
+.j-table tbody tr{border-bottom:1px solid var(--border2);cursor:pointer;transition:background .1s}
+.j-table tbody tr:hover{background:#f0f9fc}
+.j-table tbody tr.active{background:#e8f7fc;border-left:3px solid var(--cyan)}
+.j-table td{padding:9px 13px;vertical-align:middle}
+.td-titolo{font-size:13px;font-weight:600;line-height:1.3;max-width:300px}
+.td-testata{font-family:var(--mono);font-size:10px;color:var(--amber);font-weight:700;white-space:nowrap}
+.td-giornalista{font-size:12px;color:var(--cyan);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.td-data{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap}
+.tone-pos{font-family:var(--mono);font-size:8px;color:var(--green);background:rgba(5,150,105,.08);padding:2px 6px;border-radius:3px}
+.tone-neg{font-family:var(--mono);font-size:8px;color:var(--red);background:rgba(224,58,90,.08);padding:2px 6px;border-radius:3px}
+.tone-neu{font-family:var(--mono);font-size:8px;color:var(--faint);background:var(--border2);padding:2px 6px;border-radius:3px}
+.badge{font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.badge-crm{background:rgba(14,165,201,.1);color:var(--cyan);border:1px solid rgba(14,165,201,.25)}
+.badge-arch{background:var(--border2);color:var(--faint);border:1px solid var(--border)}
+.tipo-pill{font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.tipo-agenzia{background:rgba(212,54,122,.08);color:var(--pink)}
+.tipo-quotidiano{background:rgba(14,165,201,.08);color:var(--cyan)}
+.tipo-periodico{background:rgba(124,58,237,.08);color:var(--purple)}
+.tipo-radio_tv{background:rgba(217,119,6,.08);color:var(--amber)}
+.tipo-web{background:rgba(5,150,105,.08);color:var(--green)}
+.tipo-altro,.tipo-{background:var(--border2);color:var(--faint)}
+.j-av{width:28px;height:28px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:10px;flex-shrink:0;font-family:var(--mono)}
+.client-tag{background:rgba(212,54,122,.07);color:var(--pink);border:1px solid rgba(212,54,122,.15);border-radius:3px;padding:1px 6px;font-family:var(--mono);font-size:8px;font-weight:700;cursor:pointer;white-space:nowrap}
+.client-tag:hover{background:rgba(212,54,122,.15)}
+.art-num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--cyan);text-align:right}
+.empty-row td{padding:40px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--faint)}
+
+/* ── PANNELLO ── */
+.ctx-panel{width:400px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .2s ease}
+.ctx-panel.closed{width:0;overflow:hidden;border-left:none}
+.ctx-head{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:11px;flex-shrink:0}
+.ctx-av{width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;font-family:var(--mono)}
+.ctx-av.art{border-radius:6px;font-size:20px;background:var(--border2);color:var(--muted)}
+.ctx-nome{font-size:15px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.ctx-sub{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.ctx-close{margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1;flex-shrink:0;padding:2px}
+.ctx-body{flex:1;overflow-y:auto;padding:13px 15px}
+.ctx-breadcrumb{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--faint);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border2)}
+.ctx-bc-link{color:var(--cyan);cursor:pointer}
+.ctx-bc-link:hover{text-decoration:underline}
+
+/* FORM nel pannello */
+.ctx-actions{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.form-field{display:flex;flex-direction:column;gap:3px}
+.form-field.full{grid-column:1/-1}
+.form-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--faint)}
+.f-input{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:4px;background:var(--border2);color:var(--text);outline:none;width:100%}
+.f-input:focus{border-color:var(--cyan);background:#fff}
+.f-input[readonly]{color:var(--muted);cursor:default}
+.f-select{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:4px;background:var(--border2);color:var(--text);outline:none;width:100%;cursor:pointer;-webkit-appearance:auto;appearance:auto}
+.f-select:focus{border-color:var(--cyan);background:#fff}
+.f-select:disabled{color:var(--muted);cursor:default}
+.f-textarea{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:4px;background:var(--border2);color:var(--text);outline:none;width:100%;resize:vertical}
+.f-textarea:focus{border-color:var(--cyan);background:#fff}
+.save-bar{display:flex;gap:6px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.sec-title{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:8px;margin-top:4px}
+.social-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.social-icon{font-size:14px;width:22px;text-align:center;flex-shrink:0}
+.social-link{font-family:var(--mono);font-size:10px;color:var(--cyan);word-break:break-all}
+.social-empty{font-family:var(--mono);font-size:10px;color:var(--faint);font-style:italic}
+
+/* mini articolo nel pannello */
+.art-mini{padding:8px 10px;border:1px solid var(--border);border-radius:5px;margin-bottom:5px;cursor:pointer;transition:border-color .15s}
+.art-mini:hover{border-color:var(--cyan)}
+.art-mini-titolo{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:3px}
+.art-mini-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.art-mini-testata{font-family:var(--mono);font-size:9px;color:var(--amber);font-weight:700}
+.art-mini-data{font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+/* articolo dettaglio */
+.art-detail-title{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:10px}
+.art-detail-meta{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.art-detail-meta span{font-size:12px;color:var(--muted)}
+.art-detail-body{font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word}
+
+/* modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:10px;max-width:540px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1}
+.modal-body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-body .full{grid-column:1/-1}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+
+/* btn */
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:5px;padding:6px 12px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-grad{background:var(--grad);color:#fff}
+.btn-grad:hover:not(:disabled){opacity:.88}
+.btn-out{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.btn-out:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover:not(:disabled){opacity:.88}
+.btn-red{background:none;border:1px solid rgba(224,58,90,.3);color:var(--red)}
+.btn-red:hover{background:rgba(224,58,90,.06)}
+.btn-sm{padding:4px 9px;font-size:9px}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(14,165,201,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .15s ease}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
+
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Periodo</div>
+      <select id="f-period" onchange="loadAll()">
+        <option value="today">Oggi</option>
+        <option value="7days" selected>Ultimi 7 giorni</option>
+        <option value="30days">Ultimi 30 giorni</option>
+        <option value="6months">Ultimi 6 mesi</option>
+        <option value="all">Tutto l'archivio</option>
+      </select>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Clienti</div>
+      <div class="sb-sublabel">citazioni nel periodo</div>
+      <div id="sb-clienti-list" style="display:flex;flex-direction:column;gap:2px"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Argomenti</div>
+      <div class="sb-sublabel">articoli nel periodo</div>
+      <div id="sb-macro-list" style="display:flex;flex-direction:column;gap:2px"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Tipo testata</div>
+      <select id="f-tipo" onchange="applyFilters()">
+        <option value="">Tutti i tipi</option>
+        <option value="agenzia">Agenzia</option>
+        <option value="quotidiano">Quotidiano</option>
+        <option value="periodico">Periodico</option>
+        <option value="radio_tv">Radio/TV</option>
+        <option value="web">Web</option>
+        <option value="altro">Altro</option>
+      </select>
+      <button class="btn-reset" onclick="resetFilters()">✕ Azzera filtri</button>
+    </div>
+
+    <div class="sb-bottom">
+      <button class="btn btn-grad" onclick="openModalNuovoGiornalista()">+ Nuovo giornalista</button>
+    </div>
+  </div>
+
+  <!-- CENTRO -->
+  <div class="center">
+    <div class="toolbar">
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-articoli" onclick="setView('articoli')">📰 Articoli</button>
+        <button class="view-btn" id="btn-giornalisti" onclick="setView('giornalisti')">✍️ Giornalisti</button>
+      </div>
+      <input type="text" class="toolbar-search" id="f-search" placeholder="🔍 Cerca…" oninput="applyFilters()"/>
+      <span class="toolbar-info" id="toolbar-info"></span>
+    </div>
+
+    <!-- ARTICOLI -->
+    <div class="table-wrap" id="view-articoli">
+      <table class="j-table">
+        <thead><tr>
+          <th onclick="sortBy('titolo')" id="th-titolo">Titolo</th>
+          <th onclick="sortBy('testata')" id="th-testata">Testata</th>
+          <th onclick="sortBy('giornalista')" id="th-giornalista">Giornalista</th>
+          <th onclick="sortBy('data')" id="th-data">Data</th>
+          <th>Tono</th>
+        </tr></thead>
+        <tbody id="art-tbody"><tr class="empty-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- GIORNALISTI -->
+    <div class="table-wrap" id="view-giornalisti" style="display:none">
+      <table class="j-table">
+        <thead><tr>
+          <th onclick="sortJBy('nome')" id="jth-nome">Giornalista</th>
+          <th onclick="sortJBy('tipo_testata')" id="jth-tipo">Tipo</th>
+          <th onclick="sortJBy('clienti_citati')" id="jth-clienti">Clienti citati</th>
+          <th onclick="sortJBy('n_articoli')" id="jth-art" style="text-align:right">Art.</th>
+          <th>CRM</th>
+        </tr></thead>
+        <tbody id="jour-tbody"><tr class="empty-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANNELLO CONTESTUALE -->
+  <div class="ctx-panel closed" id="ctx-panel">
+    <div class="ctx-head">
+      <div class="ctx-av" id="ctx-av"></div>
+      <div style="flex:1;min-width:0">
+        <div class="ctx-nome" id="ctx-nome"></div>
+        <div class="ctx-sub" id="ctx-sub"></div>
+      </div>
+      <button class="ctx-close" onclick="closeCtx()">✕</button>
+    </div>
+    <div class="ctx-body" id="ctx-body"></div>
+  </div>
+</div>
+
+<!-- MODAL NUOVO GIORNALISTA -->
+<div class="overlay" id="modal-nuovo-g">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">➕ Nuovo giornalista</span>
+      <button class="modal-close" onclick="closeModal('modal-nuovo-g')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field full"><div class="form-label">Nome *</div><input type="text" id="ng-nome" class="f-input" placeholder="Mario Rossi"/></div>
+      <div class="form-field"><div class="form-label">Sigla</div><input type="text" id="ng-sigla" class="f-input" placeholder="es. m.r. / M.R."/></div>
+      <div class="form-field"><div class="form-label">Testata principale</div><input type="text" id="ng-testata" class="f-input" placeholder="Corriere della Sera"/></div>
+      <div class="form-field"><div class="form-label">Tipo testata</div>
+        <select id="ng-tipo" class="f-select">
+          <option value="">— seleziona —</option>
+          <option value="agenzia">Agenzia</option><option value="quotidiano">Quotidiano</option>
+          <option value="periodico">Periodico</option><option value="radio_tv">Radio/TV</option>
+          <option value="web">Web</option><option value="altro">Altro</option>
+        </select>
+      </div>
+      <div class="form-field"><div class="form-label">Email</div><input type="text" id="ng-email" class="f-input" placeholder="mario@testata.it"/></div>
+      <div class="form-field"><div class="form-label">Cellulare</div><input type="text" id="ng-tel" class="f-input" placeholder="+39 333 …"/></div>
+      <div class="form-field"><div class="form-label">LinkedIn</div><input type="text" id="ng-linkedin" class="f-input" placeholder="linkedin.com/in/…"/></div>
+      <div class="form-field"><div class="form-label">Instagram</div><input type="text" id="ng-instagram" class="f-input" placeholder="@handle"/></div>
+      <div class="form-field full"><div class="form-label">X / Twitter</div><input type="text" id="ng-twitter" class="f-input" placeholder="@handle"/></div>
+      <div class="form-field full"><div class="form-label">Note</div><textarea id="ng-note" class="f-textarea" rows="2" placeholder="Annotazioni…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-nuovo-g')">Annulla</button>
+      <button class="btn btn-grad" onclick="createGiornalista()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ARTICOLO MANUALE -->
+<div class="overlay" id="modal-art-manuale">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">📝 Aggiungi articolo manuale</span>
+      <button class="modal-close" onclick="closeModal('modal-art-manuale')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field full"><div class="form-label">Titolo *</div><input type="text" id="am-titolo" class="f-input" placeholder="Titolo dell'articolo"/></div>
+      <div class="form-field"><div class="form-label">Testata</div><input type="text" id="am-testata" class="f-input" placeholder="es. Corriere della Sera"/></div>
+      <div class="form-field"><div class="form-label">Data</div><input type="date" id="am-data" class="f-input"/></div>
+      <div class="form-field"><div class="form-label">Tono</div>
+        <select id="am-tone" class="f-select">
+          <option value="Neutral">Neutro</option>
+          <option value="Positive">Positivo</option>
+          <option value="Negative">Negativo</option>
+        </select>
+      </div>
+      <div class="form-field"><div class="form-label">Tipologia</div>
+        <select id="am-tipo" class="f-select">
+          <option value="">— seleziona —</option>
+          <option value="articolo">Articolo</option>
+          <option value="intervista">Intervista</option>
+          <option value="opinione">Opinione/Commento</option>
+          <option value="breve">Breve</option>
+        </select>
+      </div>
+      <div class="form-field"><div class="form-label">AVE (€)</div><input type="number" id="am-ave" class="f-input" placeholder="0"/></div>
+      <div class="form-field full"><div class="form-label">Macrosettori</div><input type="text" id="am-macro" class="f-input" placeholder="es. ENERGIA, ECONOMICO, FINANZIARIO"/></div>
+      <div class="form-field full"><div class="form-label">Testo articolo</div><textarea id="am-testo" class="f-textarea" rows="6" placeholder="Incolla qui il testo completo dell'articolo…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-art-manuale')">Annulla</button>
+      <button class="btn btn-grad" onclick="saveArticoloManuale()">Salva articolo</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TIPO_LABELS={agenzia:'Agenzia',quotidiano:'Quotidiano',periodico:'Periodico',radio_tv:'Radio/TV',web:'Web',altro:'Altro'};
+
+// STATE
+let allArticoli=[],filteredArticoli=[];
+let allGiornalisti=[],filteredGiornalisti=[];
+let clients=[],macros=[];
+let activeClienteId='',activeMacroId='';
+let currentView='articoli';
+let sortKey='data',sortDir=-1,sortJKey='n_articoli',sortJDir=-1;
+let currentGiornalista=null,isEditing=false;
+let manualArticleGiornalista='';
+
+// UTILS
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ini=n=>(n||'').split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
+const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast show ${type}`;
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function tipoPill(tipo){return `<span class="tipo-pill tipo-${tipo||''}">${TIPO_LABELS[tipo]||'—'}</span>`;}
+function toneBadge(tone){
+  const t=(tone||'').toLowerCase();
+  if(t.includes('positiv')) return '<span class="tone-pos">▲ Pos</span>';
+  if(t.includes('negativ')) return '<span class="tone-neg">▼ Neg</span>';
+  return '<span class="tone-neu">● Neu</span>';
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// INIT
+window.addEventListener('load',async()=>{
+  await Promise.all([loadClients(),loadMacros()]);
+  await loadAll();
+});
+
+async function loadClients(){
+  try{
+    const d=await fetch('/api/clients').then(r=>r.json());
+    clients=Array.isArray(d)?d:[];
+  }catch(e){}
+}
+
+async function loadMacros(){
+  try{
+    const d=await fetch('/api/macro-groups').then(r=>r.json());
+    macros=d.groups||[];
+  }catch(e){}
+}
+
+async function loadAll(){
+  await Promise.all([loadArticoli(),loadGiornalisti()]);
+  renderSidebar();
+}
+
+async function loadArticoli(){
+  const period=document.getElementById('f-period').value;
+  const today=new Date();
+  let from=null;
+  if(period==='today') from=today.toISOString().split('T')[0];
+  else if(period==='7days') from=new Date(today-7*86400000).toISOString().split('T')[0];
+  else if(period==='30days') from=new Date(today-30*86400000).toISOString().split('T')[0];
+  else if(period==='6months') from=new Date(today-180*86400000).toISOString().split('T')[0];
+  const to=today.toISOString().split('T')[0];
+  const params=new URLSearchParams({limit:2000});
+  if(from){params.set('from_date',from);params.set('to_date',to);}
+  try{
+    const d=await fetch('/api/articles?'+params).then(r=>r.json());
+    allArticoli=d.articles||[];
+  }catch(e){allArticoli=[];}
+}
+
+async function loadGiornalisti(){
+  const period=document.getElementById('f-period').value;
+  const cId=activeClienteId;
+  const mId=activeMacroId;
+  const params=new URLSearchParams({period});
+  if(cId) params.set('client_id',cId);
+  if(mId) params.set('macro_id',mId);
+  try{
+    const d=await fetch('/api/journalists/list?'+params).then(r=>r.json());
+    allGiornalisti=Array.isArray(d)?d:[];
+  }catch(e){allGiornalisti=[];}
+  applyFilters();
+}
+
+// SIDEBAR
+function renderSidebar(){
+  // Clienti con conteggio
+  const elC=document.getElementById('sb-clienti-list');
+  const clientiCounts={};
+  for(const a of allArticoli){
+    const txt=`${a.titolo||''} ${a.occhiello||''} ${a.testo_completo||''}`.toLowerCase();
+    for(const c of clients){
+      const kws=(c.keywords_press||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+      if(kws.some(kw=>txt.includes(kw))){
+        clientiCounts[c.id]=(clientiCounts[c.id]||0)+1;
+      }
+    }
+  }
+  const totalArt=allArticoli.length;
+  let html=`<div class="sb-stat-row ${!activeClienteId?'active':''}" onclick="selectCliente('')">
+    <span class="sb-stat-name">Tutti</span><span class="sb-stat-count">${totalArt}</span></div>`;
+  for(const c of clients){
+    const cnt=clientiCounts[c.id]||0;
+    html+=`<div class="sb-stat-row ${activeClienteId===c.id?'active':''}" onclick="selectCliente('${c.id}')">
+      <span class="sb-stat-name">${esc(c.name)}</span><span class="sb-stat-count">${cnt}</span></div>`;
+  }
+  elC.innerHTML=html;
+
+  // Macro con conteggio
+  const elM=document.getElementById('sb-macro-list');
+  let htmlM=`<div class="sb-stat-row ${!activeMacroId?'active':''}" onclick="selectMacro('')">
+    <span class="sb-stat-name">Tutti</span><span class="sb-stat-count">${totalArt}</span></div>`;
+  for(const m of macros){
+    // Conteggio approssimativo dai giornalisti
+    htmlM+=`<div class="sb-stat-row ${activeMacroId===m.id?'active':''}" onclick="selectMacro('${m.id}','${esc(m.name)}')">
+      <span class="sb-stat-name">${esc(m.name)}</span><span class="sb-stat-count">—</span></div>`;
+  }
+  elM.innerHTML=htmlM;
+}
+
+async function selectCliente(id){
+  activeClienteId=id;
+  await loadGiornalisti();
+  applyFilters();
+  renderSidebar();
+  // Filtra anche gli articoli
+  applyFilters();
+}
+
+async function selectMacro(id){
+  activeMacroId=id;
+  await loadGiornalisti();
+  applyFilters();
+  renderSidebar();
+}
+
+// FILTRI
+function applyFilters(){
+  const q=document.getElementById('f-search').value.toLowerCase();
+  const tipo=document.getElementById('f-tipo').value;
+
+  // Articoli
+  let arts=allArticoli;
+  if(activeClienteId){
+    const cl=clients.find(c=>c.id===activeClienteId);
+    if(cl){
+      const kws=(cl.keywords_press||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+      if(kws.length) arts=arts.filter(a=>{
+        const txt=`${a.titolo||''} ${a.occhiello||''} ${a.testo_completo||''}`.toLowerCase();
+        return kws.some(kw=>txt.includes(kw));
+      });
+    }
+  }
+  if(q) arts=arts.filter(a=>(a.titolo||'').toLowerCase().includes(q)||(a.giornalista||'').toLowerCase().includes(q)||(a.testata||'').toLowerCase().includes(q));
+  filteredArticoli=arts.sort((a,b)=>{
+    let av=a[sortKey]||'',bv=b[sortKey]||'';
+    return typeof av==='number'?(av-bv)*sortDir:String(av).localeCompare(String(bv),'it')*sortDir;
+  });
+
+  // Giornalisti
+  let jours=allGiornalisti;
+  if(tipo) jours=jours.filter(j=>j.tipo_testata===tipo);
+  if(q) jours=jours.filter(j=>(j.nome||'').toLowerCase().includes(q)||(j.testata_principale||'').toLowerCase().includes(q));
+  filteredGiornalisti=jours.sort((a,b)=>{
+    let av=a[sortJKey]??'',bv=b[sortJKey]??'';
+    return typeof av==='number'?(av-bv)*sortJDir:String(av).localeCompare(String(bv),'it')*sortJDir;
+  });
+
+  document.getElementById('toolbar-info').textContent=`${filteredArticoli.length} art · ${filteredGiornalisti.length} giornalisti`;
+  renderTable();
+}
+
+function resetFilters(){
+  document.getElementById('f-search').value='';
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-period').value='7days';
+  activeClienteId='';activeMacroId='';
+  loadAll();
+}
+
+// TABELLE
+function renderTable(){
+  if(currentView==='articoli') renderArticoli();
+  else renderGiornalisti();
+}
+
+function renderArticoli(){
+  const tbody=document.getElementById('art-tbody');
+  if(!filteredArticoli.length){
+    tbody.innerHTML='<tr class="empty-row"><td colspan="5">Nessun articolo trovato</td></tr>'; return;
+  }
+  tbody.innerHTML=filteredArticoli.slice(0,200).map((a,i)=>`
+    <tr onclick="openArticolo(${i})">
+      <td class="td-titolo">${esc(a.titolo||'Senza titolo')}</td>
+      <td class="td-testata">${esc(a.testata||'—')}</td>
+      <td><span class="td-giornalista" onclick="event.stopPropagation();openGiornalistaByName('${esc(a.giornalista||'')}')">${esc(a.giornalista||'—')}</span></td>
+      <td class="td-data">${fmt(a.data)}</td>
+      <td>${toneBadge(a.tone)}</td>
+    </tr>`).join('');
+}
+
+function renderGiornalisti(){
+  const tbody=document.getElementById('jour-tbody');
+  if(!filteredGiornalisti.length){
+    tbody.innerHTML='<tr class="empty-row"><td colspan="5">Nessun giornalista trovato</td></tr>'; return;
+  }
+  tbody.innerHTML=filteredGiornalisti.map((j,i)=>`
+    <tr onclick="openGiornalista(${i})">
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="j-av">${ini(j.nome)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">${esc(j.nome)}${j.sigla?` <span style="font-family:var(--mono);font-size:10px;color:var(--faint)">(${esc(j.sigla)})</span>`:''}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--faint)">${esc(j.testata_principale||'—')}</div>
+          </div>
+        </div>
+      </td>
+      <td>${tipoPill(j.tipo_testata)}</td>
+      <td style="max-width:160px">
+        ${(j.clienti_citati||'').split(',').map(c=>c.trim()).filter(Boolean)
+          .map(c=>`<span class="client-tag" onclick="event.stopPropagation();selectCliente_tag('${esc(c)}')">${esc(c)}</span>`).join(' ')||'<span style="color:var(--faint);font-size:11px">—</span>'}
+      </td>
+      <td class="art-num">${j.n_articoli}</td>
+      <td><span class="${j.in_crm?'badge badge-crm':'badge badge-arch'}">${j.in_crm?'CRM':'arch'}</span></td>
+    </tr>`).join('');
+}
+
+// VIEW SWITCH
+function setView(v){
+  currentView=v;
+  document.getElementById('btn-articoli').classList.toggle('active',v==='articoli');
+  document.getElementById('btn-giornalisti').classList.toggle('active',v==='giornalisti');
+  document.getElementById('view-articoli').style.display=v==='articoli'?'block':'none';
+  document.getElementById('view-giornalisti').style.display=v==='giornalisti'?'block':'none';
+  renderTable();
+}
+
+// SORT
+function sortBy(key){
+  if(sortKey===key)sortDir*=-1; else{sortKey=key;sortDir=key==='data'?-1:1;}
+  ['titolo','testata','giornalista','data'].forEach(k=>{const el=document.getElementById('th-'+k);if(el)el.className='';});
+  const el=document.getElementById('th-'+key);if(el)el.className=sortDir===1?'asc':'desc';
+  applyFilters();
+}
+function sortJBy(key){
+  if(sortJKey===key)sortJDir*=-1; else{sortJKey=key;sortJDir=key==='n_articoli'?-1:1;}
+  ['nome','tipo','clienti','art'].forEach(k=>{const el=document.getElementById('jth-'+k);if(el)el.className='';});
+  const map={nome:'jth-nome',tipo_testata:'jth-tipo',clienti_citati:'jth-clienti',n_articoli:'jth-art'};
+  const el=document.getElementById(map[key]);if(el)el.className=sortJDir===1?'asc':'desc';
+  applyFilters();
+}
+
+// PANNELLO ARTICOLO
+async function openArticolo(idx){
+  const a=filteredArticoli[idx];
+  if(!a) return;
+  // Carica articolo completo
+  let art=a;
+  try{
+    const d=await fetch(`/api/article/${a.id}`).then(r=>r.json());
+    if(!d.error) art=d;
+  }catch(e){}
+
+  document.getElementById('ctx-panel').classList.remove('closed');
+  document.getElementById('ctx-av').textContent='📰';
+  document.getElementById('ctx-av').className='ctx-av art';
+  document.getElementById('ctx-nome').textContent=art.testata||'—';
+  document.getElementById('ctx-sub').innerHTML=`
+    <span class="td-data">${fmt(art.data)}</span>
+    ${toneBadge(art.tone)}`;
+
+  let testo=(art.testo_completo||'Testo non disponibile');
+  testo=testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,'$1\n\n$2');
+
+  document.getElementById('ctx-body').innerHTML=`<div class="fade-in">
+    <div class="ctx-breadcrumb">
+      <span class="ctx-bc-link" onclick="setView('articoli')">Articoli</span> › <span>${esc(art.testata||'')}</span>
+    </div>
+    <div class="art-detail-title">${esc(art.titolo||'Senza titolo')}</div>
+    <div class="art-detail-meta">
+      <span><strong>${esc(art.testata||'—')}</strong></span>
+      <span>Giornalista: <span class="td-giornalista" style="cursor:pointer" onclick="openGiornalistaByName('${esc(art.giornalista||'')}')">${esc(art.giornalista||'—')}</span></span>
+      <span>Data: ${fmt(art.data)}</span>
+      ${art.tipologia_articolo?`<span>Tipologia: ${esc(art.tipologia_articolo)}</span>`:''}
+      ${art.macrosettori?`<span>Settori: ${esc(art.macrosettori)}</span>`:''}
+      ${art.ave?`<span>AVE: €${Number(art.ave).toLocaleString('it-IT')}</span>`:''}
+    </div>
+    <div class="art-detail-body">${esc(testo)}</div>
+  </div>`;
+}
+
+// PANNELLO GIORNALISTA
+async function openGiornalista(idx){
+  const j=filteredGiornalisti[idx];
+  if(!j) return;
+  currentGiornalista=j;
+  isEditing=false;
+  await renderSchedaGiornalista(j);
+}
+
+async function openGiornalistaByName(nome){
+  if(!nome||nome==='—') return;
+  // Cerca prima nei giornalisti già caricati
+  let j=allGiornalisti.find(x=>x.nome===nome);
+  if(!j){
+    // Se non esiste, crea un oggetto base dall'archivio
+    j={nome,testata_principale:'',tipo_testata:'',n_articoli:0,in_crm:false,clienti_citati:''};
+  }
+  // Passa alla vista giornalisti se non ci siamo già
+  if(currentView!=='giornalisti') setView('giornalisti');
+  currentGiornalista=j;
+  isEditing=false;
+  await renderSchedaGiornalista(j);
+}
+
+async function renderSchedaGiornalista(j){
+  document.getElementById('ctx-panel').classList.remove('closed');
+  document.getElementById('ctx-av').textContent=ini(j.nome);
+  document.getElementById('ctx-av').className='ctx-av';
+  document.getElementById('ctx-nome').textContent=j.nome+(j.sigla?` (${j.sigla})`:'');
+  document.getElementById('ctx-sub').innerHTML=`
+    ${tipoPill(j.tipo_testata)}
+    <span style="font-family:var(--mono);font-size:10px;color:var(--faint)">${j.n_articoli} articoli</span>
+    ${j.in_crm?'<span style="font-family:var(--mono);font-size:9px;color:var(--cyan)">✓ CRM</span>':''}`;
+
+  const body=document.getElementById('ctx-body');
+  body.innerHTML='<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
+
+  // Carica dettaglio CRM se in CRM
+  let jCrm=j;
+  if(j.id){
+    try{
+      const d=await fetch(`/api/journalists/${j.id}`).then(r=>r.json());
+      if(!d.error) jCrm={...j,...d};
+    }catch(e){}
+  }
+
+  // Carica articoli
+  const arts=await fetch(`/api/giornalista-articoli?nome=${encodeURIComponent(j.nome)}&period=all&limit=200`)
+    .then(r=>r.json()).catch(()=>[]);
+
+  body.innerHTML=buildSchedaGiornalista(jCrm,arts);
+}
+
+function buildSchedaGiornalista(j,arts){
+  const ro=!j.in_crm||!isEditing;
+  const clientiTags=(j.clienti_citati||'').split(',').map(c=>c.trim()).filter(Boolean)
+    .map(c=>`<span class="client-tag" onclick="handleClienteTag('${esc(c)}')">${esc(c)}</span>`).join(' ');
+
+  return `<div class="fade-in">
+    <div class="ctx-breadcrumb">
+      <span class="ctx-bc-link" onclick="setView('giornalisti')">Giornalisti</span> › <span>${esc(j.nome)}</span>
+    </div>
+    <div class="ctx-actions">
+      ${j.in_crm
+        ?`<button class="btn btn-out btn-sm" onclick="toggleEdit()">✏️ ${isEditing?'Annulla':'Modifica'}</button>
+          <button class="btn btn-red btn-sm" onclick="deleteGiornalista()">🗑</button>`
+        :`<button class="btn btn-grad btn-sm" onclick="addToCRM()">+ Aggiungi al CRM</button>`}
+      <button class="btn btn-out btn-sm" onclick="openArtManuale('${esc(j.nome)}')">📝 + Articolo</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field"><div class="form-label">Email</div>
+        <input type="text" id="fj-email" class="f-input" value="${esc(j.email||'')}" placeholder="email@testata.it" ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field"><div class="form-label">Cellulare</div>
+        <input type="text" id="fj-tel" class="f-input" value="${esc(j.cellulare||'')}" placeholder="+39 333 …" ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field"><div class="form-label">Testata principale</div>
+        <input type="text" id="fj-testata" class="f-input" value="${esc(j.testata_principale||'')}" placeholder="es. Corriere" ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field"><div class="form-label">Tipo testata</div>
+        <select id="fj-tipo" class="f-select" ${ro?'disabled':''}>
+          <option value="">—</option>
+          ${['agenzia','quotidiano','periodico','radio_tv','web','altro'].map(t=>
+            `<option value="${t}" ${j.tipo_testata===t?'selected':''}>${TIPO_LABELS[t]}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-field"><div class="form-label">Sigla</div>
+        <input type="text" id="fj-sigla" class="f-input" value="${esc(j.sigla||'')}" placeholder="es. m.r." ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field"><div class="form-label">Note</div>
+        <input type="text" id="fj-note" class="f-input" value="${esc(j.note||'')}" placeholder="…" ${ro?'readonly':''}/>
+      </div>
+    </div>
+
+    <!-- SOCIAL -->
+    <div class="sec-title">🔗 Profili social</div>
+    ${ro
+      ?`<div class="social-row"><span class="social-icon">💼</span>${j.linkedin?`<a class="social-link" href="${esc(j.linkedin)}" target="_blank">${esc(j.linkedin)}</a>`:'<span class="social-empty">—</span>'}</div>
+        <div class="social-row"><span class="social-icon">📷</span>${j.instagram?`<a class="social-link" href="https://instagram.com/${esc(j.instagram.replace('@',''))}" target="_blank">${esc(j.instagram)}</a>`:'<span class="social-empty">—</span>'}</div>
+        <div class="social-row"><span class="social-icon">𝕏</span>${j.x_twitter?`<a class="social-link" href="https://x.com/${esc(j.x_twitter.replace('@',''))}" target="_blank">${esc(j.x_twitter)}</a>`:'<span class="social-empty">—</span>'}</div>`
+      :`<div class="form-grid" style="margin-bottom:10px">
+          <div class="form-field"><div class="form-label">💼 LinkedIn</div><input type="text" id="fj-linkedin" class="f-input" value="${esc(j.linkedin||'')}" placeholder="linkedin.com/in/…"/></div>
+          <div class="form-field"><div class="form-label">📷 Instagram</div><input type="text" id="fj-instagram" class="f-input" value="${esc(j.instagram||'')}" placeholder="@handle"/></div>
+          <div class="form-field full"><div class="form-label">𝕏 X / Twitter</div><input type="text" id="fj-twitter" class="f-input" value="${esc(j.x_twitter||'')}" placeholder="@handle"/></div>
+        </div>`}
+
+    ${j.in_crm&&isEditing?`<div class="save-bar">
+      <button class="btn btn-green btn-sm" onclick="saveGiornalista()">💾 Salva</button>
+      <button class="btn btn-out btn-sm" onclick="toggleEdit()">Annulla</button>
+    </div>`:''}
+
+    <!-- CLIENTI CITATI -->
+    <div class="sec-title">🏢 Clienti citati</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;background:var(--border2);border-radius:5px;min-height:30px;margin-bottom:12px">
+      ${clientiTags||'<span style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessun cliente nel periodo</span>'}
+    </div>
+
+    <!-- ARTICOLI -->
+    <div class="sec-title">📰 Articoli in archivio (${arts.length})</div>
+    ${arts.map(a=>`
+      <div class="art-mini" onclick="openArticoloById('${a.id}')">
+        <div class="art-mini-titolo">${esc(a.titolo||'Senza titolo')}</div>
+        <div class="art-mini-meta">
+          <span class="art-mini-testata">${esc(a.testata||'—')}</span>
+          <span class="art-mini-data">${fmt(a.data)}</span>
+          ${toneBadge(a.tone)}
+        </div>
+      </div>`).join('')}
+    ${!arts.length?'<div style="color:var(--faint);font-family:var(--mono);font-size:10px">Nessun articolo in archivio</div>':''}
+  </div>`;
+}
+
+async function openArticoloById(id){
+  try{
+    const a=await fetch(`/api/article/${id}`).then(r=>r.json());
+    if(a.error) return;
+    // Trova idx nei filteredArticoli o aggiungi temporaneo
+    let idx=filteredArticoli.findIndex(x=>x.id===id);
+    if(idx<0){filteredArticoli.push(a);idx=filteredArticoli.length-1;}
+    openArticolo(idx);
+  }catch(e){}
+}
+
+function handleClienteTag(nome){
+  // Trova cliente by name e filtra
+  const cl=clients.find(c=>c.name===nome);
+  if(cl){
+    activeClienteId=cl.id;
+    setView('articoli');
+    loadAll();
+  }
+}
+
+function selectCliente_tag(nome){
+  handleClienteTag(nome);
+}
+
+function closeCtx(){
+  document.getElementById('ctx-panel').classList.add('closed');
+  currentGiornalista=null;
+}
+
+function toggleEdit(){
+  isEditing=!isEditing;
+  renderSchedaGiornalista(currentGiornalista);
+}
+
+async function saveGiornalista(){
+  if(!currentGiornalista?.id) return;
+  const p={
+    testata_principale:document.getElementById('fj-testata')?.value.trim()||null,
+    tipo_testata:document.getElementById('fj-tipo')?.value||null,
+    email:document.getElementById('fj-email')?.value.trim()||null,
+    cellulare:document.getElementById('fj-tel')?.value.trim()||null,
+    sigla:document.getElementById('fj-sigla')?.value.trim()||null,
+    note:document.getElementById('fj-note')?.value.trim()||null,
+    linkedin:document.getElementById('fj-linkedin')?.value.trim()||null,
+    instagram:document.getElementById('fj-instagram')?.value.trim()||null,
+    x_twitter:document.getElementById('fj-twitter')?.value.trim()||null,
+  };
+  try{
+    const res=await fetch(`/api/journalists/${currentGiornalista.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    if(d.success){
+      toast('✅ Salvato');isEditing=false;
+      Object.assign(currentGiornalista,p);
+      await loadGiornalisti();
+      renderSchedaGiornalista(currentGiornalista);
+    }else toast('Errore: '+(d.error||''),'err');
+  }catch(e){toast('Errore connessione','err');}
+}
+
+async function addToCRM(){
+  if(!currentGiornalista) return;
+  const p={nome:currentGiornalista.nome,testata_principale:currentGiornalista.testata_principale||null,tipo_testata:currentGiornalista.tipo_testata||null};
+  try{
+    const res=await fetch('/api/journalists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    if(d.success){
+      toast('✅ Aggiunto al CRM');
+      Object.assign(currentGiornalista,d.journalist,{in_crm:true});
+      await loadGiornalisti();
+      renderSchedaGiornalista(currentGiornalista);
+    }else toast('Errore','err');
+  }catch(e){toast('Errore connessione','err');}
+}
+
+async function deleteGiornalista(){
+  if(!currentGiornalista?.id) return;
+  if(!confirm(`Rimuovere ${currentGiornalista.nome} dal CRM?`)) return;
+  try{
+    await fetch(`/api/journalists/${currentGiornalista.id}`,{method:'DELETE'});
+    toast('Rimosso dal CRM');closeCtx();await loadGiornalisti();
+  }catch(e){toast('Errore','err');}
+}
+
+// ARTICOLO MANUALE
+function openArtManuale(nome){
+  manualArticleGiornalista=nome;
+  document.getElementById('am-data').value=new Date().toISOString().split('T')[0];
+  openModal('modal-art-manuale');
+}
+
+async function saveArticoloManuale(){
+  const titolo=document.getElementById('am-titolo').value.trim();
+  if(!titolo){toast('Il titolo è obbligatorio','err');return;}
+  const payload={
+    giornalista: manualArticleGiornalista,
+    titolo,
+    testata:document.getElementById('am-testata').value.trim()||null,
+    data:document.getElementById('am-data').value||null,
+    testo_completo:document.getElementById('am-testo').value.trim()||null,
+    tone:document.getElementById('am-tone').value||'Neutral',
+    tipologia_articolo:document.getElementById('am-tipo').value||null,
+    macrosettori:document.getElementById('am-macro').value.trim()||null,
+    ave:parseFloat(document.getElementById('am-ave').value)||null,
+  };
+  try{
+    const res=await fetch('/api/journalists/add-article',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await res.json();
+    if(d.success){
+      toast('✅ Articolo salvato');
+      closeModal('modal-art-manuale');
+      // Reset form
+      ['am-titolo','am-testata','am-testo','am-macro'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('am-ave').value='';
+      document.getElementById('am-tone').value='Neutral';
+      document.getElementById('am-tipo').value='';
+      // Ricarica articoli scheda
+      if(currentGiornalista) renderSchedaGiornalista(currentGiornalista);
+      await loadAll();
+    }else toast('Errore: '+(d.error||''),'err');
+  }catch(e){toast('Errore connessione','err');}
+}
+
+// NUOVO GIORNALISTA
+function openModalNuovoGiornalista(){ openModal('modal-nuovo-g'); }
+
+async function createGiornalista(){
+  const nome=document.getElementById('ng-nome').value.trim();
+  if(!nome){toast('Il nome è obbligatorio','err');return;}
+  const p={
+    nome,
+    sigla:document.getElementById('ng-sigla').value.trim()||null,
+    testata_principale:document.getElementById('ng-testata').value.trim()||null,
+    tipo_testata:document.getElementById('ng-tipo').value||null,
+    email:document.getElementById('ng-email').value.trim()||null,
+    cellulare:document.getElementById('ng-tel').value.trim()||null,
+    linkedin:document.getElementById('ng-linkedin').value.trim()||null,
+    instagram:document.getElementById('ng-instagram').value.trim()||null,
+    x_twitter:document.getElementById('ng-twitter').value.trim()||null,
+    note:document.getElementById('ng-note').value.trim()||null,
+  };
+  try{
+    const res=await fetch('/api/journalists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    if(d.success){
+      toast('✅ Giornalista aggiunto');closeModal('modal-nuovo-g');
+      ['ng-nome','ng-sigla','ng-testata','ng-email','ng-tel','ng-linkedin','ng-instagram','ng-twitter','ng-note'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('ng-tipo').value='';
+      await loadGiornalisti();
+      // Apri subito la scheda
+      if(d.journalist?.id){
+        const j={...d.journalist,n_articoli:0,in_crm:true,clienti_citati:''};
+        currentGiornalista=j;isEditing=false;
+        setView('giornalisti');
+        renderSchedaGiornalista(j);
+      }
+    }else toast('Errore: '+(d.error||''),'err');
+  }catch(e){toast('Errore connessione','err');}
+}
+</script>
+</body>
+</html>

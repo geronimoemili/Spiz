@@ -29,21 +29,40 @@ def _deduce_tipo(testata: str) -> str:
 
 class JournalistModel(BaseModel):
     nome:               str
+    sigla:              Optional[str] = None
     testata_principale: Optional[str] = None
     tipo_testata:       Optional[str] = None
     email:              Optional[str] = None
     cellulare:          Optional[str] = None
     note:               Optional[str] = None
     clienti_associati:  Optional[str] = None
+    linkedin:           Optional[str] = None
+    instagram:          Optional[str] = None
+    x_twitter:          Optional[str] = None
 
 class JournalistUpdate(BaseModel):
     nome:               Optional[str] = None
+    sigla:              Optional[str] = None
     testata_principale: Optional[str] = None
     tipo_testata:       Optional[str] = None
     email:              Optional[str] = None
     cellulare:          Optional[str] = None
     note:               Optional[str] = None
     clienti_associati:  Optional[str] = None
+    linkedin:           Optional[str] = None
+    instagram:          Optional[str] = None
+    x_twitter:          Optional[str] = None
+
+class ManualArticleModel(BaseModel):
+    giornalista:        str
+    titolo:             str
+    testata:            Optional[str] = None
+    data:               Optional[str] = None
+    testo_completo:     Optional[str] = None
+    tone:               Optional[str] = None
+    tipologia_articolo: Optional[str] = None
+    macrosettori:       Optional[str] = None
+    ave:                Optional[float] = None
 
 
 @router.get("/api/journalists/list")
@@ -165,10 +184,13 @@ async def create_journalist(data: JournalistModel):
     supabase = _sb()
     try:
         res = supabase.table("journalists").insert({
-            "nome": data.nome.strip(), "testata_principale": data.testata_principale,
+            "nome": data.nome.strip(), "sigla": data.sigla,
+            "testata_principale": data.testata_principale,
             "tipo_testata": data.tipo_testata, "email": data.email,
             "cellulare": data.cellulare, "note": data.note,
             "clienti_associati": data.clienti_associati,
+            "linkedin": data.linkedin, "instagram": data.instagram,
+            "x_twitter": data.x_twitter,
         }).execute()
         return {"success": True, "journalist": res.data[0] if res.data else {}}
     except Exception as e: return {"error": str(e)}
@@ -302,3 +324,29 @@ async def journalists_bubble_data(client_id: Optional[str] = None, macro_id: Opt
             for t, d in testata_data.items()], key=lambda x: -x["count"])
         return {"nodes": nodes}
     except Exception as e: return {"error": str(e)}
+
+
+@router.post("/api/journalists/add-article")
+async def add_article_manual(data: ManualArticleModel):
+    """Aggiunge un articolo manuale associato a un giornalista."""
+    import hashlib
+    supabase = _sb()
+    try:
+        art_date = data.data or date.today().isoformat()
+        h = hashlib.md5(f"{data.giornalista}|{data.titolo}|{art_date}".encode()).hexdigest()
+        res = supabase.table("articles").insert({
+            "giornalista":        data.giornalista,
+            "titolo":             data.titolo,
+            "testata":            data.testata or "",
+            "data":               art_date,
+            "testo_completo":     data.testo_completo or "",
+            "tone":               data.tone or "Neutral",
+            "tipologia_articolo": data.tipologia_articolo or "",
+            "macrosettori":       data.macrosettori or "",
+            "ave":                data.ave,
+            "content_hash":       h,
+            "fonte":              "manuale",
+        }).execute()
+        return {"success": True, "article": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
