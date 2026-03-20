@@ -636,7 +636,7 @@ async def list_journalists(
                     art_clienti.setdefault(gl, set()).add(cname)
 
         # 4. Filtro cliente — giornalisti che citano questo cliente
-        client_journalists: set | None = None
+        client_journalists = None
         if client_id:
             cl_res = supabase.table("clients").select("name, keywords_press, keywords").eq("id", client_id).execute()
             if cl_res.data:
@@ -653,7 +653,7 @@ async def list_journalists(
                             client_journalists.add(g.lower())
 
         # 5. Filtro macro
-        macro_journalists: set | None = None
+        macro_journalists = None
         if macro_id:
             lnk_res = supabase.table("macro_group_links").select("official_macro_id").eq("macro_group_id", macro_id).execute()
             oids = [l["official_macro_id"] for l in (lnk_res.data or [])]
@@ -734,7 +734,7 @@ async def journalists_bubble_data(
         articles = arts_res.data or []
 
         # Filtro cliente
-        client_art_ids: set | None = None
+        client_art_ids = None
         if client_id:
             cl_res = supabase.table("clients").select("keywords_press, keywords").eq("id", client_id).execute()
             if cl_res.data:
