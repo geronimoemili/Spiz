@@ -415,7 +415,7 @@ function renderTable(){
     const active=currentJ&&currentJ.nome===j.nome?'active':'';
     const clientiTags=(j.clienti_citati||'').split(',')
       .map(c=>c.trim()).filter(Boolean)
-      .map(c=>`<span class="client-tag">${esc(c)}</span>`).join('');
+      .map(c=>`<span class="client-tag" onclick="event.stopPropagation();goToPress('${esc(c)}')" title="Vai su Press → ${esc(c)}" style="cursor:pointer">${esc(c)}</span>`).join('');
     return `<tr class="${active}" onclick="selectJ(${i})">
       <td>
         <div class="td-nome">
@@ -460,7 +460,7 @@ async function openScheda(j){
 function buildBody(j,arts){
   const ro=!j.in_crm||!isEditing;
   const clientiTags=(j.clienti_citati||'').split(',').map(c=>c.trim()).filter(Boolean)
-    .map(c=>`<span class="client-tag">${esc(c)}</span>`).join('');
+    .map(c=>`<span class="client-tag" onclick="goToPress('${esc(c)}')" title="Vai su Press → ${esc(c)}" style="cursor:pointer;text-decoration:underline dotted">${esc(c)}</span>`).join('');
 
   return `<div class="fade-in">
     <div class="sch-actions">
@@ -612,7 +612,17 @@ async function createJournalist(){
   }catch(e){toast('Errore connessione','err');}
 }
 
-// ── SYNC ─────────────────────────────────────────────────────────────
+// ── NAVIGAZIONE VERSO PRESS ─────────────────────────────────────────
+function goToPress(clienteName){
+  // Cerca l'id del cliente dal nome
+  const cl = clients.find(c=>c.name===clienteName);
+  if(cl){
+    window.location.href = `/press?client_id=${cl.id}`;
+  } else {
+    window.location.href = `/press`;
+  }
+}
+
 async function syncArchivio(){
   const btn=document.getElementById('btn-sync');
   btn.disabled=true;btn.innerHTML='<div class="spinner"></div> Sinc…';
