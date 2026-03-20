@@ -88,6 +88,9 @@ async def list_journalists(
 
         crm_res = supabase.table("journalists").select("*").order("nome").execute()
         crm = {j["nome"].strip().lower(): j for j in (crm_res.data or [])}
+        # Aggiungi anche sigla come chiave per il lookup
+        for j in (crm_res.data or []):
+            if j.get("sigla"): crm[j["sigla"].strip().lower()] = j
 
         arts_q = supabase.table("articles").select("giornalista, testata, macrosettori, titolo, occhiello, testo_completo, data")
         if from_date:
@@ -171,7 +174,7 @@ async def list_journalists(
                 "note":               crm_entry.get("note"),
                 "clienti_citati":     ", ".join(sorted(citati)),
                 "n_articoli":         art_count.get(gl, 0),
-                "in_crm":             bool(crm_entry.get("id")),
+                "in_crm":             (gl in crm_names_set),
             })
         result.sort(key=lambda x: (-x["n_articoli"], x["nome"]))
         return result
