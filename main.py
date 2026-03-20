@@ -569,43 +569,76 @@ async def list_journalists(
     client_id:    Optional[str] = None,
     tipo_testata: Optional[str] = None,
     macro_id:     Optional[str] = None,
+    period:       Optional[str] = "all",  # today|yesterday|7days|30days|all
     q:            Optional[str] = None,
 ):
-    """Lista giornalisti dal CRM + archivio con filtri corretti."""
     try:
         from collections import Counter as _Counter
         SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
+
+        # Calcola date range
+        today = date.today()
+        if period == "today":
+            from_date = today.isoformat()
+        elif period == "yesterday":
+            from_date = (today - timedelta(days=1)).isoformat()
+            today = today - timedelta(days=1)
+        elif period == "7days":
+            from_date = (today - timedelta(days=7)).isoformat()
+        elif period == "30days":
+            from_date = (today - timedelta(days=30)).isoformat()
+        elif period == "6months":
+            from_date = (today - timedelta(days=180)).isoformat()
+        else:
+            from_date = None  # all
 
         # 1. CRM
         crm_res = supabase.table("journalists").select("*").order("nome").execute()
         crm = {j["nome"].strip().lower(): j for j in (crm_res.data or [])}
 
-        # 2. Articoli — carico tutti i campi necessari
-        arts_res = supabase.table("articles").select(
-            "giornalista, testata, macrosettori, titolo, occhiello, testo_completo"
-        ).execute()
+        # 2. Articoli nel periodo
+        arts_query = supabase.table("articles").select(
+            "giornalista, testata, macrosettori, titolo, occhiello, testo_completo, data"
+        )
+        if from_date:
+            arts_query = arts_query.gte("data", from_date).lte("data", today.isoformat())
+        arts_res = arts_query.execute()
         articles = arts_res.data or []
 
+        # 3. Carica clienti per calcolare citazioni
+        clients_res = supabase.table("clients").select("id, name, keywords_press, keywords").execute()
+        all_clients = clients_res.data or []
+
+        # Build keyword map
+        client_kws = {}
+        for c in all_clients:
+            kws = [k.strip().lower() for k in (c.get("keywords_press") or c.get("keywords") or "").split(",") if k.strip()]
+            if kws:
+                client_kws[c["name"]] = kws
+
         # Indici per giornalista
-        art_count:   dict = {}
-        art_testate: dict = {}
-        art_macro_str: dict = {}  # giornalista_lower → set di stringhe macrosettori
+        art_count:      dict = {}
+        art_testate:    dict = {}
+        art_clienti:    dict = {}  # giornalista_lower → set nomi clienti citati
 
         for a in articles:
             g = (a.get("giornalista") or "").strip()
             if not g or g.lower() in SKIP:
                 continue
             gl = g.lower()
-            art_count[gl] = art_count.get(gl, 0) + 1
+            art_count[gl]   = art_count.get(gl, 0) + 1
             art_testate.setdefault(gl, _Counter())[a.get("testata","") or ""] += 1
-            macro_raw = (a.get("macrosettori") or "").upper()
-            if macro_raw:
-                art_macro_str.setdefault(gl, set()).add(macro_raw)
 
-        # 3. Filtro cliente — cerca keyword negli articoli
+            # Clienti citati: cerca keywords nell'articolo
+            txt = f"{a.get('titolo','')} {a.get('occhiello','')} {a.get('testo_completo','')}".lower()
+            for cname, kws in client_kws.items():
+                if any(kw in txt for kw in kws):
+                    art_clienti.setdefault(gl, set()).add(cname)
+
+        # 4. Filtro cliente — giornalisti che citano questo cliente
         client_journalists: set | None = None
         if client_id:
-            cl_res = supabase.table("clients").select("keywords_press, keywords").eq("id", client_id).execute()
+            cl_res = supabase.table("clients").select("name, keywords_press, keywords").eq("id", client_id).execute()
             if cl_res.data:
                 cl = cl_res.data[0]
                 kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
@@ -619,7 +652,7 @@ async def list_journalists(
                         if any(kw in txt for kw in kws):
                             client_journalists.add(g.lower())
 
-        # 4. Filtro macro — usa ILIKE: cerca se il nome del macrosettore è CONTENUTO nella stringa
+        # 5. Filtro macro
         macro_journalists: set | None = None
         if macro_id:
             lnk_res = supabase.table("macro_group_links").select("official_macro_id").eq("macro_group_id", macro_id).execute()
@@ -628,14 +661,17 @@ async def list_journalists(
                 mac_res = supabase.table("official_macrosectors").select("name").in_("id", oids).execute()
                 mac_names = [m["name"].upper() for m in (mac_res.data or [])]
                 macro_journalists = set()
-                for gl, macro_set in art_macro_str.items():
-                    for macro_str in macro_set:
-                        if any(mn in macro_str for mn in mac_names):
-                            macro_journalists.add(gl)
-                            break
+                for a in articles:
+                    g = (a.get("giornalista") or "").strip()
+                    if not g or g.lower() in SKIP:
+                        continue
+                    macro_str = (a.get("macrosettori") or "").upper()
+                    if any(mn in macro_str for mn in mac_names):
+                        macro_journalists.add(g.lower())
 
-        # 5. Unisci e filtra
-        all_names = set(crm.keys()) | set(art_count.keys())
+        # 6. Costruisci risultato
+        # Parti SEMPRE dall'archivio articoli come fonte primaria
+        all_names = set(art_count.keys()) | set(crm.keys())
         result = []
         for gl in all_names:
             if client_journalists is not None and gl not in client_journalists:
@@ -647,10 +683,20 @@ async def list_journalists(
 
             crm_entry = crm.get(gl, {})
             testata_arch = art_testate[gl].most_common(1)[0][0] if gl in art_testate else ""
-            tipo = crm_entry.get("tipo_testata") or _deduce_tipo(testata_arch)
+            tipo = crm_entry.get("tipo_testata") or _deduce_tipo(
+                crm_entry.get("testata_principale") or testata_arch
+            )
 
             if tipo_testata and tipo != tipo_testata:
                 continue
+
+            # Clienti citati: unione archivio + campo CRM
+            citati_set = set(art_clienti.get(gl, set()))
+            crm_assoc = crm_entry.get("clienti_associati") or ""
+            if crm_assoc:
+                for c in crm_assoc.split(","):
+                    cs = c.strip()
+                    if cs: citati_set.add(cs)
 
             result.append({
                 "id":                 crm_entry.get("id"),
@@ -660,7 +706,7 @@ async def list_journalists(
                 "email":              crm_entry.get("email"),
                 "cellulare":          crm_entry.get("cellulare"),
                 "note":               crm_entry.get("note"),
-                "clienti_associati":  crm_entry.get("clienti_associati"),
+                "clienti_citati":     ", ".join(sorted(citati_set)),
                 "n_articoli":         art_count.get(gl, 0),
                 "in_crm":             bool(crm_entry.get("id")),
             })
