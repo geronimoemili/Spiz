@@ -606,13 +606,13 @@ async def list_journalists(
         articles = arts_res.data or []
 
         # 3. Carica clienti per calcolare citazioni
-        clients_res = supabase.table("clients").select("id, name, keywords_press, keywords").execute()
+        clients_res = supabase.table("clients").select("id, name, keywords_press").execute()
         all_clients = clients_res.data or []
 
         # Build keyword map
         client_kws = {}
         for c in all_clients:
-            kws = [k.strip().lower() for k in (c.get("keywords_press") or c.get("keywords") or "").split(",") if k.strip()]
+            kws = [k.strip().lower() for k in (c.get("keywords_press") or "").split(",") if k.strip()]
             if kws:
                 client_kws[c["name"]] = kws
 
@@ -638,10 +638,10 @@ async def list_journalists(
         # 4. Filtro cliente — giornalisti che citano questo cliente
         client_journalists = None
         if client_id:
-            cl_res = supabase.table("clients").select("name, keywords_press, keywords").eq("id", client_id).execute()
+            cl_res = supabase.table("clients").select("name, keywords_press").eq("id", client_id).execute()
             if cl_res.data:
                 cl = cl_res.data[0]
-                kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+                kws = [k.strip().lower() for k in (cl.get("keywords_press") or "").split(",") if k.strip()]
                 client_journalists = set()
                 if kws:
                     for a in articles:
@@ -736,10 +736,10 @@ async def journalists_bubble_data(
         # Filtro cliente
         client_art_ids = None
         if client_id:
-            cl_res = supabase.table("clients").select("keywords_press, keywords").eq("id", client_id).execute()
+            cl_res = supabase.table("clients").select("name, keywords_press").eq("id", client_id).execute()
             if cl_res.data:
                 cl = cl_res.data[0]
-                kws = [k.strip().lower() for k in (cl.get("keywords_press") or cl.get("keywords") or "").split(",") if k.strip()]
+                kws = [k.strip().lower() for k in (cl.get("keywords_press") or "").split(",") if k.strip()]
                 if kws:
                     client_art_ids = set()
                     for i, a in enumerate(articles):
