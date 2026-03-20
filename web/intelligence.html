@@ -284,6 +284,9 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
       <div class="form-field full"><div class="form-label">Nome *</div><input type="text" id="ng-nome" class="f-input" placeholder="Mario Rossi"/></div>
       <div class="form-field"><div class="form-label">Sigla</div><input type="text" id="ng-sigla" class="f-input" placeholder="es. m.r. / M.R."/></div>
       <div class="form-field"><div class="form-label">Testata principale</div><input type="text" id="ng-testata" class="f-input" placeholder="Corriere della Sera"/></div>
+      <div class="form-field"><div class="form-label">Ruolo</div>
+        <input type="text" id="ng-ruolo" class="f-input" placeholder="es. Caporedattore Economia"/>
+      </div>
       <div class="form-field"><div class="form-label">Tipo testata</div>
         <select id="ng-tipo" class="f-select">
           <option value="">— seleziona —</option>
@@ -713,6 +716,9 @@ function buildSchedaGiornalista(j,arts){
     </div>
 
     <div class="form-grid">
+      <div class="form-field full"><div class="form-label">Nome</div>
+        <input type="text" id="fj-nome" class="f-input" value="${esc(j.nome||'')}" placeholder="Nome Cognome" ${ro?'readonly':''}/>
+      </div>
       <div class="form-field"><div class="form-label">Email</div>
         <input type="text" id="fj-email" class="f-input" value="${esc(j.email||'')}" placeholder="email@testata.it" ${ro?'readonly':''}/>
       </div>
@@ -721,6 +727,9 @@ function buildSchedaGiornalista(j,arts){
       </div>
       <div class="form-field"><div class="form-label">Testata principale</div>
         <input type="text" id="fj-testata" class="f-input" value="${esc(j.testata_principale||'')}" placeholder="es. Corriere" ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field"><div class="form-label">Ruolo</div>
+        <input type="text" id="ng-ruolo" class="f-input" placeholder="es. Caporedattore Economia"/>
       </div>
       <div class="form-field"><div class="form-label">Tipo testata</div>
         <select id="fj-tipo" class="f-select" ${ro?'disabled':''}>
@@ -732,8 +741,14 @@ function buildSchedaGiornalista(j,arts){
       <div class="form-field"><div class="form-label">Sigla</div>
         <input type="text" id="fj-sigla" class="f-input" value="${esc(j.sigla||'')}" placeholder="es. m.r." ${ro?'readonly':''}/>
       </div>
+      <div class="form-field"><div class="form-label">Ruolo</div>
+        <input type="text" id="fj-ruolo" class="f-input" value="${esc(j.ruolo||'')}" placeholder="es. Caporedattore" ${ro?'readonly':''}/>
+      </div>
       <div class="form-field"><div class="form-label">Note</div>
         <input type="text" id="fj-note" class="f-input" value="${esc(j.note||'')}" placeholder="…" ${ro?'readonly':''}/>
+      </div>
+      <div class="form-field full"><div class="form-label">Clienti associati</div>
+        <input type="text" id="fj-clienti" class="f-input" value="${esc(j.clienti_associati||'')}" placeholder="es. SNAM, Mediobanca" ${ro?'readonly':''}/>
       </div>
     </div>
 
@@ -813,12 +828,15 @@ function toggleEdit(){
 async function saveGiornalista(){
   if(!currentGiornalista?.id) return;
   const p={
+    nome:document.getElementById('fj-nome')?.value.trim()||null,
     testata_principale:document.getElementById('fj-testata')?.value.trim()||null,
     tipo_testata:document.getElementById('fj-tipo')?.value||null,
     email:document.getElementById('fj-email')?.value.trim()||null,
     cellulare:document.getElementById('fj-tel')?.value.trim()||null,
     sigla:document.getElementById('fj-sigla')?.value.trim()||null,
+    ruolo:document.getElementById('fj-ruolo')?.value.trim()||null,
     note:document.getElementById('fj-note')?.value.trim()||null,
+    clienti_associati:document.getElementById('fj-clienti')?.value.trim()||null,
     linkedin:document.getElementById('fj-linkedin')?.value.trim()||null,
     instagram:document.getElementById('fj-instagram')?.value.trim()||null,
     x_twitter:document.getElementById('fj-twitter')?.value.trim()||null,
@@ -907,6 +925,7 @@ async function createGiornalista(){
   const p={
     nome,
     sigla:document.getElementById('ng-sigla').value.trim()||null,
+    ruolo:document.getElementById('ng-ruolo').value.trim()||null,
     testata_principale:document.getElementById('ng-testata').value.trim()||null,
     tipo_testata:document.getElementById('ng-tipo').value||null,
     email:document.getElementById('ng-email').value.trim()||null,
@@ -914,6 +933,7 @@ async function createGiornalista(){
     linkedin:document.getElementById('ng-linkedin').value.trim()||null,
     instagram:document.getElementById('ng-instagram').value.trim()||null,
     x_twitter:document.getElementById('ng-twitter').value.trim()||null,
+    clienti_associati:document.getElementById('ng-clienti').value.trim()||null,
     note:document.getElementById('ng-note').value.trim()||null,
   };
   try{
@@ -921,7 +941,7 @@ async function createGiornalista(){
     const d=await res.json();
     if(d.success){
       toast('✅ Giornalista aggiunto');closeModal('modal-nuovo-g');
-      ['ng-nome','ng-sigla','ng-testata','ng-email','ng-tel','ng-linkedin','ng-instagram','ng-twitter','ng-note'].forEach(id=>document.getElementById(id).value='');
+      ['ng-nome','ng-sigla','ng-ruolo','ng-testata','ng-email','ng-tel','ng-linkedin','ng-instagram','ng-twitter','ng-clienti','ng-note'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('ng-tipo').value='';
       await loadGiornalisti();
       // Apri subito la scheda
