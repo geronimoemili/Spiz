@@ -88,6 +88,7 @@ async def list_journalists(
 
         crm_res = supabase.table("journalists").select("*").order("nome").execute()
         crm = {j["nome"].strip().lower(): j for j in (crm_res.data or [])}
+        crm_names_set = set(crm.keys())
         # Aggiungi anche sigla come chiave per il lookup
         for j in (crm_res.data or []):
             if j.get("sigla"): crm[j["sigla"].strip().lower()] = j
