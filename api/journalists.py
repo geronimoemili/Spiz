@@ -36,6 +36,7 @@ class JournalistModel(BaseModel):
     cellulare:          Optional[str] = None
     note:               Optional[str] = None
     clienti_associati:  Optional[str] = None
+    ruolo:              Optional[str] = None
     linkedin:           Optional[str] = None
     instagram:          Optional[str] = None
     x_twitter:          Optional[str] = None
@@ -49,6 +50,7 @@ class JournalistUpdate(BaseModel):
     cellulare:          Optional[str] = None
     note:               Optional[str] = None
     clienti_associati:  Optional[str] = None
+    ruolo:              Optional[str] = None
     linkedin:           Optional[str] = None
     instagram:          Optional[str] = None
     x_twitter:          Optional[str] = None
@@ -98,11 +100,20 @@ async def list_journalists(
             kws = [k.strip().lower() for k in (c.get("keywords_press") or "").split(",") if k.strip()]
             if kws: client_kws[c["name"]] = kws
 
+        # Mappa sigla → nome_lower per giornalisti con sigla nel CRM
+        sigla_map = {}  # sigla_lower → nome_lower
+        for j in (crm_res.data or []):
+            if j.get("sigla") and j.get("nome"):
+                sigla_map[j["sigla"].strip().lower()] = j["nome"].strip().lower()
+
         art_count, art_testate, art_clienti = {}, {}, {}
         for a in articles:
             g = (a.get("giornalista") or "").strip()
             if not g or g.lower() in SKIP: continue
             gl = g.lower()
+            # Se è una sigla nota, normalizza al nome principale
+            if gl in sigla_map:
+                gl = sigla_map[gl]
             art_count[gl] = art_count.get(gl, 0) + 1
             art_testate.setdefault(gl, Counter())[a.get("testata","") or ""] += 1
             txt = f"{a.get('titolo','')} {a.get('occhiello','')} {a.get('testo_completo','')}".lower()
@@ -189,6 +200,7 @@ async def create_journalist(data: JournalistModel):
             "tipo_testata": data.tipo_testata, "email": data.email,
             "cellulare": data.cellulare, "note": data.note,
             "clienti_associati": data.clienti_associati,
+            "ruolo": data.ruolo,
             "linkedin": data.linkedin, "instagram": data.instagram,
             "x_twitter": data.x_twitter,
         }).execute()
@@ -232,8 +244,15 @@ async def sync_journalists_from_articles():
         for gl, tc in testate.items():
             if gl in existing: continue
             tm = tc.most_common(1)[0][0]
-            supabase.table("journalists").insert({"nome": gl.title(), "testata_principale": tm, "tipo_testata": _deduce_tipo(tm)}).execute()
-            inserted += 1
+            try:
+                supabase.table("journalists").insert({
+                    "nome": gl.title(),
+                    "testata_principale": tm,
+                    "tipo_testata": _deduce_tipo(tm),
+                }).execute()
+                inserted += 1
+            except Exception:
+                pass
         return {"success": True, "inserted": inserted}
     except Exception as e: return {"error": str(e)}
 
@@ -245,11 +264,35 @@ async def giornalista_articoli(nome: str = Query(...), period: str = Query("all"
         today = date.today()
         days_map = {"today": 0, "7days": 7, "30days": 30, "6months": 180, "year": 365, "all": None}
         days = days_map.get(period)
-        q = supabase.table("articles").select("id, titolo, testata, data, giornalista, tone, dominant_topic, macrosettori").eq("giornalista", nome)
-        if days is not None:
-            fd = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
-            q = q.gte("data", fd)
-        return q.order("data", desc=True).limit(limit).execute().data or []
+        # Recupera sigla dal CRM se esiste
+        sigla = None
+        try:
+            crm = supabase.table("journalists").select("sigla").ilike("nome", nome).limit(1).execute()
+            if crm.data and crm.data[0].get("sigla"):
+                sigla = crm.data[0]["sigla"].strip()
+        except Exception:
+            pass
+
+        arts = []
+        for search_nome in ([nome, sigla] if sigla else [nome]):
+            q = supabase.table("articles").select(
+                "id, titolo, testata, data, giornalista, tone, dominant_topic, macrosettori"
+            ).eq("giornalista", search_nome)
+            if days is not None:
+                fd = today.isoformat() if days == 0 else (today - timedelta(days=days)).isoformat()
+                q = q.gte("data", fd)
+            res = q.order("data", desc=True).limit(limit).execute().data or []
+            arts.extend(res)
+
+        # Deduplica per id e riordina per data
+        seen = set()
+        deduped = []
+        for a in arts:
+            if a["id"] not in seen:
+                seen.add(a["id"])
+                deduped.append(a)
+        deduped.sort(key=lambda x: x.get("data",""), reverse=True)
+        return deduped[:limit]
     except Exception: return []
 
 
