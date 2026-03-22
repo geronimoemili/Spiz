@@ -439,7 +439,7 @@ async function toggleTTSDigest() {
     const res = await fetch('/api/digest-audio', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: currentDigestText })
+      body: JSON.stringify({ text: currentDigestText.substring(0, 4096) })
     });
     if (!res.ok) throw new Error('Errore server TTS');
     const blob = await res.blob();

@@ -876,6 +876,8 @@ async def digest_audio(req: DigestAudioRequest):
         # OpenAI TTS limite: 4096 caratteri
         if len(clean) > 4096:
             clean = clean[:4096] + "... Fine del digest."
+        if len(clean) > 4096:
+            clean = clean[:4096] + "... Fine del digest."
         response = ai.audio.speech.create(model="tts-1", voice="shimmer", input=clean, response_format="mp3")
         return StreamingResponse(iter([response.content]), media_type="audio/mpeg",
                                  headers={"Content-Disposition": "inline; filename=digest.mp3"})
