@@ -252,7 +252,6 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
           <th onclick="sortJBy('tipo_testata')" id="jth-tipo">Tipo</th>
           <th onclick="sortJBy('clienti_citati')" id="jth-clienti">Clienti citati</th>
           <th onclick="sortJBy('n_articoli')" id="jth-art" style="text-align:right">Art.</th>
-          <th>CRM</th>
         </tr></thead>
         <tbody id="jour-tbody"><tr class="empty-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
       </table>
@@ -401,7 +400,7 @@ function toneBadge(tone){
   const t=(tone||'').toLowerCase();
   if(t.includes('positiv')) return '<span class="tone-pos">▲ Pos</span>';
   if(t.includes('negativ')) return '<span class="tone-neg">▼ Neg</span>';
-  return '<span class="tone-neu">● Neu</span>';
+  return '';
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -601,7 +600,7 @@ function renderGiornalisti(){
           .map(c=>`<span class="client-tag" onclick="event.stopPropagation();selectCliente_tag('${esc(c)}')">${esc(c)}</span>`).join(' ')||'<span style="color:var(--faint);font-size:11px">—</span>'}
       </td>
       <td class="art-num">${j.n_articoli}</td>
-      <td><span class="${j.in_crm?'badge badge-crm':'badge badge-arch'}">${j.in_crm?'CRM':'arch'}</span></td>
+
     </tr>`).join('');
 }
 
@@ -907,7 +906,7 @@ function buildSchedaGiornalista(j,arts){
         <div class="art-mini-meta">
           <span class="art-mini-testata">${esc(a.testata||'—')}</span>
           <span class="art-mini-data">${fmt(a.data)}</span>
-          ${toneBadge(a.tone)}
+          ${toneBadge(a.tone)||''}
         </div>
       </div>`).join('')}
     ${!arts.length?'<div style="color:var(--faint);font-family:var(--mono);font-size:10px">Nessun articolo in archivio</div>':''}

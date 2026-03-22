@@ -188,7 +188,35 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
         digest_job_id = str(uuid.uuid4())[:12]
         _set_job(digest_job_id, "pending")
         threading.Thread(target=_run_digest_job, args=(digest_job_id,), daemon=True).start()
+        # Sync automatico giornalisti nel CRM dopo ogni ingestion
+        threading.Thread(target=_sync_journalists_auto, daemon=True).start()
     return {"results": results, "digest_job_id": digest_job_id}
+
+
+def _sync_journalists_auto():
+    """Importa automaticamente nel CRM i nuovi giornalisti dopo ogni ingestion."""
+    try:
+        SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
+        arts = supabase.table("articles").select("giornalista, testata").execute().data or []
+        existing = {j["nome"].strip().lower() for j in (supabase.table("journalists").select("nome").execute().data or [])}
+        from collections import Counter as _C
+        testate = {}
+        for a in arts:
+            g = (a.get("giornalista") or "").strip()
+            if not g or g.lower() in SKIP: continue
+            testate.setdefault(g.lower(), _C())[a.get("testata","") or ""] += 1
+        inserted = 0
+        for gl, tc in testate.items():
+            if gl in existing: continue
+            tm = tc.most_common(1)[0][0]
+            tipo = "agenzia" if any(x in tm.lower() for x in ["ansa","adnkronos","askanews"]) else                    "web" if any(x in tm.lower() for x in [".it","web","online"]) else                    "radio_tv" if any(x in tm.lower() for x in ["radio","tv","rai","tele"]) else "quotidiano"
+            try:
+                supabase.table("journalists").insert({"nome": gl.title(), "testata_principale": tm, "tipo_testata": tipo}).execute()
+                inserted += 1
+            except Exception: pass
+        print(f"[SYNC] {inserted} nuovi giornalisti aggiunti al CRM")
+    except Exception as e:
+        print(f"[SYNC] Errore sync giornalisti: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════
