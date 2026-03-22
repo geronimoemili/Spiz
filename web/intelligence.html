@@ -283,9 +283,6 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
       <div class="form-field full"><div class="form-label">Nome *</div><input type="text" id="ng-nome" class="f-input" placeholder="Mario Rossi"/></div>
       <div class="form-field"><div class="form-label">Sigla</div><input type="text" id="ng-sigla" class="f-input" placeholder="es. m.r. / M.R."/></div>
       <div class="form-field"><div class="form-label">Testata principale</div><input type="text" id="ng-testata" class="f-input" placeholder="Corriere della Sera"/></div>
-      <div class="form-field"><div class="form-label">Ruolo</div>
-        <input type="text" id="ng-ruolo" class="f-input" placeholder="es. Caporedattore Economia"/>
-      </div>
       <div class="form-field"><div class="form-label">Tipo testata</div>
         <select id="ng-tipo" class="f-select">
           <option value="">— seleziona —</option>
@@ -299,6 +296,7 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
       <div class="form-field"><div class="form-label">LinkedIn</div><input type="text" id="ng-linkedin" class="f-input" placeholder="linkedin.com/in/…"/></div>
       <div class="form-field"><div class="form-label">Instagram</div><input type="text" id="ng-instagram" class="f-input" placeholder="@handle"/></div>
       <div class="form-field full"><div class="form-label">X / Twitter</div><input type="text" id="ng-twitter" class="f-input" placeholder="@handle"/></div>
+      <div class="form-field full"><div class="form-label">Clienti associati</div><input type="text" id="ng-clienti" class="f-input" placeholder="es. SNAM, Mediobanca"/></div>
       <div class="form-field full"><div class="form-label">Note</div><textarea id="ng-note" class="f-textarea" rows="2" placeholder="Annotazioni…"></textarea></div>
     </div>
     <div class="modal-foot">
@@ -799,7 +797,7 @@ async function renderSchedaGiornalista(j){
   document.getElementById('ctx-sub').innerHTML=`
     ${tipoPill(j.tipo_testata)}
     <span style="font-family:var(--mono);font-size:10px;color:var(--faint)">${j.n_articoli} articoli</span>
-    ${j.in_crm?'<span style="font-family:var(--mono);font-size:9px;color:var(--cyan)">✓ CRM</span>':''}`;
+`;
 
   const body=document.getElementById('ctx-body');
   body.innerHTML='<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
@@ -834,7 +832,7 @@ function buildSchedaGiornalista(j,arts){
         ?`<button class="btn btn-out btn-sm" onclick="toggleEdit()">✏️ ${isEditing?'Annulla':'Modifica'}</button>
           <button class="btn btn-out btn-sm" onclick="openMerge()">🔀 Fondi</button>
           <button class="btn btn-red btn-sm" onclick="deleteGiornalista()">🗑</button>`
-        :`<button class="btn btn-grad btn-sm" onclick="addToCRM()">+ Aggiungi al CRM</button>`}
+        :''}
       <button class="btn btn-out btn-sm" onclick="openArtManuale('${esc(j.nome)}')">📝 + Articolo</button>
     </div>
 
@@ -850,9 +848,6 @@ function buildSchedaGiornalista(j,arts){
       </div>
       <div class="form-field"><div class="form-label">Testata principale</div>
         <input type="text" id="fj-testata" class="f-input" value="${esc(j.testata_principale||'')}" placeholder="es. Corriere" ${ro?'readonly':''}/>
-      </div>
-      <div class="form-field"><div class="form-label">Ruolo</div>
-        <input type="text" id="ng-ruolo" class="f-input" placeholder="es. Caporedattore Economia"/>
       </div>
       <div class="form-field"><div class="form-label">Tipo testata</div>
         <select id="fj-tipo" class="f-select" ${ro?'disabled':''}>
