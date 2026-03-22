@@ -25,7 +25,6 @@ try:
     from api.ingestion import process_csv
     from services.database import supabase
     from api.chat import ask_spiz, generate_digest
-    from api.pitch import pitch_advisor
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
@@ -295,11 +294,11 @@ async def dashboard_stats():
         today = date.today().isoformat()
         week_ago = (date.today() - timedelta(days=7)).isoformat()
         month_ago = (date.today() - timedelta(days=30)).isoformat()
-        total = supabase.table("articles").select("id", count="exact").execute()
-        oggi = supabase.table("articles").select("id", count="exact").eq("data", today).execute()
-        settimana = supabase.table("articles").select("id", count="exact").gte("data", week_ago).execute()
-        mese = supabase.table("articles").select("id", count="exact").gte("data", month_ago).execute()
-        return {"totale": total.count or 0, "oggi": oggi.count or 0, "settimana": settimana.count or 0, "mese": mese.count or 0}
+        articles = supabase.table("articles").select("data").execute().data or []
+        oggi = sum(1 for a in articles if a.get("data") == today)
+        settimana = sum(1 for a in articles if a.get("data", "") >= week_ago)
+        mese = sum(1 for a in articles if a.get("data", "") >= month_ago)
+        return {"totale": len(articles), "oggi": oggi, "settimana": settimana, "mese": mese}
     except Exception as e:
         return {"totale": 0, "oggi": 0, "settimana": 0, "mese": 0, "error": str(e)}
 
@@ -332,15 +331,22 @@ async def today_stats():
 async def today_mentions():
     try:
         today = date.today().isoformat()
-        clients = supabase.table("clients").select("*").execute().data or []
-        articles = supabase.table("articles").select("id, titolo, testata, giornalista, tone, dominant_topic, testo_completo, occhiello").eq("data", today).execute().data or []
+        clients = supabase.table("clients").select("id, name, keywords_press, keywords").execute().data or []
+        articles = supabase.table("articles").select("id, testo_completo, titolo, occhiello").eq("data", today).execute().data or []
+        articles_lower = [(a["id"], {
+            "text": (a.get("testo_completo") or "").lower(),
+            "titolo": (a.get("titolo") or "").lower(),
+            "occhiello": (a.get("occhiello") or "").lower()
+        }) for a in articles]
         result = []
         for cl in clients:
             raw_kw = cl.get("keywords_press") or cl.get("keywords") or ""
-            kws = [k.strip().lower() for k in raw_kw.split(",") if k.strip()]
-            count = sum(1 for a in articles if kws and any(
-                kw in (a.get("testo_completo") or "").lower() or kw in (a.get("titolo") or "").lower() or kw in (a.get("occhiello") or "").lower()
-                for kw in kws)) if kws else 0
+            kws = {k.strip().lower() for k in raw_kw.split(",") if k.strip()}
+            if kws:
+                count = sum(1 for _, a in articles_lower if any(
+                    kw in a["text"] or kw in a["titolo"] or kw in a["occhiello"] for kw in kws))
+            else:
+                count = 0
             result.append({"id": cl["id"], "name": cl.get("name",""), "keywords": raw_kw, "today": count})
         return result
     except Exception: return []
@@ -697,14 +703,6 @@ async def get_monitor_meta():
 # PITCH
 # ══════════════════════════════════════════════════════════════════
 
-@app.post("/api/pitch")
-async def pitch_endpoint(message: str = Form(...), client_id: str = Form(""), history: str = Form("[]")):
-    try: hist = json.loads(history) if history else []
-    except Exception: hist = []
-    try:
-        result = pitch_advisor(message=message, client_id=client_id, history=hist)
-        return {"success": True, **result}
-    except Exception as e: return {"success": False, "error": str(e)}
 
 
 # ══════════════════════════════════════════════════════════════════
