@@ -801,7 +801,7 @@ def _run_digest_job(job_id):
         tb = traceback.format_exc()
         _set_job(job_id, "error", error=str(e) + " | " + tb.splitlines()[-1])
 
-@app.post("/api/digest/send-email")
+@app.post("/api/digest-send-email")
 async def send_digest_email_manual():
     """Invia manualmente il digest del giorno via email con audio."""
     today = date.today().isoformat()
@@ -873,6 +873,9 @@ async def digest_audio(req: DigestAudioRequest):
     try:
         ai = OpenAI(api_key=api_key)
         clean = req.text.replace("*","").replace("_","").replace("————————————————————",". ")
+        # OpenAI TTS limite: 4096 caratteri
+        if len(clean) > 4096:
+            clean = clean[:4096] + "... Fine del digest."
         response = ai.audio.speech.create(model="tts-1", voice="shimmer", input=clean, response_format="mp3")
         return StreamingResponse(iter([response.content]), media_type="audio/mpeg",
                                  headers={"Content-Disposition": "inline; filename=digest.mp3"})

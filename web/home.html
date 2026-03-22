@@ -395,7 +395,7 @@ async function sendDigestEmail() {
   btn.disabled = true;
   btn.textContent = '📧 Invio…';
   try {
-    const res = await fetch('/api/digest/send-email', { method: 'POST' });
+    const res = await fetch('/api/digest-send-email', { method: 'POST' });
     const d = await res.json();
     if (d.success) {
       toast('✅ Digest inviato via email con audio allegato', 'success');
