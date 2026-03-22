@@ -631,16 +631,23 @@ function sortJBy(key){
 }
 
 // PANNELLO ARTICOLO
+let currentArticolo = null;
+let isEditingArticolo = false;
+
 async function openArticolo(idx){
   const a=filteredArticoli[idx];
   if(!a) return;
-  // Carica articolo completo
   let art=a;
   try{
     const d=await fetch(`/api/article/${a.id}`).then(r=>r.json());
     if(!d.error) art=d;
   }catch(e){}
+  currentArticolo=art;
+  isEditingArticolo=false;
+  renderArticoloPannello(art);
+}
 
+function renderArticoloPannello(art){
   document.getElementById('ctx-panel').classList.remove('closed');
   document.getElementById('ctx-av').textContent='📰';
   document.getElementById('ctx-av').className='ctx-av art';
@@ -649,24 +656,116 @@ async function openArticolo(idx){
     <span class="td-data">${fmt(art.data)}</span>
     ${toneBadge(art.tone)}`;
 
-  let testo=(art.testo_completo||'Testo non disponibile');
-  testo=testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,'$1\n\n$2');
+  if(isEditingArticolo){
+    document.getElementById('ctx-body').innerHTML=`<div class="fade-in">
+      <div class="ctx-breadcrumb">
+        <span class="ctx-bc-link" onclick="setView('articoli')">Articoli</span> › <span>Modifica</span>
+      </div>
+      <div class="form-grid">
+        <div class="form-field full"><div class="form-label">Titolo</div>
+          <input type="text" id="fa-titolo" class="f-input" value="${esc(art.titolo||'')}"/>
+        </div>
+        <div class="form-field"><div class="form-label">Testata</div>
+          <input type="text" id="fa-testata" class="f-input" value="${esc(art.testata||'')}"/>
+        </div>
+        <div class="form-field"><div class="form-label">Giornalista</div>
+          <input type="text" id="fa-giornalista" class="f-input" value="${esc(art.giornalista||'')}"/>
+        </div>
+        <div class="form-field"><div class="form-label">Data</div>
+          <input type="date" id="fa-data" class="f-input" value="${art.data||''}"/>
+        </div>
+        <div class="form-field"><div class="form-label">Tono</div>
+          <select id="fa-tone" class="f-select">
+            <option value="Neutral" ${(art.tone||'').includes('eutral')?'selected':''}>Neutro</option>
+            <option value="Positive" ${(art.tone||'').includes('ositiv')?'selected':''}>Positivo</option>
+            <option value="Negative" ${(art.tone||'').includes('egativ')?'selected':''}>Negativo</option>
+          </select>
+        </div>
+        <div class="form-field"><div class="form-label">Tipologia</div>
+          <select id="fa-tipo" class="f-select">
+            <option value="">—</option>
+            <option value="articolo" ${art.tipologia_articolo==='articolo'?'selected':''}>Articolo</option>
+            <option value="intervista" ${art.tipologia_articolo==='intervista'?'selected':''}>Intervista</option>
+            <option value="opinione" ${art.tipologia_articolo==='opinione'?'selected':''}>Opinione</option>
+            <option value="breve" ${art.tipologia_articolo==='breve'?'selected':''}>Breve</option>
+          </select>
+        </div>
+        <div class="form-field"><div class="form-label">AVE (€)</div>
+          <input type="number" id="fa-ave" class="f-input" value="${art.ave||''}"/>
+        </div>
+        <div class="form-field"><div class="form-label">Macrosettori</div>
+          <input type="text" id="fa-macro" class="f-input" value="${esc(art.macrosettori||'')}"/>
+        </div>
+        <div class="form-field full"><div class="form-label">Testo articolo</div>
+          <textarea id="fa-testo" class="f-textarea" rows="10">${esc(art.testo_completo||'')}</textarea>
+        </div>
+      </div>
+      <div class="save-bar">
+        <button class="btn btn-green btn-sm" onclick="saveArticolo()">💾 Salva</button>
+        <button class="btn btn-out btn-sm" onclick="isEditingArticolo=false;renderArticoloPannello(currentArticolo)">Annulla</button>
+        <button class="btn btn-red btn-sm" style="margin-left:auto" onclick="deleteArticolo()">🗑 Elimina</button>
+      </div>
+    </div>`;
+  } else {
+    let testo=(art.testo_completo||'Testo non disponibile');
+    testo=testo.replace(/([.!?])\s+([A-ZÀ-Ü])/g,'$1\n\n$2');
+    document.getElementById('ctx-body').innerHTML=`<div class="fade-in">
+      <div class="ctx-breadcrumb">
+        <span class="ctx-bc-link" onclick="setView('articoli')">Articoli</span> › <span>${esc(art.testata||'')}</span>
+      </div>
+      <div class="ctx-actions">
+        <button class="btn btn-out btn-sm" onclick="isEditingArticolo=true;renderArticoloPannello(currentArticolo)">✏️ Modifica</button>
+      </div>
+      <div class="art-detail-title">${esc(art.titolo||'Senza titolo')}</div>
+      <div class="art-detail-meta">
+        <span><strong>${esc(art.testata||'—')}</strong></span>
+        <span>Giornalista: <span class="td-giornalista" style="cursor:pointer" onclick="openGiornalistaByName('${esc(art.giornalista||'')}')">${esc(art.giornalista||'—')}</span></span>
+        <span>Data: ${fmt(art.data)}</span>
+        ${art.tipologia_articolo?`<span>Tipologia: ${esc(art.tipologia_articolo)}</span>`:''}
+        ${art.macrosettori?`<span>Settori: ${esc(art.macrosettori)}</span>`:''}
+        ${art.ave?`<span>AVE: €${Number(art.ave).toLocaleString('it-IT')}</span>`:''}
+      </div>
+      <div class="art-detail-body">${esc(testo)}</div>
+    </div>`;
+  }
+}
 
-  document.getElementById('ctx-body').innerHTML=`<div class="fade-in">
-    <div class="ctx-breadcrumb">
-      <span class="ctx-bc-link" onclick="setView('articoli')">Articoli</span> › <span>${esc(art.testata||'')}</span>
-    </div>
-    <div class="art-detail-title">${esc(art.titolo||'Senza titolo')}</div>
-    <div class="art-detail-meta">
-      <span><strong>${esc(art.testata||'—')}</strong></span>
-      <span>Giornalista: <span class="td-giornalista" style="cursor:pointer" onclick="openGiornalistaByName('${esc(art.giornalista||'')}')">${esc(art.giornalista||'—')}</span></span>
-      <span>Data: ${fmt(art.data)}</span>
-      ${art.tipologia_articolo?`<span>Tipologia: ${esc(art.tipologia_articolo)}</span>`:''}
-      ${art.macrosettori?`<span>Settori: ${esc(art.macrosettori)}</span>`:''}
-      ${art.ave?`<span>AVE: €${Number(art.ave).toLocaleString('it-IT')}</span>`:''}
-    </div>
-    <div class="art-detail-body">${esc(testo)}</div>
-  </div>`;
+async function saveArticolo(){
+  if(!currentArticolo?.id) return;
+  const p={
+    titolo:       document.getElementById('fa-titolo').value.trim()||null,
+    testata:      document.getElementById('fa-testata').value.trim()||null,
+    giornalista:  document.getElementById('fa-giornalista').value.trim()||null,
+    data:         document.getElementById('fa-data').value||null,
+    tone:         document.getElementById('fa-tone').value||null,
+    tipologia_articolo: document.getElementById('fa-tipo').value||null,
+    ave:          parseFloat(document.getElementById('fa-ave').value)||null,
+    macrosettori: document.getElementById('fa-macro').value.trim()||null,
+    testo_completo: document.getElementById('fa-testo').value||null,
+  };
+  try{
+    const res=await fetch(`/api/article/${currentArticolo.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    if(d.error){ toast('Errore: '+d.error,'err'); return; }
+    toast('✅ Salvato');
+    Object.assign(currentArticolo,p);
+    isEditingArticolo=false;
+    renderArticoloPannello(currentArticolo);
+    await loadArticoli();
+    applyFilters();
+  }catch(e){ toast('Errore connessione','err'); }
+}
+
+async function deleteArticolo(){
+  if(!currentArticolo?.id) return;
+  if(!confirm('Eliminare questo articolo definitivamente?')) return;
+  try{
+    await fetch(`/api/article/${currentArticolo.id}`,{method:'DELETE'});
+    toast('Articolo eliminato');
+    closeCtx();
+    await loadArticoli();
+    applyFilters();
+  }catch(e){ toast('Errore','err'); }
 }
 
 // PANNELLO GIORNALISTA
