@@ -104,7 +104,7 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
           <button class="btn btn-out" id="btn-save" onclick="salva()" style="display:none">💾 Salva</button>
           <button class="btn btn-out" id="btn-cancel" onclick="annulla()" style="display:none">✕</button>
           <button class="btn btn-out" id="btn-wa" onclick="copiaWA()" style="display:none">📲 Copia WA</button>
-          <button class="btn btn-out" id="btn-leggi" onclick="leggi()" style="display:none">🔊 Leggi</button>
+          <button class="btn btn-out" id="btn-leggi" onclick="leggi()">🔊 Leggi</button>
           <button class="btn btn-out" id="btn-mp3" onclick="scaricaMP3()" style="display:none">⬇️ MP3</button>
         </div>
         <textarea class="digest-text" id="digest-ta" readonly placeholder="Nessun digest. Premi ⚡ Genera."></textarea>
@@ -219,7 +219,7 @@ async function loadDigest(dateVal){
     if(d.error || !d.text){ setEmpty(); return; }
     setTesto(d.text);
     setStatus('ok', `✓ ${fmt(currentDate)}`);
-    show(['btn-edit','btn-wa','btn-leggi','btn-mp3']);
+    show(['btn-edit','btn-wa','btn-mp3']);
     document.getElementById('btn-send').disabled = false;
   }catch(e){ setEmpty(); }
 }
@@ -228,7 +228,7 @@ function setEmpty(){
   document.getElementById('digest-ta').value = '';
   document.getElementById('digest-ta').placeholder = 'Nessun digest. Premi ⚡ Genera.';
   setStatus('no');
-  hide(['btn-edit','btn-wa','btn-leggi','btn-mp3','btn-save','btn-cancel']);
+  hide(['btn-edit','btn-wa','btn-mp3','btn-save','btn-cancel']);
   document.getElementById('audio-player-wrap').style.display='none';
   document.getElementById('btn-send').disabled = true;
   originalText = '';
@@ -247,7 +247,6 @@ function setTesto(text){
   const p = document.getElementById('audio-player');
   p.pause(); p.src='';
   document.getElementById('audio-player-wrap').style.display='none';
-  document.getElementById('btn-leggi').textContent='🔊 Leggi';
 }
 
 function show(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; }); }
