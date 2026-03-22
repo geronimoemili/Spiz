@@ -347,6 +347,30 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
   </div>
 </div>
 
+
+<!-- MODAL MERGE -->
+<div class="overlay" id="modal-merge">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head">
+      <span class="modal-title">🔀 Fondi giornalista</span>
+      <button class="modal-close" onclick="closeModal('modal-merge')">✕</button>
+    </div>
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div class="form-label" style="margin-bottom:6px">Stai fondendo:</div>
+      <div style="font-size:13px;font-weight:700;color:var(--pink)" id="merge-drop-name">—</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:2px">Questo giornalista verrà eliminato e i suoi articoli riassegnati a quello che scegli sotto</div>
+    </div>
+    <div style="padding:14px 16px">
+      <div class="form-label" style="margin-bottom:8px">Cerca il giornalista principale da tenere:</div>
+      <input type="text" id="merge-search" class="f-input" placeholder="Scrivi il nome…" oninput="searchForMerge(this.value)"/>
+      <div id="merge-results" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-merge')">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -710,6 +734,7 @@ function buildSchedaGiornalista(j,arts){
     <div class="ctx-actions">
       ${j.in_crm
         ?`<button class="btn btn-out btn-sm" onclick="toggleEdit()">✏️ ${isEditing?'Annulla':'Modifica'}</button>
+          <button class="btn btn-out btn-sm" onclick="openMerge()">🔀 Fondi</button>
           <button class="btn btn-red btn-sm" onclick="deleteGiornalista()">🗑</button>`
         :`<button class="btn btn-grad btn-sm" onclick="addToCRM()">+ Aggiungi al CRM</button>`}
       <button class="btn btn-out btn-sm" onclick="openArtManuale('${esc(j.nome)}')">📝 + Articolo</button>
@@ -953,6 +978,54 @@ async function createGiornalista(){
       }
     }else toast('Errore: '+(d.error||''),'err');
   }catch(e){toast('Errore connessione','err');}
+}
+
+// MERGE
+let mergeDropId = null;
+
+function openMerge(){
+  if(!currentGiornalista?.id){ toast('Salva prima il giornalista nel CRM','err'); return; }
+  mergeDropId = currentGiornalista.id;
+  document.getElementById('merge-drop-name').textContent = currentGiornalista.nome;
+  document.getElementById('merge-search').value = '';
+  document.getElementById('merge-results').innerHTML = '';
+  openModal('modal-merge');
+}
+
+async function searchForMerge(q){
+  if(q.length < 2){ document.getElementById('merge-results').innerHTML=''; return; }
+  try{
+    const res = await fetch(`/api/journalists/search-similar?q=${encodeURIComponent(q)}&exclude_id=${mergeDropId}`).then(r=>r.json());
+    const el = document.getElementById('merge-results');
+    if(!res.length){ el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessun risultato</div>'; return; }
+    el.innerHTML = res.map(j=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:5px;cursor:pointer" onclick="confirmMerge('${j.id}','${esc(j.nome)}')">
+        <div>
+          <div style="font-size:13px;font-weight:600">${esc(j.nome)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--faint)">${esc(j.testata_principale||'—')}</div>
+        </div>
+        <button class="btn btn-grad btn-sm">Tieni questo</button>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function confirmMerge(keepId, keepNome){
+  if(!confirm(`Confermi? Gli articoli di "${currentGiornalista.nome}" verranno riassegnati a "${keepNome}" e il doppione verrà eliminato.`)) return;
+  try{
+    const res = await fetch('/api/journalists/merge',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({keep_id: keepId, drop_id: mergeDropId})
+    }).then(r=>r.json());
+    if(res.success){
+      toast(`✅ Fuso: ${res.articles_updated} articoli riassegnati a ${res.merged_into}`);
+      closeModal('modal-merge');
+      closeCtx();
+      await loadAll();
+    } else {
+      toast('Errore: '+(res.error||''),'err');
+    }
+  }catch(e){ toast('Errore connessione','err'); }
 }
 </script>
 </body>

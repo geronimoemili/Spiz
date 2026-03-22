@@ -397,3 +397,60 @@ async def add_article_manual(data: ManualArticleModel):
         return {"success": True, "article": res.data[0] if res.data else {}}
     except Exception as e:
         return {"error": str(e)}
+
+
+@router.get("/api/journalists/search-similar")
+async def search_similar_journalists(q: str = Query(...), exclude_id: Optional[str] = None):
+    """Cerca giornalisti con nome simile per il merge."""
+    supabase = _sb()
+    try:
+        res = supabase.table("journalists").select("id, nome, testata_principale, tipo_testata").ilike("nome", f"%{q}%").limit(20).execute()
+        results = [j for j in (res.data or []) if j.get("id") != exclude_id]
+        return results
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/api/journalists/merge")
+async def merge_journalists(data: dict):
+    """
+    Fonde due giornalisti in uno.
+    keep_id: ID del giornalista da tenere (principale)
+    drop_id: ID del giornalista da eliminare (doppione)
+    Tutti gli articoli firmati con il nome del doppione vengono riassegnati al principale.
+    """
+    supabase = _sb()
+    try:
+        keep_id = data.get("keep_id")
+        drop_id = data.get("drop_id")
+        if not keep_id or not drop_id:
+            return {"error": "keep_id e drop_id obbligatori"}
+        if keep_id == drop_id:
+            return {"error": "I due ID non possono essere uguali"}
+
+        # Recupera entrambi
+        keep = supabase.table("journalists").select("*").eq("id", keep_id).execute()
+        drop = supabase.table("journalists").select("*").eq("id", drop_id).execute()
+        if not keep.data or not drop.data:
+            return {"error": "Giornalista non trovato"}
+
+        keep_j = keep.data[0]
+        drop_j = drop.data[0]
+
+        # Riassegna articoli firmati col nome del doppione al nome principale
+        updated = supabase.table("articles").update(
+            {"giornalista": keep_j["nome"]}
+        ).eq("giornalista", drop_j["nome"]).execute()
+        n_articles = len(updated.data) if updated.data else 0
+
+        # Elimina il doppione dal CRM
+        supabase.table("journalists").delete().eq("id", drop_id).execute()
+
+        return {
+            "success": True,
+            "merged_into": keep_j["nome"],
+            "dropped": drop_j["nome"],
+            "articles_updated": n_articles,
+        }
+    except Exception as e:
+        return {"error": str(e)}
