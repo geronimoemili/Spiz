@@ -18,81 +18,62 @@ body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--tex
 nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100}
 .logo-img{height:38px;width:auto;flex-shrink:0}
 .nav-links{display:flex;gap:2px;margin-left:auto}
-.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent}
 .nav-link:hover{color:var(--text)}
 .nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
 
-.wrap{max-width:1200px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+.layout{display:grid;grid-template-columns:1fr 320px;gap:20px;max-width:1200px;margin:0 auto;padding:24px}
 
-/* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.card-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text)}
-.card-body{padding:16px 18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.card:last-child{margin-bottom:0}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.card-body{padding:14px 16px}
 
-/* DATE SELECT */
-.date-row{display:flex;gap:8px;align-items:center;margin-bottom:16px}
-select{font-family:var(--sans);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:5px;background:var(--border2);color:var(--text);outline:none;cursor:pointer;-webkit-appearance:auto;appearance:auto}
-select:focus{border-color:var(--cyan);background:#fff}
-.badge-status{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase}
-.badge-ready{background:rgba(5,150,105,.1);color:var(--green);border:1px solid rgba(5,150,105,.25)}
-.badge-idle{background:var(--border2);color:var(--faint);border:1px solid var(--border)}
-.badge-gen{background:rgba(14,165,201,.1);color:var(--cyan);border:1px solid rgba(14,165,201,.25)}
-
-/* DIGEST TEXT AREA */
-.digest-editor{width:100%;min-height:500px;font-family:var(--mono);font-size:12px;line-height:1.7;padding:16px;border:1px solid var(--border);border-radius:6px;background:var(--border2);color:var(--text);outline:none;resize:vertical}
-.digest-editor:focus{border-color:var(--cyan);background:#fff}
-.digest-editor.readonly{background:var(--border2);cursor:default}
-.edit-bar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-
-/* AUDIO PLAYER */
-.audio-wrap{background:var(--border2);border-radius:8px;padding:14px;margin-top:14px;display:none}
-.audio-wrap.show{display:block}
-audio{width:100%;margin-bottom:8px}
-.audio-meta{font-family:var(--mono);font-size:9px;color:var(--faint)}
-
-/* INVIA CARD */
-.send-card{background:var(--surface);border:2px solid var(--cyan);border-radius:10px;overflow:hidden}
-.send-card .card-head{background:rgba(14,165,201,.04)}
-.btn-send-big{width:100%;padding:14px;font-family:var(--mono);font-size:13px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-send-big:hover:not(:disabled){opacity:.88}
-.btn-send-big:disabled{opacity:.4;cursor:not-allowed}
-.send-confirm{font-family:var(--mono);font-size:10px;color:var(--green);text-align:center;margin-top:8px;display:none}
-
-/* RECIPIENTS */
-.recipient-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2)}
-.recipient-row:last-child{border-bottom:none}
-.r-name{font-size:12px;font-weight:600;flex:1}
-.r-email{font-family:var(--mono);font-size:10px;color:var(--faint)}
-.r-toggle{width:32px;height:18px;border-radius:9px;border:none;cursor:pointer;transition:background .2s;flex-shrink:0;position:relative}
-.r-toggle.on{background:var(--green)}
-.r-toggle.off{background:var(--border)}
-.r-del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:14px;padding:0 2px}
-.r-del:hover{color:var(--red)}
-.add-recipient{display:flex;gap:6px;margin-top:10px}
-input[type=text],input[type=email]{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--border2);color:var(--text);outline:none;width:100%}
-input:focus{border-color:var(--cyan);background:#fff}
-
-/* STORICO */
-.history-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2);cursor:pointer}
-.history-item:last-child{border-bottom:none}
-.history-item:hover .h-date{color:var(--cyan)}
-.h-date{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text)}
-.h-meta{font-family:var(--mono);font-size:9px;color:var(--faint)}
-
-/* BTN */
 .btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:5px;padding:6px 12px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;white-space:nowrap}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-grad{background:var(--grad);color:#fff}
 .btn-grad:hover:not(:disabled){opacity:.88}
 .btn-out{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
 .btn-out:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
-.btn-green{background:var(--green);color:#fff}
-.btn-sm{padding:4px 9px;font-size:9px}
+.btn-send{width:100%;padding:13px;font-family:var(--mono);font-size:13px;font-weight:700;background:var(--grad);color:#fff;border:none;border-radius:6px;cursor:pointer;transition:opacity .15s}
+.btn-send:hover:not(:disabled){opacity:.88}
+.btn-send:disabled{opacity:.4;cursor:not-allowed}
 
-.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle}
+.digest-text{width:100%;min-height:480px;font-family:var(--mono);font-size:11px;line-height:1.75;padding:14px;border:1px solid var(--border);border-radius:6px;background:var(--border2);color:var(--text);outline:none;resize:vertical}
+.digest-text:focus{border-color:var(--cyan);background:#fff}
+.digest-text[readonly]{cursor:default}
+
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+
+select,input[type=text],input[type=email]{font-family:var(--sans);font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--border2);color:var(--text);outline:none}
+select:focus,input:focus{border-color:var(--cyan);background:#fff}
+
+.r-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2)}
+.r-row:last-child{border-bottom:none}
+.r-name{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-email{font-family:var(--mono);font-size:9px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.r-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0 3px;color:var(--faint)}
+.r-btn:hover{color:var(--red)}
+.toggle{width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle.off{background:var(--border)}
+
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer}
+.hist-row:last-child{border-bottom:none}
+.hist-row:hover .hist-date{color:var(--cyan)}
+.hist-date{font-family:var(--mono);font-size:10px;font-weight:700}
+.hist-meta{font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+.badge{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px}
+.badge-ok{background:rgba(5,150,105,.1);color:var(--green)}
+.badge-no{background:var(--border2);color:var(--faint)}
+
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+.spinner-dark{border:2px solid rgba(14,165,201,.2);border-top-color:var(--cyan)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.ok{border-left:3px solid var(--green)}
 .toast.err{border-left:3px solid var(--red)}
@@ -104,60 +85,45 @@ input:focus{border-color:var(--cyan);background:#fff}
 <div id="topnav"></div>
 <script src="/static/nav.js"></script>
 
-<div class="wrap">
+<div class="layout">
 
-  <!-- COLONNA SINISTRA: DIGEST EDITOR -->
+  <!-- SINISTRA: TESTO DIGEST -->
   <div>
-    <!-- HEADER -->
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <div class="card-head">
         <div style="display:flex;align-items:center;gap:10px">
           <span class="card-title">📰 Digest</span>
-          <span class="badge-status badge-idle" id="status-badge">Nessun digest</span>
+          <span class="badge badge-no" id="status-badge">Nessun digest</span>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <select id="digest-date-select" onchange="loadDigest(this.value)">
-            <option value="today">Oggi</option>
-          </select>
-          <button class="btn btn-out" id="btn-gen" onclick="generateDigest()">⚡ Genera</button>
-          <button class="btn btn-out" id="btn-edit" onclick="toggleEdit()" style="display:none">✏️ Modifica</button>
-          <button class="btn btn-out" id="btn-wa" onclick="copyWA()" style="display:none">📲 Copia WA</button>
-          <button class="btn btn-out" id="btn-audio-gen" onclick="generateAudio()" style="display:none">🔊 Genera audio</button>
-          <button class="btn btn-out" id="btn-audio-dl" onclick="downloadAudio()" style="display:none">⬇️ Scarica MP3</button>
-        </div>
+        <select id="date-sel" onchange="loadDigest(this.value)" style="width:auto"></select>
       </div>
       <div class="card-body">
-        <textarea class="digest-editor readonly" id="digest-text" readonly
-          placeholder="Nessun digest disponibile. Premi ⚡ Genera per creare il digest di oggi."></textarea>
-        <div class="edit-bar" id="edit-bar" style="display:none">
-          <button class="btn btn-green" onclick="saveDigest()">💾 Salva modifiche</button>
-          <button class="btn btn-out" onclick="cancelEdit()">Annulla</button>
+        <div class="toolbar">
+          <button class="btn btn-out" id="btn-gen" onclick="genera()">⚡ Genera</button>
+          <button class="btn btn-out" id="btn-edit" onclick="toggleEdit()" style="display:none">✏️ Modifica</button>
+          <button class="btn btn-out" id="btn-save" onclick="salva()" style="display:none">💾 Salva</button>
+          <button class="btn btn-out" id="btn-cancel" onclick="annulla()" style="display:none">✕</button>
+          <button class="btn btn-out" id="btn-wa" onclick="copiaWA()" style="display:none">📲 Copia WA</button>
+          <button class="btn btn-out" id="btn-mp3" onclick="scaricaMP3()" style="display:none">⬇️ MP3</button>
         </div>
-        <!-- AUDIO PLAYER -->
-        <div class="audio-wrap" id="audio-wrap">
-          <div class="audio-meta" style="margin-bottom:8px">🎙️ Voce: Onyx (OpenAI TTS)</div>
-          <audio id="audio-player" controls></audio>
-          <div class="audio-meta" id="audio-meta">—</div>
-        </div>
+        <textarea class="digest-text" id="digest-ta" readonly placeholder="Nessun digest. Premi ⚡ Genera."></textarea>
       </div>
     </div>
   </div>
 
-  <!-- COLONNA DESTRA -->
-  <div style="display:flex;flex-direction:column;gap:16px">
-
+  <!-- DESTRA -->
+  <div>
     <!-- INVIA -->
-    <div class="send-card">
+    <div class="card" style="border:2px solid var(--cyan)">
       <div class="card-head">
         <span class="card-title">📧 Invia digest</span>
       </div>
-      <div class="card-body">
-        <button class="btn-send-big" id="btn-send" onclick="sendDigest()">
+      <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn-send" id="btn-send" onclick="invia()" disabled>
           📧 Invia a tutti
         </button>
-        <div class="send-confirm" id="send-confirm">✅ Inviato con successo</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:10px;text-align:center">
-          Invia testo + audio MP3 allegato
+        <div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center">
+          Invia testo + audio MP3 a tutti i destinatari attivi
         </div>
       </div>
     </div>
@@ -166,302 +132,252 @@ input:focus{border-color:var(--cyan);background:#fff}
     <div class="card">
       <div class="card-head">
         <span class="card-title">👥 Destinatari</span>
-        <span class="badge-status badge-idle" id="recipients-count">0 attivi</span>
+        <span class="badge badge-no" id="r-count">0 attivi</span>
       </div>
       <div class="card-body">
-        <div id="recipients-list"></div>
-        <div class="add-recipient">
-          <input type="text" id="r-name" placeholder="Nome" style="width:100px;flex-shrink:0"/>
-          <input type="email" id="r-email" placeholder="email@dominio.it"/>
-          <button class="btn btn-grad btn-sm" onclick="addRecipient()">+</button>
+        <div id="r-list" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="r-nome" placeholder="Nome" style="width:90px;flex-shrink:0"/>
+          <input type="email" id="r-email" placeholder="email@…" style="flex:1"/>
+          <button class="btn btn-grad" onclick="addR()" style="padding:6px 10px">+</button>
         </div>
       </div>
     </div>
 
     <!-- STORICO -->
     <div class="card">
-      <div class="card-head">
-        <span class="card-title">📅 Storico digest</span>
-      </div>
-      <div class="card-body" style="padding:10px 18px">
-        <div id="history-list">
-          <div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Caricamento…</div>
-        </div>
+      <div class="card-head"><span class="card-title">📅 Storico</span></div>
+      <div class="card-body" style="padding:8px 16px">
+        <div id="hist-list"></div>
       </div>
     </div>
-
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-let currentDate = new Date().toISOString().split('T')[0];
-let currentText = '';
+const today = new Date().toISOString().split('T')[0];
+let currentDate = today;
 let originalText = '';
-let isEditing = false;
-let audioBlob = null;
-let pollInterval = null;
+let editing = false;
+let pollTimer = null;
 
-const fmt = d => d ? new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+const fmt = d => d ? new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
 
 function toast(msg, type='ok'){
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = `toast show ${type}`;
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(()=>t.classList.remove('show'), 3000);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-  await Promise.all([loadDates(), loadDigest('today'), loadRecipients()]);
+function setStatus(s, label){
+  const el = document.getElementById('status-badge');
+  if(s==='ok'){ el.textContent = label||'✓ Pronto'; el.className='badge badge-ok'; }
+  else { el.textContent = label||'Nessun digest'; el.className='badge badge-no'; }
+}
+
+// INIT
+window.addEventListener('load', async ()=>{
+  await loadDates();
+  await loadDigest('today');
+  await loadRecipients();
 });
 
 async function loadDates(){
   try{
     const d = await fetch('/api/digest/dates').then(r=>r.json());
-    const sel = document.getElementById('digest-date-select');
-    (d.dates||[]).forEach(row => {
-      if(row.data === currentDate) return; // "Oggi" già c'è
+    const sel = document.getElementById('date-sel');
+    sel.innerHTML = '<option value="today">Oggi</option>';
+    (d.dates||[]).forEach(row=>{
+      if(row.data === today) return;
       const o = document.createElement('option');
       o.value = row.data;
-      o.textContent = fmt(row.data) + ` (${row.articles_today||0} art.)`;
+      o.textContent = fmt(row.data);
       sel.appendChild(o);
     });
-    document.getElementById('history-list').innerHTML = (d.dates||[]).map(row=>`
-      <div class="history-item" onclick="loadDigest('${row.data}')">
-        <div>
-          <div class="h-date">${fmt(row.data)}</div>
-          <div class="h-meta">${row.articles_today||0} articoli · ${row.client_mentions||0} clienti</div>
-        </div>
-        <span style="font-family:var(--mono);font-size:9px;color:var(--cyan)">→</span>
-      </div>`).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessuno storico</div>';
+    // Storico
+    const hist = document.getElementById('hist-list');
+    hist.innerHTML = (d.dates||[]).length ? (d.dates||[]).map(row=>`
+      <div class="hist-row" onclick="loadDigest('${row.data}')">
+        <div class="hist-date">${fmt(row.data)}</div>
+        <div class="hist-meta">${row.articles_today||0} art.</div>
+      </div>`).join('') : '<div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessuno storico</div>';
   }catch(e){}
 }
 
 async function loadDigest(dateVal){
-  const dateStr = dateVal === 'today' ? currentDate : dateVal;
+  currentDate = dateVal === 'today' ? today : dateVal;
+  document.getElementById('date-sel').value = dateVal;
   try{
-    const d = await fetch(`/api/digest/${dateStr}`).then(r=>r.json());
-    if(d.error || !d.text){
-      setDigestEmpty();
-      return;
-    }
-    currentText = d.text;
-    originalText = d.text;
-    document.getElementById('digest-text').value = d.text;
-    document.getElementById('digest-text').classList.add('readonly');
-    document.getElementById('digest-text').readOnly = true;
-    setStatus('ready');
-    document.getElementById('btn-edit').style.display = '';
-    document.getElementById('btn-wa').style.display = '';
-    document.getElementById('btn-audio-gen').style.display = '';
-    document.getElementById('btn-audio-dl').style.display = '';
+    const d = await fetch(`/api/digest/${currentDate}`).then(r=>r.json());
+    if(d.error || !d.text){ setEmpty(); return; }
+    setTesto(d.text);
+    setStatus('ok', `✓ ${fmt(currentDate)}`);
+    show(['btn-edit','btn-wa','btn-mp3']);
     document.getElementById('btn-send').disabled = false;
-    audioBlob = null;
-    document.getElementById('audio-wrap').classList.remove('show');
-  }catch(e){ setDigestEmpty(); }
+  }catch(e){ setEmpty(); }
 }
 
-function setDigestEmpty(){
-  currentText = '';
-  document.getElementById('digest-text').value = '';
-  document.getElementById('digest-text').placeholder = 'Nessun digest. Premi ⚡ Genera.';
-  setStatus('idle');
-  document.getElementById('btn-edit').style.display = 'none';
-  document.getElementById('btn-wa').style.display = 'none';
-  document.getElementById('btn-audio-gen').style.display = 'none';
-  document.getElementById('btn-audio-dl').style.display = 'none';
+function setEmpty(){
+  document.getElementById('digest-ta').value = '';
+  document.getElementById('digest-ta').placeholder = 'Nessun digest. Premi ⚡ Genera.';
+  setStatus('no');
+  hide(['btn-edit','btn-wa','btn-mp3','btn-save','btn-cancel']);
   document.getElementById('btn-send').disabled = true;
+  originalText = '';
 }
 
-function setStatus(s){
-  const el = document.getElementById('status-badge');
-  if(s==='ready'){ el.textContent='✓ Pronto'; el.className='badge-status badge-ready'; }
-  else if(s==='gen'){ el.textContent='⚡ Generazione…'; el.className='badge-status badge-gen'; }
-  else { el.textContent='Nessun digest'; el.className='badge-status badge-idle'; }
-}
-
-// ── GENERA ────────────────────────────────────────────────────────
-async function generateDigest(){
-  const btn = document.getElementById('btn-gen');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Generazione…';
-  setStatus('gen');
-  try{
-    const res = await fetch('/api/daily-digest', {method:'POST'}).then(r=>r.json());
-    if(!res.success){ toast('Errore: '+(res.error||''),'err'); setStatus('idle'); return; }
-    pollDigest(res.job_id);
-  }catch(e){ toast('Errore connessione','err'); setStatus('idle'); }
-  finally{ btn.disabled=false; btn.textContent='⚡ Genera'; }
-}
-
-function pollDigest(jobId){
-  if(pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(async () => {
-    try{
-      const d = await fetch(`/api/job/${jobId}`).then(r=>r.json());
-      if(d.status === 'done'){
-        clearInterval(pollInterval);
-        await loadDigest('today');
-        await loadDates();
-        toast('✅ Digest generato');
-      } else if(d.status === 'error'){
-        clearInterval(pollInterval);
-        toast('Errore generazione: '+(d.error||''),'err');
-        setStatus('idle');
-      }
-    }catch(e){ clearInterval(pollInterval); }
-  }, 2000);
-}
-
-// ── EDIT ──────────────────────────────────────────────────────────
-function toggleEdit(){
-  isEditing = !isEditing;
-  const ta = document.getElementById('digest-text');
-  const bar = document.getElementById('edit-bar');
-  const btn = document.getElementById('btn-edit');
-  if(isEditing){
-    ta.readOnly = false; ta.classList.remove('readonly'); ta.focus();
-    bar.style.display = 'flex'; btn.textContent = '✕ Annulla';
-  } else {
-    cancelEdit();
-  }
-}
-
-function cancelEdit(){
-  isEditing = false;
-  const ta = document.getElementById('digest-text');
-  ta.value = originalText; ta.readOnly = true; ta.classList.add('readonly');
-  document.getElementById('edit-bar').style.display = 'none';
+function setTesto(text){
+  originalText = text;
+  const ta = document.getElementById('digest-ta');
+  ta.value = text;
+  ta.readOnly = true;
+  editing = false;
+  hide(['btn-save','btn-cancel']);
   document.getElementById('btn-edit').textContent = '✏️ Modifica';
 }
 
-async function saveDigest(){
-  const text = document.getElementById('digest-text').value;
-  const sel = document.getElementById('digest-date-select');
-  const dateStr = sel.value === 'today' ? currentDate : sel.value;
+function show(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; }); }
+function hide(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; }); }
+
+// GENERA
+async function genera(){
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner spinner-dark" style="border-top-color:var(--cyan)"></div> Generazione…';
   try{
-    const res = await fetch(`/api/digest/${dateStr}/text`,{
+    const res = await fetch('/api/daily-digest',{method:'POST'}).then(r=>r.json());
+    if(!res.success){ toast('Errore: '+(res.error||''),'err'); return; }
+    pollJob(res.job_id);
+  }catch(e){ toast('Errore connessione','err'); }
+  finally{ btn.disabled=false; btn.textContent='⚡ Genera'; }
+}
+
+function pollJob(jobId){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async()=>{
+    try{
+      const d = await fetch(`/api/job/${jobId}`).then(r=>r.json());
+      if(d.status==='done'){
+        clearInterval(pollTimer);
+        await loadDigest('today');
+        await loadDates();
+        toast('✅ Digest generato');
+      } else if(d.status==='error'){
+        clearInterval(pollTimer);
+        toast('Errore: '+(d.error||''),'err');
+      }
+    }catch(e){ clearInterval(pollTimer); }
+  }, 2000);
+}
+
+// EDIT
+function toggleEdit(){
+  editing = !editing;
+  const ta = document.getElementById('digest-ta');
+  const btn = document.getElementById('btn-edit');
+  if(editing){
+    ta.readOnly = false; ta.focus();
+    show(['btn-save','btn-cancel']);
+    btn.style.display = 'none';
+  } else {
+    annulla();
+  }
+}
+
+function annulla(){
+  editing = false;
+  const ta = document.getElementById('digest-ta');
+  ta.value = originalText; ta.readOnly = true;
+  hide(['btn-save','btn-cancel']);
+  document.getElementById('btn-edit').style.display = '';
+  document.getElementById('btn-edit').textContent = '✏️ Modifica';
+}
+
+async function salva(){
+  const text = document.getElementById('digest-ta').value;
+  try{
+    const res = await fetch(`/api/digest/${currentDate}/text`,{
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({text})
     }).then(r=>r.json());
-    if(res.success){
-      toast('✅ Salvato');
-      currentText = text; originalText = text;
-      isEditing = false;
-      const ta = document.getElementById('digest-text');
-      ta.readOnly = true; ta.classList.add('readonly');
-      document.getElementById('edit-bar').style.display = 'none';
-      document.getElementById('btn-edit').textContent = '✏️ Modifica';
-      audioBlob = null;
-      document.getElementById('audio-wrap').classList.remove('show');
-    } else { toast('Errore salvataggio','err'); }
-  }catch(e){ toast('Errore connessione','err'); }
+    if(res.success){ toast('✅ Salvato'); setTesto(text); }
+    else toast('Errore salvataggio','err');
+  }catch(e){ toast('Errore','err'); }
 }
 
-// ── AUDIO ─────────────────────────────────────────────────────────
-async function generateAudio(){
-  const btn = document.getElementById('btn-audio-gen');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="border-top-color:var(--cyan)"></div> Generazione…';
-  const text = document.getElementById('digest-text').value || currentText;
-  try{
-    const res = await fetch('/api/digest-audio',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({text})
-    });
-    if(!res.ok){ toast('Errore generazione audio','err'); return; }
-    audioBlob = await res.blob();
-    const url = URL.createObjectURL(audioBlob);
-    const player = document.getElementById('audio-player');
-    player.src = url;
-    document.getElementById('audio-wrap').classList.add('show');
-    document.getElementById('audio-meta').textContent =
-      `${(audioBlob.size/1024).toFixed(0)} KB · Voce: Onyx · Velocità: 1.15x`;
-    toast('✅ Audio pronto');
-  }catch(e){ toast('Errore: '+e.message,'err'); }
-  finally{ btn.disabled=false; btn.textContent='🔊 Genera audio'; }
-}
-
-async function downloadAudio(){
-  const btn = document.getElementById('btn-audio-dl');
-  btn.disabled = true; btn.textContent = '⬇️ Download…';
-  try{
-    if(audioBlob){
-      // Usa blob già generato
-      const url = URL.createObjectURL(audioBlob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `MAIM_Digest_${currentDate}.mp3`;
-      a.click(); URL.revokeObjectURL(url);
-    } else {
-      // Genera e scarica direttamente
-      const res = await fetch('/api/digest-audio-download');
-      if(!res.ok){ toast('Errore download audio','err'); return; }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `MAIM_Digest_${currentDate}.mp3`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-    toast('✅ Download avviato');
-  }catch(e){ toast('Errore: '+e.message,'err'); }
-  finally{ btn.disabled=false; btn.textContent='⬇️ Scarica MP3'; }
-}
-
-// ── COPIA WA ──────────────────────────────────────────────────────
-function copyWA(){
-  const text = document.getElementById('digest-text').value || currentText;
-  navigator.clipboard.writeText(text).then(()=>{
-    toast('✅ Copiato in formato WhatsApp');
-  }).catch(()=>{
-    // Fallback
+// COPIA WA
+function copiaWA(){
+  const text = document.getElementById('digest-ta').value;
+  if(!text){ toast('Nessun testo','err'); return; }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('✅ Copiato per WhatsApp'));
+  } else {
     const ta = document.createElement('textarea');
     ta.value = text; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
     toast('✅ Copiato');
-  });
+  }
 }
 
-// ── INVIA ─────────────────────────────────────────────────────────
-async function sendDigest(){
+// SCARICA MP3
+async function scaricaMP3(){
+  const btn = document.getElementById('btn-mp3');
+  btn.disabled = true; btn.textContent = '⏳ Generazione…';
+  const text = document.getElementById('digest-ta').value;
+  if(!text){ toast('Nessun testo','err'); btn.disabled=false; btn.textContent='⬇️ MP3'; return; }
+  try{
+    const res = await fetch('/api/digest-audio',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text: text.substring(0,4096)})
+    });
+    if(!res.ok){ toast('Errore generazione audio','err'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `MAIM_Digest_${currentDate}.mp3`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('✅ Download avviato');
+  }catch(e){ toast('Errore: '+e.message,'err'); }
+  finally{ btn.disabled=false; btn.textContent='⬇️ MP3'; }
+}
+
+// INVIA
+async function invia(){
   const btn = document.getElementById('btn-send');
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Invio in corso…';
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Invio…';
   try{
     const res = await fetch('/api/digest-send-email',{
       method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
     }).then(r=>r.json());
-    if(res.success){
-      toast('✅ Digest inviato con audio allegato');
-      const conf = document.getElementById('send-confirm');
-      conf.style.display = 'block';
-      setTimeout(()=>conf.style.display='none', 4000);
-    } else {
-      toast('Errore: '+(res.error||''),'err');
-    }
+    if(res.success) toast('✅ Digest inviato con audio allegato');
+    else toast('Errore: '+(res.error||''),'err');
   }catch(e){ toast('Errore connessione','err'); }
   finally{ btn.disabled=false; btn.innerHTML='📧 Invia a tutti'; }
 }
 
-// ── DESTINATARI ───────────────────────────────────────────────────
+// DESTINATARI
 async function loadRecipients(){
   try{
     const d = await fetch('/api/digest-recipients').then(r=>r.json());
     const active = (d||[]).filter(r=>r.active).length;
-    document.getElementById('recipients-count').textContent = `${active} attivi`;
-    document.getElementById('recipients-list').innerHTML = (d||[]).map(r=>`
-      <div class="recipient-row">
+    document.getElementById('r-count').textContent = `${active} attivi`;
+    document.getElementById('r-list').innerHTML = (d||[]).map(r=>`
+      <div class="r-row">
         <div style="flex:1;min-width:0">
           <div class="r-name">${r.name||'—'}</div>
           <div class="r-email">${r.email}</div>
         </div>
-        <button class="r-toggle ${r.active?'on':'off'}" onclick="toggleRecipient('${r.id}',${!r.active})" title="${r.active?'Disattiva':'Attiva'}"></button>
-        <button class="r-del" onclick="deleteRecipient('${r.id}')">✕</button>
+        <button class="toggle ${r.active?'on':'off'}" onclick="toggleR('${r.id}',${!r.active})" title="${r.active?'Disattiva':'Attiva'}"></button>
+        <button class="r-btn" onclick="delR('${r.id}')">✕</button>
       </div>`).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessun destinatario</div>';
   }catch(e){}
 }
 
-async function addRecipient(){
+async function addR(){
   const email = document.getElementById('r-email').value.trim();
-  const name = document.getElementById('r-name').value.trim();
+  const name = document.getElementById('r-nome').value.trim();
   if(!email){ toast('Email obbligatoria','err'); return; }
   try{
     const res = await fetch('/api/digest-recipients',{
@@ -471,19 +387,19 @@ async function addRecipient(){
     if(res.success){
       toast('✅ Aggiunto');
       document.getElementById('r-email').value='';
-      document.getElementById('r-name').value='';
+      document.getElementById('r-nome').value='';
       loadRecipients();
-    } else { toast('Errore: '+(res.error||''),'err'); }
+    } else toast('Errore: '+(res.error||''),'err');
   }catch(e){ toast('Errore','err'); }
 }
 
-async function deleteRecipient(id){
-  if(!confirm('Rimuovere questo destinatario?')) return;
+async function delR(id){
+  if(!confirm('Rimuovere?')) return;
   await fetch(`/api/digest-recipients/${id}`,{method:'DELETE'});
   toast('Rimosso'); loadRecipients();
 }
 
-async function toggleRecipient(id, active){
+async function toggleR(id, active){
   await fetch(`/api/digest-recipients/${id}/toggle`,{
     method:'PATCH', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({active})

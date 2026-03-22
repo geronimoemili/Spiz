@@ -139,12 +139,20 @@
 
   <div class="bottom-row">
     <!-- DIGEST -->
-    <div class="digest-card" style="align-items:center;justify-content:center;gap:12px;min-height:120px">
-      <div class="sec-label" style="margin-bottom:0;text-align:center">📰 Digest del giorno</div>
-      <div id="digest-home-status" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);text-align:center">Caricamento…</div>
-      <a href="/digest" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0ea5c9,#d4367a);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:10px 20px;border-radius:6px;text-decoration:none;margin-top:4px">
-        📰 Vai alla pagina Digest →
-      </a>
+    <div class="digest-card">
+      <div class="digest-header">
+        <div class="sec-label" style="margin-bottom:0">📰 Digest del giorno</div>
+        <div class="digest-header-right">
+          <select id="digest-date-select" onchange="loadDigestByDate(this.value)">
+            <option value="today">Oggi</option>
+          </select>
+          <a href="/digest" style="display:inline-flex;align-items:center;gap:5px;background:var(--grad);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:5px 12px;border-radius:5px;text-decoration:none;white-space:nowrap">📋 Apri Digest →</a>
+        </div>
+      </div>
+      <div class="digest-meta" id="digest-meta"></div>
+      <div id="digest-content">
+        <div class="digest-idle">Nessun digest disponibile per oggi.</div>
+      </div>
     </div>
 
     <!-- MACRO HEATMAP -->
