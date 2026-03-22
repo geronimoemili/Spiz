@@ -709,24 +709,74 @@ async def pitch_endpoint(message: str = Form(...), client_id: str = Form(""), hi
 # DAILY DIGEST
 # ══════════════════════════════════════════════════════════════════
 
-def _send_digest_email(text, today_str):
+def _generate_audio_bytes(text: str) -> bytes | None:
+    """Genera MP3 dal testo del digest via OpenAI TTS. Ritorna bytes o None se fallisce."""
+    try:
+        from openai import OpenAI
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key: return None
+        ai = OpenAI(api_key=api_key)
+        clean = text.replace("*","").replace("_","").replace("————————————————————",". ")
+        # Limita a 4000 caratteri per non superare il limite TTS
+        if len(clean) > 4000:
+            clean = clean[:4000] + "... Fine del digest."
+        response = ai.audio.speech.create(model="tts-1", voice="shimmer", input=clean, response_format="mp3")
+        return response.content
+    except Exception as e:
+        print(f"[AUDIO] Errore generazione TTS: {e}")
+        return None
+
+
+def _send_digest_email(text, today_str, to_override=None):
+    """
+    Invia il digest via email con audio MP3 allegato.
+    to_override: lista email opzionale — se None usa digest_recipients da Supabase.
+    """
     try:
         import resend
+        import base64
     except ImportError:
         print("[EMAIL] resend non installato"); return
     api_key = os.getenv("RESEND_API_KEY", "")
     if not api_key: print("[EMAIL] RESEND_API_KEY non configurata"); return
     resend.api_key = api_key
+
+    if to_override:
+        to_list = to_override
+    else:
+        try:
+            recipients = supabase.table("digest_recipients").select("email, name").eq("active", True).execute().data or []
+        except Exception as e:
+            print(f"[EMAIL] Errore lettura destinatari: {e}"); return
+        if not recipients: print("[EMAIL] Nessun destinatario"); return
+        to_list = [r["email"] for r in recipients if r.get("email")]
+
+    if not to_list: return
+
+    # Genera audio
+    audio_bytes = _generate_audio_bytes(text)
+    filename = f"MAIM_Digest_{today_str.replace('/', '-')}.mp3"
+
     try:
-        recipients = supabase.table("digest_recipients").select("email, name").eq("active", True).execute().data or []
-    except Exception as e: print(f"[EMAIL] Errore: {e}"); return
-    if not recipients: print("[EMAIL] Nessun destinatario"); return
-    to_list = [r["email"] for r in recipients if r.get("email")]
-    try:
-        resend.Emails.send({"from": "MAIM Digest <digest@maim.it>", "to": to_list,
-                            "subject": f"MAIM DIGEST — {today_str}", "text": text})
+        payload = {
+            "from":    "MAIM Digest <digest@maim.it>",
+            "to":      to_list,
+            "subject": f"MAIM DIGEST — {today_str}",
+            "text":    text,
+        }
+        if audio_bytes:
+            payload["attachments"] = [{
+                "filename": filename,
+                "content":  list(audio_bytes),
+            }]
+            print(f"[EMAIL] Audio allegato: {len(audio_bytes)} bytes")
+        else:
+            print("[EMAIL] Audio non generato — invio solo testo")
+
+        resend.Emails.send(payload)
         print(f"[EMAIL] Inviato a {len(to_list)} destinatari")
-    except Exception as e: print(f"[EMAIL] Errore invio: {e}")
+    except Exception as e:
+        print(f"[EMAIL] Errore invio: {e}")
 
 def _run_digest_job(job_id):
     import traceback
@@ -750,6 +800,26 @@ def _run_digest_job(job_id):
     except Exception as e:
         tb = traceback.format_exc()
         _set_job(job_id, "error", error=str(e) + " | " + tb.splitlines()[-1])
+
+@app.post("/api/digest/send-email")
+async def send_digest_email_manual():
+    """Invia manualmente il digest del giorno via email con audio."""
+    today = date.today().isoformat()
+    today_str = date.today().strftime("%d/%m/%Y")
+    try:
+        res = supabase.table("digests").select("text").eq("data", today).execute()
+        if not res.data or not res.data[0].get("text"):
+            return {"success": False, "error": "Nessun digest disponibile per oggi. Generalo prima."}
+        digest_text = res.data[0]["text"]
+        threading.Thread(
+            target=_send_digest_email,
+            args=(digest_text, today_str),
+            daemon=True
+        ).start()
+        return {"success": True, "message": "Invio in corso…"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 
 @app.post("/api/daily-digest")
 async def daily_digest_endpoint():

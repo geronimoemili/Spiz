@@ -149,6 +149,7 @@
           <button class="btn-digest-gen" id="btn-gen" onclick="generateDigest()">⚡ Genera</button>
           <button class="btn-digest-tts" id="btn-tts" onclick="toggleTTSDigest()" style="display:none">🔊 Leggi</button>
           <button class="btn-digest-copy" id="btn-copy" onclick="copyDigest()" style="display:none">📋 Copia</button>
+          <button class="btn-digest-gen" id="btn-send-email" onclick="sendDigestEmail()" style="display:none">📧 Invia</button>
         </div>
       </div>
       <div class="digest-meta" id="digest-meta"></div>
@@ -345,7 +346,8 @@ function showDigest(text, art, cli, createdAt) {
   document.getElementById('digest-meta').textContent = parts.join(' · ');
   document.getElementById('digest-content').innerHTML =
     '<div class="digest-body">' + renderWA(text || '') + '</div>';
-  document.getElementById('btn-copy').style.display = 'inline-block';
+  document.getElementById('btn-send-email').style.display = '';
+    document.getElementById('btn-copy').style.display = 'inline-block';
   document.getElementById('btn-tts').style.display = 'inline-block';
 }
 
@@ -368,7 +370,8 @@ function showDigestLoader() {
   document.getElementById('digest-meta').textContent = 'Generazione in corso…';
   document.getElementById('digest-content').innerHTML =
     '<div class="digest-loader"><div class="d"></div><div class="d"></div><div class="d"></div><span>Elaborazione…</span></div>';
-  document.getElementById('btn-copy').style.display = 'none';
+  document.getElementById('btn-send-email').style.display = '';
+    document.getElementById('btn-copy').style.display = 'none';
   document.getElementById('btn-tts').style.display = 'none';
   _ttsStopDigest();
 }
@@ -376,7 +379,8 @@ function showDigestLoader() {
 function showDigestIdle(msg) {
   document.getElementById('digest-meta').textContent = '';
   document.getElementById('digest-content').innerHTML = '<div class="digest-idle">' + esc(msg) + '</div>';
-  document.getElementById('btn-copy').style.display = 'none';
+  document.getElementById('btn-send-email').style.display = '';
+    document.getElementById('btn-copy').style.display = 'none';
   document.getElementById('btn-tts').style.display = 'none';
   _ttsStopDigest();
 }
@@ -384,6 +388,26 @@ function showDigestIdle(msg) {
 function resetGenBtn() {
   const btn = document.getElementById('btn-gen');
   btn.disabled = false; btn.textContent = '⚡ Genera';
+}
+
+async function sendDigestEmail() {
+  const btn = document.getElementById('btn-send-email');
+  btn.disabled = true;
+  btn.textContent = '📧 Invio…';
+  try {
+    const res = await fetch('/api/digest/send-email', { method: 'POST' });
+    const d = await res.json();
+    if (d.success) {
+      toast('✅ Digest inviato via email con audio allegato', 'success');
+    } else {
+      toast('Errore: ' + (d.error || 'invio fallito'), 'error');
+    }
+  } catch(e) {
+    toast('Errore connessione', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📧 Invia';
+  }
 }
 
 function copyDigest() {
