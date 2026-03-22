@@ -11,7 +11,8 @@
   // Pagine da spostare in main quando pronte
   const secondary = [
     { label: 'Intelligence', href: '/intelligence' },
-    { label: 'Digest',      href: '/webdigest' },
+    { label: 'Digest',      href: '/digest' },
+    { label: 'Web Digest',  href: '/webdigest' },
     { label: 'AI Analysis', href: '/chat' },
     { label: 'AI Pitch',    href: '/pitch' },
   ];

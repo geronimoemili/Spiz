@@ -139,23 +139,12 @@
 
   <div class="bottom-row">
     <!-- DIGEST -->
-    <div class="digest-card">
-      <div class="digest-header">
-        <div class="sec-label" style="margin-bottom:0">📰 Digest del giorno</div>
-        <div class="digest-header-right">
-          <select id="digest-date-select" onchange="loadDigestByDate(this.value)">
-            <option value="today">Oggi</option>
-          </select>
-          <button class="btn-digest-gen" id="btn-gen" onclick="generateDigest()">⚡ Genera</button>
-          <button class="btn-digest-tts" id="btn-tts" onclick="toggleTTSDigest()" style="display:none">🔊 Leggi</button>
-          <button class="btn-digest-copy" id="btn-copy" onclick="copyDigest()" style="display:none">📋 Copia</button>
-          <button class="btn-digest-gen" id="btn-send-email" onclick="sendDigestEmail()" style="display:none">📧 Invia</button>
-        </div>
-      </div>
-      <div class="digest-meta" id="digest-meta"></div>
-      <div id="digest-content">
-        <div class="digest-idle">Nessun digest disponibile per oggi.<br>Carica la rassegna o premi ⚡ Genera.</div>
-      </div>
+    <div class="digest-card" style="align-items:center;justify-content:center;gap:12px;min-height:120px">
+      <div class="sec-label" style="margin-bottom:0;text-align:center">📰 Digest del giorno</div>
+      <div id="digest-home-status" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);text-align:center">Caricamento…</div>
+      <a href="/digest" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0ea5c9,#d4367a);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:10px 20px;border-radius:6px;text-decoration:none;margin-top:4px">
+        📰 Vai alla pagina Digest →
+      </a>
     </div>
 
     <!-- MACRO HEATMAP -->
@@ -290,6 +279,25 @@ async function loadDigestByDate(val) {
     showDigest(d.text, d.articles_today, d.client_mentions, d.created_at);
   } catch(e) { showDigestIdle('Errore caricamento.'); }
 }
+
+// Status digest in home
+async function loadDigestHomeStatus(){
+  try{
+    const d = await fetch('/api/digest/status').then(r=>r.json());
+    const el = document.getElementById('digest-home-status');
+    if(!el) return;
+    if(d.status==='ready'){
+      el.textContent = `✓ Digest pronto · ${d.articles_today||0} articoli · ${d.client_mentions||0} clienti`;
+      el.style.color = 'var(--green)';
+    } else if(d.status==='generating'){
+      el.textContent = '⚡ Generazione in corso…';
+      el.style.color = 'var(--cyan)';
+    } else {
+      el.textContent = 'Nessun digest per oggi';
+    }
+  }catch(e){}
+}
+loadDigestHomeStatus();
 
 async function generateDigest() {
   const btn = document.getElementById('btn-gen');
@@ -439,7 +447,7 @@ async function toggleTTSDigest() {
     const res = await fetch('/api/digest-audio', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: currentDigestText.substring(0, 4096) })
+      body: JSON.stringify({ text: currentDigestText })
     });
     if (!res.ok) throw new Error('Errore server TTS');
     const blob = await res.blob();

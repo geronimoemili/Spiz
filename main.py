@@ -152,6 +152,9 @@ async def pitch_page(): return FileResponse("web/pitch.html")
 async def web_digest_page(): return FileResponse("web/web_digest.html")
 @app.get("/webdigest")
 async def webdigest_admin_page(): return FileResponse("web/webdigest.html")
+@app.get("/digest")
+async def digest_page(): return FileResponse("web/digest.html")
+
 @app.get("/giornalisti")
 async def giornalisti_page(): return FileResponse("web/giornalisti.html")
 
@@ -185,12 +188,11 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
     digest_job_id = None
     if any(r["status"] == "success" for r in results):
         _cleanup_old_jobs()
-        digest_job_id = str(uuid.uuid4())[:12]
-        _set_job(digest_job_id, "pending")
-        threading.Thread(target=_run_digest_job, args=(digest_job_id,), daemon=True).start()
+        digest_job_id = None
         # Sync automatico giornalisti nel CRM dopo ogni ingestion
         threading.Thread(target=_sync_journalists_auto, daemon=True).start()
-    return {"results": results, "digest_job_id": digest_job_id}
+    # Digest NON automatico — solo manuale dalla pagina Digest
+    return {"results": results, "digest_job_id": None}
 
 
 def _sync_journalists_auto():
@@ -720,8 +722,13 @@ def _generate_audio_bytes(text: str) -> bytes | None:
         # Limita a 4000 caratteri per non superare il limite TTS
         if len(clean) > 4000:
             clean = clean[:4000] + "... Fine del digest."
-        response = ai.audio.speech.create(model="tts-1", voice="shimmer", input=clean, response_format="mp3")
-        return response.content
+        chunks = _split_text_chunks(clean, 4096)
+        parts = []
+        for ch in chunks:
+            if not ch.strip(): continue
+            r = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=ch, response_format="mp3")
+            parts.append(r.content)
+        return b"".join(parts)
     except Exception as e:
         print(f"[AUDIO] Errore generazione TTS: {e}")
         return None
@@ -864,6 +871,32 @@ async def get_digest_by_date(data_str: str):
 # DIGEST AUDIO
 # ══════════════════════════════════════════════════════════════════
 
+def _split_text_chunks(text: str, max_chars: int = 4096) -> list:
+    """Divide testo in chunk rispettando i paragrafi, max max_chars per chunk."""
+    paragraphs = text.split("\n")
+    chunks, current = [], ""
+    for p in paragraphs:
+        if len(current) + len(p) + 1 <= max_chars:
+            current += ("\n" if current else "") + p
+        else:
+            if current: chunks.append(current)
+            # Se il paragrafo stesso supera il limite, lo spezzo per frasi
+            if len(p) > max_chars:
+                words = p.split(". ")
+                sub = ""
+                for w in words:
+                    if len(sub) + len(w) + 2 <= max_chars:
+                        sub += (". " if sub else "") + w
+                    else:
+                        if sub: chunks.append(sub)
+                        sub = w
+                if sub: chunks.append(sub)
+            else:
+                current = p
+    if current: chunks.append(current)
+    return [c for c in chunks if c.strip()]
+
+
 @app.post("/api/digest-audio")
 async def digest_audio(req: DigestAudioRequest):
     from openai import OpenAI
@@ -873,14 +906,103 @@ async def digest_audio(req: DigestAudioRequest):
     try:
         ai = OpenAI(api_key=api_key)
         clean = req.text.replace("*","").replace("_","").replace("————————————————————",". ")
-        # OpenAI TTS limite: 4096 caratteri
-        if len(clean) > 4096:
-            clean = clean[:4096] + "... Fine del digest."
-        if len(clean) > 4096:
-            clean = clean[:4096] + "... Fine del digest."
-        response = ai.audio.speech.create(model="tts-1", voice="shimmer", input=clean, response_format="mp3")
-        return StreamingResponse(iter([response.content]), media_type="audio/mpeg",
+        chunks = _split_text_chunks(clean, 4096)
+        audio_parts = []
+        for chunk in chunks:
+            if not chunk.strip(): continue
+            resp = ai.audio.speech.create(
+                model="tts-1", voice="onyx", speed=1.15,
+                input=chunk, response_format="mp3"
+            )
+            audio_parts.append(resp.content)
+        combined = b"".join(audio_parts)
+        return StreamingResponse(iter([combined]), media_type="audio/mpeg",
                                  headers={"Content-Disposition": "inline; filename=digest.mp3"})
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@app.put("/api/digest/{data_str}/text")
+async def update_digest_text(data_str: str, request: Request):
+    """Aggiorna il testo del digest per una data."""
+    try:
+        body = await request.json()
+        text = body.get("text", "")
+        supabase.table("digests").update({"text": text}).eq("data", data_str).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/digest-recipients")
+async def get_digest_recipients():
+    try:
+        res = supabase.table("digest_recipients").select("*").order("name").execute()
+        return res.data or []
+    except Exception as e:
+        return {"error": str(e)}
+
+
+class RecipientModel(BaseModel):
+    email: str
+    name:  Optional[str] = None
+    active: Optional[bool] = True
+
+
+@app.post("/api/digest-recipients")
+async def add_digest_recipient(data: RecipientModel):
+    try:
+        res = supabase.table("digest_recipients").insert(
+            {"email": data.email, "name": data.name, "active": data.active}
+        ).execute()
+        return {"success": True, "recipient": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.delete("/api/digest-recipients/{rid}")
+async def delete_digest_recipient(rid: str):
+    try:
+        supabase.table("digest_recipients").delete().eq("id", rid).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.patch("/api/digest-recipients/{rid}/toggle")
+async def toggle_digest_recipient(rid: str, request: Request):
+    try:
+        body = await request.json()
+        supabase.table("digest_recipients").update({"active": body.get("active", True)}).eq("id", rid).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/digest-audio-download")
+async def digest_audio_download(data: str = Query("")):
+    """Genera e scarica MP3 del digest del giorno."""
+    from openai import OpenAI
+    today = date.today().isoformat()
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key: raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
+    try:
+        res = supabase.table("digests").select("text").eq("data", today).execute()
+        if not res.data: raise HTTPException(status_code=404, detail="Nessun digest oggi")
+        text = res.data[0]["text"]
+        ai = OpenAI(api_key=api_key)
+        clean = text.replace("*","").replace("_","").replace("————————————————————",". ")
+        chunks = _split_text_chunks(clean, 4096)
+        audio_parts = []
+        for chunk in chunks:
+            if not chunk.strip(): continue
+            resp = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
+            audio_parts.append(resp.content)
+        combined = b"".join(audio_parts)
+        filename = f"MAIM_Digest_{today}.mp3"
+        return StreamingResponse(iter([combined]), media_type="audio/mpeg",
+                                 headers={"Content-Disposition": f"attachment; filename={filename}"})
+    except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 
