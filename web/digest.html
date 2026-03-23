@@ -40,6 +40,36 @@ nav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;
 .btn-send:hover:not(:disabled){opacity:.88}
 .btn-send:disabled{opacity:.4;cursor:not-allowed}
 
+/* CONTATORE — barra sopra la textarea */
+.counter-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+.char-counter{
+  font-family:var(--mono);
+  font-size:13px;
+  font-weight:700;
+  padding:5px 12px;
+  border-radius:5px;
+  background:var(--border2);
+  color:var(--muted);
+  border:1px solid var(--border);
+  transition:background .2s, color .2s, border-color .2s;
+  letter-spacing:.5px;
+}
+.char-counter.warn{
+  background:rgba(217,119,6,.1);
+  color:var(--amber);
+  border-color:rgba(217,119,6,.35);
+}
+.char-counter.over{
+  background:rgba(224,58,90,.1);
+  color:var(--red);
+  border-color:rgba(224,58,90,.4);
+}
+
 .digest-text{width:100%;min-height:480px;font-family:var(--mono);font-size:11px;line-height:1.75;padding:14px;border:1px solid var(--border);border-radius:6px;background:var(--border2);color:var(--text);outline:none;resize:vertical}
 .digest-text:focus{border-color:var(--cyan);background:#fff}
 .digest-text[readonly]{cursor:default}
@@ -92,22 +122,30 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
     <div class="card">
       <div class="card-head">
         <div style="display:flex;align-items:center;gap:10px">
-          <span class="card-title">📰 Digest</span>
+          <span class="card-title">&#128240; Digest</span>
           <span class="badge badge-no" id="status-badge">Nessun digest</span>
         </div>
         <select id="date-sel" onchange="loadDigest(this.value)" style="width:auto"></select>
       </div>
       <div class="card-body">
         <div class="toolbar">
-          <button class="btn btn-out" id="btn-gen" onclick="genera()">⚡ Genera</button>
-          <button class="btn btn-out" id="btn-edit" onclick="toggleEdit()" style="display:none">✏️ Modifica</button>
-          <button class="btn btn-out" id="btn-save" onclick="salva()" style="display:none">💾 Salva</button>
-          <button class="btn btn-out" id="btn-cancel" onclick="annulla()" style="display:none">✕</button>
-          <button class="btn btn-out" id="btn-wa" onclick="copiaWA()" style="display:none">📲 Copia WA</button>
-          <button class="btn btn-out" id="btn-leggi" onclick="leggi()">🔊 Leggi</button>
-          <button class="btn btn-out" id="btn-mp3" onclick="scaricaMP3()" style="display:none">⬇️ MP3</button>
+          <button class="btn btn-out" id="btn-gen" onclick="genera()">&#9889; Genera</button>
+          <button class="btn btn-out" id="btn-edit" onclick="toggleEdit()" style="display:none">&#9999;&#65039; Modifica</button>
+          <button class="btn btn-out" id="btn-save" onclick="salva()" style="display:none">&#128190; Salva</button>
+          <button class="btn btn-out" id="btn-cancel" onclick="annulla()" style="display:none">&#10005;</button>
+          <button class="btn btn-out" id="btn-wa" onclick="copiaWA()" style="display:none">&#128242; Copia WA</button>
+          <button class="btn btn-out" id="btn-leggi" onclick="leggi()">&#128266; Leggi</button>
+          <button class="btn btn-out" id="btn-mp3" onclick="scaricaMP3()" style="display:none">&#11015;&#65039; MP3</button>
         </div>
-        <textarea class="digest-text" id="digest-ta" readonly placeholder="Nessun digest. Premi ⚡ Genera."></textarea>
+
+        <!-- CONTATORE sopra la textarea -->
+        <div class="counter-bar">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.5px;text-transform:uppercase">Caratteri (spazi inclusi)</span>
+          <span class="char-counter" id="char-counter">0</span>
+        </div>
+
+        <textarea class="digest-text" id="digest-ta" readonly placeholder="Nessun digest. Premi &#9889; Genera." oninput="aggiornaContatore()"></textarea>
+
         <div id="audio-player-wrap" style="display:none;margin-top:10px;background:var(--border2);border-radius:6px;padding:10px 12px">
           <audio id="audio-player" controls style="width:100%;margin-bottom:4px"></audio>
           <div style="font-family:var(--mono);font-size:9px;color:var(--faint)" id="audio-info"></div>
@@ -121,11 +159,11 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
     <!-- INVIA -->
     <div class="card" style="border:2px solid var(--cyan)">
       <div class="card-head">
-        <span class="card-title">📧 Invia digest</span>
+        <span class="card-title">&#128231; Invia digest</span>
       </div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
         <button class="btn-send" id="btn-send" onclick="invia()" disabled>
-          📧 Invia a tutti
+          &#128231; Invia a tutti
         </button>
         <div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center">
           Invia testo + audio MP3 a tutti i destinatari attivi
@@ -136,14 +174,14 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
     <!-- DESTINATARI -->
     <div class="card">
       <div class="card-head">
-        <span class="card-title">👥 Destinatari</span>
+        <span class="card-title">&#128101; Destinatari</span>
         <span class="badge badge-no" id="r-count">0 attivi</span>
       </div>
       <div class="card-body">
         <div id="r-list" style="margin-bottom:10px"></div>
         <div style="display:flex;gap:6px">
           <input type="text" id="r-nome" placeholder="Nome" style="width:90px;flex-shrink:0"/>
-          <input type="email" id="r-email" placeholder="email@…" style="flex:1"/>
+          <input type="email" id="r-email" placeholder="email@&#8230;" style="flex:1"/>
           <button class="btn btn-grad" onclick="addR()" style="padding:6px 10px">+</button>
         </div>
       </div>
@@ -151,7 +189,7 @@ select:focus,input:focus{border-color:var(--cyan);background:#fff}
 
     <!-- STORICO -->
     <div class="card">
-      <div class="card-head"><span class="card-title">📅 Storico</span></div>
+      <div class="card-head"><span class="card-title">&#128197; Storico</span></div>
       <div class="card-body" style="padding:8px 16px">
         <div id="hist-list"></div>
       </div>
@@ -182,6 +220,16 @@ function setStatus(s, label){
   else { el.textContent = label||'Nessun digest'; el.className='badge badge-no'; }
 }
 
+// CONTATORE CARATTERI
+function aggiornaContatore(){
+  const n = document.getElementById('digest-ta').value.length;
+  const el = document.getElementById('char-counter');
+  el.textContent = n.toLocaleString('it-IT');
+  el.className = 'char-counter';
+  if(n > 4000)      el.classList.add('over');
+  else if(n > 3200) el.classList.add('warn');
+}
+
 // INIT
 window.addEventListener('load', async ()=>{
   await loadDates();
@@ -201,7 +249,6 @@ async function loadDates(){
       o.textContent = fmt(row.data);
       sel.appendChild(o);
     });
-    // Storico
     const hist = document.getElementById('hist-list');
     hist.innerHTML = (d.dates||[]).length ? (d.dates||[]).map(row=>`
       <div class="hist-row" onclick="loadDigest('${row.data}')">
@@ -226,12 +273,12 @@ async function loadDigest(dateVal){
 
 function setEmpty(){
   document.getElementById('digest-ta').value = '';
-  document.getElementById('digest-ta').placeholder = 'Nessun digest. Premi ⚡ Genera.';
   setStatus('no');
   hide(['btn-edit','btn-wa','btn-mp3','btn-save','btn-cancel']);
   document.getElementById('audio-player-wrap').style.display='none';
   document.getElementById('btn-send').disabled = true;
   originalText = '';
+  aggiornaContatore();
 }
 
 function setTesto(text){
@@ -242,11 +289,11 @@ function setTesto(text){
   editing = false;
   hide(['btn-save','btn-cancel']);
   document.getElementById('btn-edit').textContent = '✏️ Modifica';
-  // Reset audio se testo cambia
   audioUrl = null;
   const p = document.getElementById('audio-player');
   p.pause(); p.src='';
   document.getElementById('audio-player-wrap').style.display='none';
+  aggiornaContatore();
 }
 
 function show(ids){ ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; }); }
@@ -303,6 +350,7 @@ function annulla(){
   hide(['btn-save','btn-cancel']);
   document.getElementById('btn-edit').style.display = '';
   document.getElementById('btn-edit').textContent = '✏️ Modifica';
+  aggiornaContatore();
 }
 
 async function salva(){
@@ -338,14 +386,11 @@ let audioUrl = null;
 async function leggi(){
   const btn = document.getElementById('btn-leggi');
   const player = document.getElementById('audio-player');
-
-  // Se già caricato, play/pause
   if(audioUrl){
     if(player.paused){ player.play(); btn.textContent='⏸ Pausa'; }
     else { player.pause(); btn.textContent='🔊 Leggi'; }
     return;
   }
-
   btn.disabled = true; btn.textContent = '⏳ Generazione…';
   const text = document.getElementById('digest-ta').value;
   if(!text){ toast('Nessun testo','err'); btn.disabled=false; btn.textContent='🔊 Leggi'; return; }
@@ -364,7 +409,7 @@ async function leggi(){
     btn.textContent='⏸ Pausa';
     player.onended = ()=>{ btn.textContent='🔊 Leggi'; };
     player.onpause = ()=>{ if(!player.ended) btn.textContent='🔊 Leggi'; };
-    player.onplay = ()=>{ btn.textContent='⏸ Pausa'; };
+    player.onplay  = ()=>{ btn.textContent='⏸ Pausa'; };
   }catch(e){ toast('Errore: '+e.message,'err'); }
   finally{ btn.disabled=false; }
 }
@@ -425,7 +470,7 @@ async function loadRecipients(){
 
 async function addR(){
   const email = document.getElementById('r-email').value.trim();
-  const name = document.getElementById('r-nome').value.trim();
+  const name  = document.getElementById('r-nome').value.trim();
   if(!email){ toast('Email obbligatoria','err'); return; }
   try{
     const res = await fetch('/api/digest-recipients',{
