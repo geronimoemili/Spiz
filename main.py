@@ -198,7 +198,16 @@ def _sync_journalists_auto():
     """Importa automaticamente nel CRM i nuovi giornalisti dopo ogni ingestion."""
     try:
         SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
-        arts = supabase.table("articles").select("giornalista, testata").execute().data or []
+        # Carica TUTTI gli articoli (non solo i primi 1000)
+        all_arts = []
+        offset = 0
+        batch_size = 500
+        while True:
+            batch = supabase.table("articles").select("giornalista, testata").offset(offset).limit(batch_size).execute().data or []
+            if not batch: break
+            all_arts.extend(batch)
+            offset += batch_size
+        arts = all_arts
         existing = {j["nome"].strip().lower() for j in (supabase.table("journalists").select("nome").execute().data or [])}
         from collections import Counter as _C
         testate = {}
@@ -294,11 +303,11 @@ async def dashboard_stats():
         today = date.today().isoformat()
         week_ago = (date.today() - timedelta(days=7)).isoformat()
         month_ago = (date.today() - timedelta(days=30)).isoformat()
-        articles = supabase.table("articles").select("data").execute().data or []
-        oggi = sum(1 for a in articles if a.get("data") == today)
-        settimana = sum(1 for a in articles if a.get("data", "") >= week_ago)
-        mese = sum(1 for a in articles if a.get("data", "") >= month_ago)
-        return {"totale": len(articles), "oggi": oggi, "settimana": settimana, "mese": mese}
+        total = supabase.table("articles").select("id", count="exact").execute()
+        oggi = supabase.table("articles").select("id", count="exact").eq("data", today).execute()
+        settimana = supabase.table("articles").select("id", count="exact").gte("data", week_ago).execute()
+        mese = supabase.table("articles").select("id", count="exact").gte("data", month_ago).execute()
+        return {"totale": total.count or 0, "oggi": oggi.count or 0, "settimana": settimana.count or 0, "mese": mese.count or 0}
     except Exception as e:
         return {"totale": 0, "oggi": 0, "settimana": 0, "mese": 0, "error": str(e)}
 
@@ -385,7 +394,8 @@ async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[
         if all_oids:
             for m in (supabase.table("official_macrosectors").select("id, name").in_("id", all_oids).execute().data or []):
                 macro_names_map[m["id"]] = m["name"]
-        articles = supabase.table("articles").select("id, macrosettori").gte("data", from_date).lte("data", to_date).execute().data or []
+        # Carica articoli col range di date (max 5000 per non sovraccaricare)
+        articles = supabase.table("articles").select("id, macrosettori").gte("data", from_date).lte("data", to_date).limit(5000).execute().data or []
         result = []
         for g in groups:
             names_set = {macro_names_map[oid] for oid in links_by_group.get(g["id"],[]) if oid in macro_names_map}
