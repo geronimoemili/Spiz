@@ -16,7 +16,6 @@
         *{margin:0;padding:0;box-sizing:border-box;}
         body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh;}
 
-        /* NAV — centralizzato via nav.js */
         nav{background:var(--bg2);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
         .logo-img{height:38px;width:auto;display:block;flex-shrink:0}
         .nav-links{display:flex;gap:2px;margin-left:auto}
@@ -24,23 +23,19 @@
         .nav-link:hover{color:var(--text)}
         .nav-link.active{color:var(--magenta);border-bottom-color:var(--magenta)}
 
-        /* PAGE HEADER */
         .page-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
         .page-header h1{font-size:18px;font-weight:700;}
         .page-header p{font-size:12px;color:var(--text2);margin-top:3px;}
         .grad-text{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
-        /* LAYOUT */
         .main-layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px - 55px - 56px);}
         @media(max-width:900px){.main-layout{grid-template-columns:1fr;}}
 
-        /* SIDEBAR */
         .sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;}
         .sidebar-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;justify-content:space-between;align-items:center;}
         .sidebar-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
         .sidebar-count{font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:600;}
 
-        /* CLIENT LIST */
         .client-item{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;gap:10px;}
         .client-item:hover{background:var(--bg3);}
         .client-item.active{background:#e8f7fc;border-left:3px solid var(--teal);padding-left:13px;}
@@ -50,21 +45,17 @@
         .client-item.active .client-name{color:var(--teal);}
         .client-kw-count{font-family:var(--mono);font-size:10px;color:var(--text3);}
 
-        /* SEARCH */
         .search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);}
         .search-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:7px 10px;font-size:12px;color:var(--text);font-family:var(--sans);transition:border-color 0.15s;}
         .search-input:focus{outline:none;border-color:var(--teal);}
         .search-input::placeholder{color:var(--text3);}
 
-        /* DETAIL PANEL */
         .detail-panel{display:flex;flex-direction:column;background:var(--bg);}
 
-        /* EMPTY STATE */
         .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:12px;padding:48px 20px;text-align:center;}
         .empty-state .icon{font-size:48px;opacity:0.2;}
         .empty-state p{font-family:var(--mono);font-size:10px;letter-spacing:0.8px;line-height:1.8;}
 
-        /* CLIENT DETAIL */
         .detail-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:20px 24px;}
         .detail-header-top{display:flex;align-items:center;gap:16px;margin-bottom:12px;}
         .detail-avatar{width:48px;height:48px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
@@ -74,7 +65,6 @@
         .btn-edit-cl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--teal);background:rgba(14,165,201,0.08);border:1px solid rgba(14,165,201,0.3);padding:6px 14px;border-radius:4px;cursor:pointer;}
         .btn-del-cl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--red);background:rgba(224,58,90,0.06);border:1px solid rgba(224,58,90,0.3);padding:6px 14px;border-radius:4px;cursor:pointer;}
 
-        /* KEYWORDS SECTION */
         .section{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg2);}
         .section-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
         .section-desc{font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5;}
@@ -89,13 +79,11 @@
         .kw-add-input:focus{outline:none;border-color:var(--teal);}
         .btn-kw-add{color:#fff;border:none;border-radius:4px;padding:6px 14px;font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
 
-        /* MACRO SELECT */
         .macro-picker{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;}
         .macro-opt{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg3);cursor:pointer;transition:all 0.15s;}
         .macro-opt:hover{border-color:var(--purple);color:var(--purple);}
         .macro-opt.selected{background:rgba(124,58,237,0.1);color:var(--purple);border-color:rgba(124,58,237,0.35);font-weight:600;}
 
-        /* EDIT FORM */
         .edit-form{padding:20px 24px;}
         .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
         @media(max-width:600px){.form-grid{grid-template-columns:1fr;}}
@@ -107,7 +95,6 @@
         .btn-save{background:var(--green);color:#fff;border:none;border-radius:4px;padding:9px 22px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;}
         .btn-cancel{background:none;border:1px solid var(--border2);color:var(--text2);border-radius:4px;padding:8px 18px;font-family:var(--mono);font-size:11px;cursor:pointer;}
 
-        /* BOTTOM ADD BAR */
         .add-bar{background:var(--bg2);border-top:2px solid var(--border);padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
         .add-bar-label{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
         .add-bar-input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 12px;border-radius:4px;flex:1;min-width:120px;}
@@ -115,7 +102,6 @@
         .btn-add-client{background:var(--grad);color:#fff;border:none;border-radius:4px;padding:8px 20px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;}
         .btn-add-client:hover{opacity:0.9;}
 
-        /* CONFIRM MODAL */
         .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:1000;align-items:center;justify-content:center;}
         .overlay.open{display:flex;}
         .confirm-box{background:var(--bg2);border-radius:12px;padding:28px 28px 20px;max-width:380px;width:90%;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,0.15);}
@@ -123,7 +109,6 @@
         .confirm-msg{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
         .confirm-btns{display:flex;gap:8px;justify-content:flex-end;}
 
-        /* TOAST */
         .toast{position:fixed;bottom:24px;right:24px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:6px;font-family:var(--mono);font-size:11px;z-index:2000;opacity:0;transition:opacity 0.2s;pointer-events:none;}
         .toast.show{opacity:1;}
 
@@ -140,7 +125,7 @@
 <!-- PAGE HEADER -->
 <div class="page-header">
     <div>
-        <h1>👥 <span class="grad-text">Gestione Clienti</span></h1>
+        <h1>&#128101; <span class="grad-text">Gestione Clienti</span></h1>
         <p>Gestisci i clienti e le loro parole chiave per rassegna stampa, web monitor e temi strategici</p>
     </div>
     <div style="font-family:var(--mono);font-size:11px;color:var(--text3);">
@@ -159,7 +144,7 @@
             <span class="sidebar-count" id="client-count">0</span>
         </div>
         <div class="search-wrap">
-            <input type="text" class="search-input" id="search-input" placeholder="🔍  Cerca cliente..." oninput="filterClients()">
+            <input type="text" class="search-input" id="search-input" placeholder="&#128269;  Cerca cliente..." oninput="filterClients()">
         </div>
         <div style="overflow-y:auto;flex:1;" id="client-list">
             <div style="padding:20px;color:var(--text3);font-family:var(--mono);font-size:10px;">CARICAMENTO...</div>
@@ -171,14 +156,13 @@
 
         <!-- EMPTY STATE -->
         <div class="empty-state" id="empty-state">
-            <div class="icon">👤</div>
+            <div class="icon">&#128100;</div>
             <p>SELEZIONA UN CLIENTE<br>PER GESTIRE LE KEYWORD<br>O AGGIUNGINE UNO NUOVO</p>
         </div>
 
         <!-- VISTA DETTAGLIO -->
         <div id="client-detail" style="display:none;" class="fade-in">
 
-            <!-- Header -->
             <div class="detail-header">
                 <div class="detail-header-top">
                     <div class="detail-avatar" id="detail-avatar"></div>
@@ -188,14 +172,14 @@
                     </div>
                 </div>
                 <div class="detail-actions">
-                    <button class="btn-edit-cl" onclick="showEditForm()">✏️ Modifica nome</button>
-                    <button class="btn-del-cl"  onclick="confirmDelete()">🗑️ Elimina</button>
+                    <button class="btn-edit-cl" onclick="showEditForm()">&#9999;&#65039; Modifica nome</button>
+                    <button class="btn-del-cl"  onclick="confirmDelete()">&#128465;&#65039; Elimina</button>
                 </div>
             </div>
 
             <!-- KEYWORD RASSEGNA STAMPA -->
             <div class="section">
-                <div class="section-title">📰 Parole chiave — Rassegna Stampa</div>
+                <div class="section-title">&#128240; Parole chiave — Rassegna Stampa</div>
                 <div class="section-desc">Filtrano gli articoli caricati via CSV nella sezione Dashboard.</div>
                 <div class="kw-list" id="kw-press-list"></div>
                 <div class="kw-add-wrap">
@@ -206,7 +190,7 @@
 
             <!-- KEYWORD WEB MONITOR -->
             <div class="section">
-                <div class="section-title" style="color:var(--magenta);">🌐 Parole chiave — Web Monitor</div>
+                <div class="section-title" style="color:var(--magenta);">&#127760; Parole chiave — Web Monitor</div>
                 <div class="section-desc">Usate per la scansione RSS/web nella sezione Monitor. Se vuote, il cliente non viene monitorato sul web.</div>
                 <div class="kw-list" id="kw-web-list"></div>
                 <div class="kw-add-wrap">
@@ -217,11 +201,9 @@
 
             <!-- MACRO STRATEGICI -->
             <div class="section" style="padding-bottom:20px;">
-                <div class="section-title" style="color:var(--purple);">🎯 Macro Strategici</div>
+                <div class="section-title" style="color:var(--purple);">&#127919; Macro Strategici</div>
                 <div class="section-desc">Temi strategici associati a questo cliente. Clicca per aggiungere o rimuovere.</div>
-                <!-- Tag attivi -->
                 <div class="kw-list" id="macro-active-list"></div>
-                <!-- Picker -->
                 <div id="macro-picker-wrap" style="margin-top:12px;">
                     <div style="font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--text3);margin-bottom:6px;">DISPONIBILI:</div>
                     <div class="macro-picker" id="macro-picker"></div>
@@ -235,7 +217,7 @@
             <div class="edit-form">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                     <div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text2);">MODIFICA CLIENTE</div>
-                    <button class="btn-cancel" onclick="showDetail()">✕ Annulla</button>
+                    <button class="btn-cancel" onclick="showDetail()">&#10005; Annulla</button>
                 </div>
                 <div class="form-grid">
                     <div class="form-field full">
@@ -244,7 +226,7 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;">
-                    <button class="btn-save" onclick="saveClientName()">💾 SALVA</button>
+                    <button class="btn-save" onclick="saveClientName()">&#128190; SALVA</button>
                     <button class="btn-cancel" onclick="showDetail()">Annulla</button>
                 </div>
             </div>
@@ -263,7 +245,7 @@
 <!-- CONFIRM DELETE MODAL -->
 <div class="overlay" id="confirm-overlay" onclick="closeConfirm(event)">
     <div class="confirm-box">
-        <div class="confirm-title">⚠️ Elimina cliente</div>
+        <div class="confirm-title">&#9888;&#65039; Elimina cliente</div>
         <div class="confirm-msg" id="confirm-msg"></div>
         <div class="confirm-btns">
             <button class="btn-cancel" onclick="closeConfirm()">Annulla</button>
@@ -279,9 +261,7 @@
     let allClients  = [];
     let allMacros   = [];
     let currentClient = null;
-    let mobileMenuOpen = false;
 
-    // ── Utils ──────────────────────────────────────────────────
     function initials(name) {
         return name.split(' ').map(w=>w[0]||'').join('').substring(0,2).toUpperCase();
     }
@@ -293,18 +273,6 @@
         setTimeout(()=>t.classList.remove('show'), 2000);
     }
 
-    function toggleMobileMenu() {
-        mobileMenuOpen = !mobileMenuOpen;
-        document.getElementById('mobile-menu').style.display = mobileMenuOpen ? 'flex' : 'none';
-    }
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.hamburger') && !e.target.closest('#mobile-menu')) {
-            document.getElementById('mobile-menu').style.display = 'none';
-            mobileMenuOpen = false;
-        }
-    });
-
-    // ── Load ───────────────────────────────────────────────────
     async function loadAll() {
         try {
             const [clients, macros] = await Promise.all([
@@ -312,7 +280,6 @@
                 fetch('/api/macro-groups').then(r=>r.json()).catch(()=>({}))
             ]);
             allClients = clients;
-            // API returns {groups: [...]}
             const macroArr = Array.isArray(macros) ? macros : (macros?.groups || []);
             allMacros = macroArr.filter(m => m.active !== false);
             renderClientList(allClients);
@@ -321,25 +288,26 @@
     }
 
     function updateHeaderStats() {
-        document.getElementById('stat-total').innerText    = allClients.length;
-        document.getElementById('client-count').innerText  = allClients.length;
+        document.getElementById('stat-total').innerText   = allClients.length;
+        document.getElementById('client-count').innerText = allClients.length;
         const kwTotal = allClients.reduce((s,c)=>{
             return s
-                + (c.keywords||'').split(',').map(k=>k.trim()).filter(Boolean).length
+                + (c.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean).length
                 + (c.keywords_web||'').split(',').map(k=>k.trim()).filter(Boolean).length;
         }, 0);
         document.getElementById('stat-keywords').innerText = kwTotal;
     }
 
-    // ── Sidebar ────────────────────────────────────────────────
     function renderClientList(clients) {
         const el = document.getElementById('client-list');
         if (!clients.length) {
             el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:10px;">NESSUN CLIENTE</div>';
             return;
         }
-        el.innerHTML = clients.map(c => {
-            const pressKw = (c.keywords||'').split(',').map(k=>k.trim()).filter(Boolean).length;
+        // Ordine alfabetico
+        const sorted = [...clients].sort((a,b) => a.name.localeCompare(b.name, 'it'));
+        el.innerHTML = sorted.map(c => {
+            const pressKw = (c.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean).length;
             const webKw   = (c.keywords_web||'').split(',').map(k=>k.trim()).filter(Boolean).length;
             const active  = currentClient?.id===c.id ? 'active' : '';
             return `<div class="client-item ${active}" onclick="selectClient('${c.id}')">
@@ -368,7 +336,6 @@
         renderDetail();
     }
 
-    // ── Detail rendering ──────────────────────────────────────
     function renderDetail() {
         if (!currentClient) return;
         document.getElementById('detail-avatar').innerText = initials(currentClient.name);
@@ -380,30 +347,27 @@
     }
 
     function renderPressKeywords() {
-        const kws = (currentClient.keywords||'').split(',').map(k=>k.trim()).filter(Boolean);
+        const kws = (currentClient.keywords_press||'').split(',').map(k=>k.trim()).filter(Boolean);
         document.getElementById('kw-press-list').innerHTML = kws.length
-            ? kws.map((k,i) => `<span class="kw-tag">${k}<button class="kw-del" onclick="removeKeyword('press',${i})" title="Rimuovi">×</button></span>`).join('')
+            ? kws.map((k,i) => `<span class="kw-tag">${k}<button class="kw-del" onclick="removeKeyword('press',${i})" title="Rimuovi">&#215;</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessuna keyword</span>';
     }
 
     function renderWebKeywords() {
         const kws = (currentClient.keywords_web||'').split(',').map(k=>k.trim()).filter(Boolean);
         document.getElementById('kw-web-list').innerHTML = kws.length
-            ? kws.map((k,i) => `<span class="kw-tag web">${k}<button class="kw-del" onclick="removeKeyword('web',${i})" title="Rimuovi">×</button></span>`).join('')
+            ? kws.map((k,i) => `<span class="kw-tag web">${k}<button class="kw-del" onclick="removeKeyword('web',${i})" title="Rimuovi">&#215;</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessuna keyword</span>';
     }
 
     function renderMacros() {
-        // Active macros from client field (comma-separated names or IDs)
         const activeMacros = (currentClient.macro_strategici||'').split(',').map(k=>k.trim()).filter(Boolean);
 
-        // Active tags
         const activeEl = document.getElementById('macro-active-list');
         activeEl.innerHTML = activeMacros.length
-            ? activeMacros.map(m => `<span class="kw-tag macro">${m}<button class="kw-del" onclick="removeMacro('${m}')" title="Rimuovi">×</button></span>`).join('')
+            ? activeMacros.map(m => `<span class="kw-tag macro">${m}<button class="kw-del" onclick="removeMacro('${m}')" title="Rimuovi">&#215;</button></span>`).join('')
             : '<span style="color:var(--text3);font-family:var(--mono);font-size:10px;">Nessun tema strategico associato</span>';
 
-        // Picker — show all macros not already active
         const pickerEl = document.getElementById('macro-picker');
         const emptyEl  = document.getElementById('macro-empty');
 
@@ -417,15 +381,15 @@
         pickerEl.innerHTML = allMacros.map(m => {
             const isActive = activeMacros.includes(m.name) || activeMacros.includes(String(m.id));
             return `<span class="macro-opt ${isActive?'selected':''}" onclick="toggleMacro('${m.name}')">
-                ${isActive ? '✓ ' : ''}${m.name}
+                ${isActive ? '&#10003; ' : ''}${m.name}
             </span>`;
         }).join('');
     }
 
-    // ── Keyword actions ──────────────────────────────────────
+    // KEYWORD ACTIONS — usa keywords_press per stampa, keywords_web per web
     async function addKeyword(type) {
         const inputId = type==='press' ? 'kw-press-input' : 'kw-web-input';
-        const field   = type==='press' ? 'keywords'       : 'keywords_web';
+        const field   = type==='press' ? 'keywords_press' : 'keywords_web';
         const input   = document.getElementById(inputId);
         const kw      = input.value.trim();
         if (!kw || !currentClient) return;
@@ -437,13 +401,12 @@
     }
 
     async function removeKeyword(type, idx) {
-        const field = type==='press' ? 'keywords' : 'keywords_web';
+        const field = type==='press' ? 'keywords_press' : 'keywords_web';
         const kws   = (currentClient[field]||'').split(',').map(k=>k.trim()).filter(Boolean);
         kws.splice(idx, 1);
         await patchClient({[field]: kws.join(', ')});
     }
 
-    // ── Macro actions ─────────────────────────────────────────
     async function toggleMacro(name) {
         const active = (currentClient.macro_strategici||'').split(',').map(k=>k.trim()).filter(Boolean);
         const idx    = active.findIndex(m=>m===name);
@@ -456,7 +419,6 @@
         await toggleMacro(name);
     }
 
-    // ── API calls ─────────────────────────────────────────────
     async function patchClient(payload) {
         try {
             const res = await fetch(`/api/clients/${currentClient.id}`, {
@@ -475,11 +437,10 @@
                 const q = document.getElementById('search-input').value.toLowerCase();
                 return c.name.toLowerCase().includes(q);
             }));
-            toast('✓ Salvato');
+            toast('&#10003; Salvato');
         } catch(e) { alert('Errore di connessione.'); }
     }
 
-    // ── Add new client ────────────────────────────────────────
     async function addClient() {
         const name = document.getElementById('new-client-name').value.trim();
         const kw   = document.getElementById('new-client-kw').value.trim();
@@ -487,7 +448,7 @@
         try {
             const res = await fetch('/api/clients', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({name, keywords:kw})
+                body: JSON.stringify({name, keywords_press: kw})
             });
             const d = await res.json();
             if (d.error) { alert('Errore: '+d.error); return; }
@@ -496,11 +457,10 @@
             await loadAll();
             const newId = d.id || d.client?.id;
             if (newId) selectClient(newId);
-            toast('✓ Cliente aggiunto');
+            toast('&#10003; Cliente aggiunto');
         } catch(e) { alert('Errore di connessione.'); }
     }
 
-    // ── Edit name ─────────────────────────────────────────────
     function showEditForm() {
         if (!currentClient) return;
         document.getElementById('ef-name').value = currentClient.name||'';
@@ -516,7 +476,6 @@
         document.getElementById('edit-form').style.display     = 'none';
     }
 
-    // ── Delete ────────────────────────────────────────────────
     function confirmDelete() {
         if (!currentClient) return;
         document.getElementById('confirm-msg').innerHTML =
@@ -539,11 +498,10 @@
             document.getElementById('client-detail').style.display = 'none';
             document.getElementById('empty-state').style.display   = 'flex';
             await loadAll();
-            toast('✓ Cliente eliminato');
+            toast('&#10003; Cliente eliminato');
         } catch(e) { alert('Errore di connessione.'); }
     }
 
-    // ── Panel switching ───────────────────────────────────────
     function showDetail() {
         document.getElementById('empty-state').style.display   = 'none';
         document.getElementById('client-detail').style.display = 'block';
