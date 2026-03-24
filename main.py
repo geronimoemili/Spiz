@@ -43,8 +43,7 @@ def _agenda_log(msg):
     _agenda_gmail_state["log"] = ([msg] + _agenda_gmail_state["log"])[:30]
 
 def _run_gmail_agenda_import():
-    """Legge le email delle ultime 2h ed estrae appuntamenti via GPT."""
-    from openai import OpenAI
+    """Legge le email delle ultime 2h ed estrae appuntamenti senza AI."""
     gmail_user = os.getenv("GMAIL_USER", "")
     gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
     if not gmail_user or not gmail_pass:
@@ -55,7 +54,6 @@ def _run_gmail_agenda_import():
     _agenda_gmail_state["errors"] = []
 
     try:
-        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
         today_str = date.today().isoformat()
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(gmail_user, gmail_pass)
@@ -100,54 +98,7 @@ def _run_gmail_agenda_import():
             if not full_text or len(full_text) < 10:
                 continue
 
-            try:
-                resp = ai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": (
-                            f"Sei un assistente che estrae appuntamenti da email aziendali italiane.\n"
-                            f"Oggi è {today_str}.\n"
-                            f"Estrai TUTTI gli appuntamenti, scadenze, promemoria, eventi menzionati.\n"
-                            f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
-                            f"Rispondi SOLO con JSON array valido e completo. Se nessun appuntamento: [].\n"
-                            f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo/indirizzo o null","descrizione":"..."}}]'
-                        )},
-                        {"role": "user", "content": full_text[:4000]}
-                    ],
-                    temperature=0.1,
-                    max_tokens=2000
-                )
-                raw = resp.choices[0].message.content.strip() \
-                    .replace("```json", "").replace("```", "").strip()
-
-                # Parser robusto: se il JSON è troncato, prova a recuperarlo
-                try:
-                    appointments = json.loads(raw)
-                except json.JSONDecodeError:
-                    # Prova a chiudere l'array troncato
-                    try:
-                        # Trova l'ultimo oggetto completo e chiude l'array
-                        last_brace = raw.rfind("},")
-                        if last_brace > 0:
-                        raw_fixed = raw[:last_brace+1] + "]"
-                        appointments = json.loads(raw_fixed)
-                        _agenda_log(f"JSON troncato recuperato: {len(appointments)} appuntamenti")
-                        else:
-                            last_brace = raw.rfind("}")
-                            if last_brace > 0:
-                                raw_fixed = raw[:last_brace+1] + "]"
-                                appointments = json.loads(raw_fixed)
-                            else:
-                                raise ValueError("JSON non recuperabile")
-                        _agenda_log(f"JSON troncato recuperato: {len(appointments)} appuntamenti")
-                    except Exception:
-                        _agenda_log(f"JSON non parsabile — salto email '{subj[:40]}'")
-                        continue
-
-            except Exception as e:
-                _agenda_log(f"Errore GPT su '{subj[:40]}': {e}")
-                continue
-
+            appointments = _parse_gmail_agenda_text(full_text)
             if not appointments:
                 continue
 
@@ -186,6 +137,70 @@ def _run_gmail_agenda_import():
         _agenda_log(f"ERRORE: {e}")
 
 
+def _parse_gmail_agenda_text(text: str):
+    import re
+    months = {
+        "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6,
+        "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10, "novembre": 11, "dicembre": 12
+    }
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    text_low = text.lower()
+    appointments = []
+    date_pat = re.compile(r"(\d{1,2})\s+([a-zà]+)\s+(\d{4})")
+    range_pat = re.compile(r"(\d{1,2})\s+([a-zà]+)\s*-\s*(\d{1,2})\s+([a-zà]+)\s+(\d{4})")
+    location_pat = re.compile(r"\(([^()]{2,80})\)")
+
+    def parse_date(day, month, year):
+        m = months.get(month.lower())
+        if not m:
+            return None
+        try:
+            return date(int(year), m, int(day)).isoformat()
+        except Exception:
+            return None
+
+    def make_event(title, d, desc):
+        if not d:
+            return None
+        return {"titolo": title[:200], "data": d, "ora": None, "luogo": None, "descrizione": desc[:500]}
+
+    for ln in lines:
+        m = range_pat.search(ln.lower())
+        if m:
+            d1 = parse_date(m.group(1), m.group(2), m.group(5))
+            d2 = parse_date(m.group(3), m.group(4), m.group(5))
+            if d1:
+                appointments.append(make_event(ln[:120], d1, ln))
+            if d2 and d2 != d1:
+                appointments.append(make_event(ln[:120], d2, ln))
+            continue
+        m = date_pat.search(ln.lower())
+        if m:
+            d = parse_date(m.group(1), m.group(2), m.group(3))
+            if d:
+                appointments.append(make_event(ln[:120], d, ln))
+
+    if not appointments:
+        for m in date_pat.finditer(text_low):
+            d = parse_date(m.group(1), m.group(2), m.group(3))
+            if d:
+                start = max(0, m.start()-60)
+                end = min(len(text), m.end()+140)
+                snippet = text[start:end].strip()
+                appointments.append(make_event(snippet[:120], d, snippet))
+
+    deduped = []
+    seen = set()
+    for ev in appointments:
+        if not ev:
+            continue
+        key = (ev["titolo"].lower(), ev["data"])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(ev)
+    return deduped
+
+
 def _normalize_title(titolo: str) -> str:
     """Normalizza il titolo per anti-doppione fuzzy: lowercase, no punteggiatura, no spazi extra."""
     import re
@@ -208,108 +223,6 @@ def _event_hash(titolo: str, data: str) -> str:
     import hashlib
     normalized = _normalize_title(titolo)
     return hashlib.md5(f"{normalized}|{data}".encode()).hexdigest()
-
-
-def _extract_events_from_recent_articles(target_date: str = None):
-    """
-    Legge il testo completo degli articoli del giorno e cerca eventi futuri via GPT.
-    Processa a gruppi di 10 articoli per non superare il context window.
-    """
-    from openai import OpenAI
-    try:
-        today_str = target_date or date.today().isoformat()
-        arts = supabase.table("articles") \
-            .select("titolo, occhiello, testo_completo, testata") \
-            .eq("data", today_str).limit(200).execute().data or []
-        if not arts:
-            print(f"[EVENTS-RASSEGNA] Nessun articolo per {today_str}")
-            return {"inserted": 0, "skipped": 0, "error": None}
-
-        print(f"[EVENTS-RASSEGNA] {len(arts)} articoli da analizzare")
-        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
-
-        BATCH = 10
-        all_events = []
-
-        for i in range(0, len(arts), BATCH):
-            batch = arts[i:i+BATCH]
-            blocks = []
-            for a in batch:
-                testo    = (a.get("testo_completo") or "").strip()[:1200]
-                occhiello = (a.get("occhiello") or "").strip()
-                titolo   = (a.get("titolo") or "").strip()
-                testata  = (a.get("testata") or "").strip()
-                block    = f"[{testata}] {titolo}"
-                if occhiello: block += f"\n{occhiello}"
-                if testo:     block += f"\n{testo}"
-                blocks.append(block)
-
-            combined = "\n\n---\n\n".join(blocks)
-
-            try:
-                resp = ai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": (
-                            f"Sei un assistente che identifica eventi futuri citati in articoli di stampa italiana.\n"
-                            f"Oggi è {today_str}.\n"
-                            f"Cerca eventi FUTURI con una data futura identificabile: CDA, assemblee, "
-                            f"convegni, conferenze stampa, inaugurazioni, scadenze, presentazioni, udienze, vertici.\n"
-                            f"Includi anche frasi come 'il prossimo 12 aprile', 'giovedì prossimo', "
-                            f"'nella prossima settimana', 'il mese prossimo' ecc.\n"
-                            f"NON includere: eventi già passati, notizie generiche senza data futura.\n"
-                            f"Rispondi SOLO con JSON array. Se nessun evento futuro: [].\n"
-                            f'Formato: [{{"titolo":"titolo breve e descrittivo","data":"YYYY-MM-DD",'
-                            f'"ora":"HH:MM o null","luogo":"luogo o null","descrizione":"contesto breve"}}]'
-                        )},
-                        {"role": "user", "content": combined}
-                    ],
-                    temperature=0.1,
-                    max_tokens=800
-                )
-                raw = resp.choices[0].message.content.strip() \
-                    .replace("```json", "").replace("```", "").strip()
-                batch_events = json.loads(raw)
-                if batch_events:
-                    print(f"[EVENTS-RASSEGNA] Batch {i//BATCH+1}: {len(batch_events)} eventi trovati")
-                all_events.extend(batch_events)
-            except Exception as e:
-                print(f"[EVENTS-RASSEGNA] Errore batch {i//BATCH+1}: {e}")
-                continue
-
-        print(f"[EVENTS-RASSEGNA] Totale eventi trovati: {len(all_events)}")
-
-        inserted = skipped = 0
-        for ev in all_events:
-            ev_data   = ev.get("data", "")
-            ev_titolo = ev.get("titolo", "")
-            if not ev_titolo or not ev_data or ev_data <= today_str:
-                continue
-            # Anti-doppione
-            if _event_exists(ev_titolo, ev_data):
-                skipped += 1
-                continue
-            try:
-                supabase.table("events").insert({
-                    "titolo":       ev_titolo[:200],
-                    "data":         ev_data,
-                    "ora":          ev.get("ora") or None,
-                    "luogo":        ev.get("luogo") or None,
-                    "descrizione":  ev.get("descrizione", ""),
-                    "fonte":        "rassegna",
-                    "stato":        "bozza",
-                    "content_hash": _event_hash(ev_titolo, ev_data)
-                }).execute()
-                inserted += 1
-            except Exception as e:
-                print(f"[EVENTS-RASSEGNA] Errore insert: {e}")
-
-        print(f"[EVENTS-RASSEGNA] {inserted} inseriti, {skipped} doppioni saltati")
-        return {"inserted": inserted, "skipped": skipped, "error": None}
-
-    except Exception as e:
-        print(f"[EVENTS-RASSEGNA] Errore: {e}")
-        return {"inserted": 0, "skipped": 0, "error": str(e)}
 
 
 def _get_agenda_recipients_list():
