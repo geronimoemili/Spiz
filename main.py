@@ -129,8 +129,9 @@ def _run_gmail_agenda_import():
                         # Trova l'ultimo oggetto completo e chiude l'array
                         last_brace = raw.rfind("},")
                         if last_brace > 0:
-                            raw_fixed = raw[:last_brace+1] + "]"
-                            appointments = json.loads(raw_fixed)
+                        raw_fixed = raw[:last_brace+1] + "]"
+                        appointments = json.loads(raw_fixed)
+                        _agenda_log(f"JSON troncato recuperato: {len(appointments)} appuntamenti")
                         else:
                             last_brace = raw.rfind("}")
                             if last_brace > 0:
