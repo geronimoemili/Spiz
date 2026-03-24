@@ -228,16 +228,14 @@ def _get_agenda_recipients_list():
 
 
 def _send_agenda_email(periodo: str, events: list, to_list: list):
-    """Invia email agenda via Resend."""
+    """Invia email agenda via Gmail SMTP."""
     try:
-        import resend
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.utils import formataddr
     except ImportError:
-        print("[AGENDA-EMAIL] resend non installato"); return
-
-    api_key = os.getenv("RESEND_API_KEY", "")
-    if not api_key or not to_list:
-        return
-    resend.api_key = api_key
+        print("[AGENDA-EMAIL] librerie email non disponibili"); return
 
     giorni_it = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
     mesi_it   = ["","gennaio","febbraio","marzo","aprile","maggio","giugno",
@@ -249,6 +247,11 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
             return f"{giorni_it[d.weekday()]} {d.day} {mesi_it[d.month]}"
         except Exception:
             return d_str
+
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    if not gmail_user or not gmail_pass or not to_list:
+        print("[AGENDA-EMAIL] credenziali Gmail o destinatari mancanti"); return
 
     if not events:
         body = f"Nessun appuntamento confermato per {periodo}."
@@ -267,13 +270,15 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
         body = "\n".join(lines)
 
     try:
-        resend.Emails.send({
-            "from":    "MAIM Agenda <digest@maim.it>",
-            "to":      to_list,
-            "subject": f"MAIM AGENDA — {periodo}",
-            "text":    body
-        })
-        print(f"[AGENDA-EMAIL] Inviato a {len(to_list)} destinatari — {len(events)} eventi")
+        msg = MIMEMultipart()
+        msg["From"] = formataddr(("MAIM Agenda", gmail_user))
+        msg["To"] = ", ".join(to_list)
+        msg["Subject"] = f"MAIM AGENDA — {periodo}"
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(gmail_user, gmail_pass)
+            smtp.sendmail(gmail_user, to_list, msg.as_string())
+        print(f"[AGENDA-EMAIL] Inviato da {gmail_user} a {len(to_list)} destinatari — {len(events)} eventi")
     except Exception as e:
         print(f"[AGENDA-EMAIL] Errore invio: {e}")
 
