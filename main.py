@@ -1035,13 +1035,16 @@ def _generate_audio_bytes(text: str) -> bytes | None:
 
 def _send_digest_email(text, today_str, to_override=None):
     try:
-        import resend
-        import base64
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.utils import formataddr
     except ImportError:
-        print("[EMAIL] resend non installato"); return
-    api_key = os.getenv("RESEND_API_KEY", "")
-    if not api_key: print("[EMAIL] RESEND_API_KEY non configurata"); return
-    resend.api_key = api_key
+        print("[EMAIL] librerie email non disponibili"); return
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    if not gmail_user or not gmail_pass:
+        print("[EMAIL] credenziali Gmail non configurate"); return
 
     if to_override:
         to_list = to_override
@@ -1062,18 +1065,17 @@ def _send_digest_email(text, today_str, to_override=None):
     filename = f"MAIM_Digest_{today_str.replace('/', '-')}.mp3"
 
     try:
-        payload = {
-            "from":    "MAIM Digest <digest@maim.it>",
-            "to":      to_list,
-            "subject": f"MAIM DIGEST — {today_str}",
-            "text":    text,
-        }
+        body = text
         if audio_bytes:
-            payload["attachments"] = [{"filename": filename, "content": list(audio_bytes)}]
-            print(f"[EMAIL] Audio allegato: {len(audio_bytes)} bytes")
-        else:
-            print("[EMAIL] Audio non generato — invio solo testo")
-        resend.Emails.send(payload)
+            body += f"\n\nAudio digest generato: {filename}"
+        msg = MIMEMultipart()
+        msg["From"] = formataddr(("MAIM Digest", gmail_user))
+        msg["To"] = ", ".join(to_list)
+        msg["Subject"] = f"MAIM DIGEST — {today_str}"
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(gmail_user, gmail_pass)
+            smtp.sendmail(gmail_user, to_list, msg.as_string())
         print(f"[EMAIL] Inviato a {len(to_list)} destinatari")
     except Exception as e:
         print(f"[EMAIL] Errore invio: {e}")
