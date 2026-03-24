@@ -283,6 +283,17 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
         print(f"[AGENDA-EMAIL] Errore invio: {e}")
 
 
+def _smtp_diagnostics():
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    return {
+        "configured": bool(gmail_user and gmail_pass),
+        "from": gmail_user,
+        "smtp_host": "smtp.gmail.com",
+        "smtp_port": 465,
+    }
+
+
 def _send_agenda_morning():
     """07:00 — appuntamenti confermati di oggi."""
     today_str = date.today().isoformat()
