@@ -293,6 +293,38 @@ def _smtp_diagnostics():
         "smtp_port": 465,
     }
 
+@app.get("/api/email/diagnostics")
+async def email_diagnostics():
+    return _smtp_diagnostics()
+
+@app.post("/api/email/test")
+async def email_test(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    to_email = (body.get("to") or os.getenv("GMAIL_USER", "")).strip()
+    if not to_email:
+        return {"success": False, "error": "Destinatario mancante"}
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    if not gmail_user or not gmail_pass:
+        return {"success": False, "error": "Credenziali Gmail non configurate"}
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.utils import formataddr
+        msg = MIMEText("Test invio email MAIM", "plain", "utf-8")
+        msg["From"] = formataddr(("MAIM Test", gmail_user))
+        msg["To"] = to_email
+        msg["Subject"] = "MAIM test email"
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(gmail_user, gmail_pass)
+            smtp.sendmail(gmail_user, [to_email], msg.as_string())
+        return {"success": True, "from": gmail_user, "to": to_email}
+    except Exception as e:
+        return {"success": False, "error": str(e), "from": gmail_user, "to": to_email}
+
 
 def _send_agenda_morning():
     """07:00 — appuntamenti confermati di oggi."""
