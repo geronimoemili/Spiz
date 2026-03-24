@@ -29,11 +29,6 @@ except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
 
-app = FastAPI(title="MAIM Intelligence")
-app.mount("/static", StaticFiles(directory="web"), name="static")
-os.makedirs("data/raw", exist_ok=True)
-os.makedirs("web", exist_ok=True)
-
 # ══════════════════════════════════════════════════════════════════
 # FUNZIONI AGENDA (devono stare prima dello scheduler)
 # ══════════════════════════════════════════════════════════════════
@@ -115,7 +110,7 @@ def _run_gmail_agenda_import():
                             f"Estrai TUTTI gli appuntamenti, scadenze, promemoria, eventi menzionati.\n"
                             f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
                             f"Rispondi SOLO con JSON array. Se nessun appuntamento: [].\n"
-                            f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","descrizione":"..."}}]'
+                            f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo/indirizzo o null","descrizione":"..."}}]'
                         )},
                         {"role": "user", "content": full_text[:3000]}
                     ],
@@ -137,14 +132,21 @@ def _run_gmail_agenda_import():
 
             for apt in appointments:
                 try:
+                    ev_titolo = apt.get("titolo", "")[:200]
+                    ev_data   = apt.get("data", today_str)
+                    if _event_exists(ev_titolo, ev_data):
+                        _agenda_log(f"Doppione saltato: {ev_titolo[:40]}")
+                        continue
                     supabase.table("events").insert({
-                        "titolo":      apt.get("titolo", "")[:200],
-                        "data":        apt.get("data", today_str),
-                        "ora":         apt.get("ora") or None,
-                        "descrizione": apt.get("descrizione", ""),
-                        "fonte":       "gmail",
-                        "stato":       "bozza",
-                        "mittente":    f"{mittente} | {mid_tag}"
+                        "titolo":       ev_titolo,
+                        "data":         ev_data,
+                        "ora":          apt.get("ora") or None,
+                        "luogo":        apt.get("luogo") or None,
+                        "descrizione":  apt.get("descrizione", ""),
+                        "fonte":        "gmail",
+                        "stato":        "bozza",
+                        "mittente":     f"{mittente} | {mid_tag}",
+                        "content_hash": _event_hash(ev_titolo, ev_data)
                     }).execute()
                     found += 1
                 except Exception as e:
@@ -160,64 +162,106 @@ def _run_gmail_agenda_import():
         _agenda_log(f"ERRORE: {e}")
 
 
-def _extract_events_from_recent_articles():
-    """Dopo ogni ingestion CSV cerca eventi futuri nei titoli degli articoli."""
+def _event_exists(titolo: str, data: str) -> bool:
+    """Controlla se esiste già un evento con stesso titolo e data (anti-doppione)."""
+    try:
+        import hashlib
+        key = hashlib.md5(f"{titolo.strip().lower()}|{data}".encode()).hexdigest()
+        res = supabase.table("events").select("id") \
+            .eq("content_hash", key).limit(1).execute().data
+        return bool(res)
+    except Exception:
+        return False
+
+def _event_hash(titolo: str, data: str) -> str:
+    import hashlib
+    return hashlib.md5(f"{titolo.strip().lower()}|{data}".encode()).hexdigest()
+
+
+def _extract_events_from_recent_articles(target_date: str = None):
+    """
+    Legge il testo completo degli articoli del giorno e cerca eventi futuri via GPT.
+    Chiamata automaticamente dopo ogni ingestion e manualmente dall'endpoint.
+    """
     from openai import OpenAI
     try:
-        today_str = date.today().isoformat()
-        arts = supabase.table("articles").select("titolo, occhiello, data") \
-            .eq("data", today_str).limit(80).execute().data or []
+        today_str = target_date or date.today().isoformat()
+        arts = supabase.table("articles") \
+            .select("titolo, occhiello, testo_completo, data, testata") \
+            .eq("data", today_str).limit(60).execute().data or []
         if not arts:
-            return
+            print(f"[EVENTS-RASSEGNA] Nessun articolo per {today_str}")
+            return {"inserted": 0, "skipped": 0, "error": None}
 
         ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
-        combined = "\n".join(
-            f"[{a.get('data','')}] {a.get('titolo','')} — {(a.get('occhiello') or '')[:120]}"
-            for a in arts[:60]
-        )
+
+        # Costruisce blocchi articolo con testo completo (troncato a 800 chars)
+        blocks = []
+        for a in arts:
+            testo = (a.get("testo_completo") or "").strip()[:800]
+            occhiello = (a.get("occhiello") or "").strip()
+            titolo = (a.get("titolo") or "").strip()
+            testata = (a.get("testata") or "").strip()
+            block = f"[{testata}] {titolo}"
+            if occhiello: block += f"\n{occhiello}"
+            if testo:     block += f"\n{testo}"
+            blocks.append(block)
+
+        combined = "\n\n---\n\n".join(blocks[:40])
 
         resp = ai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": (
-                    f"Sei un assistente che identifica eventi futuri da titoli di articoli di stampa.\n"
+                    f"Sei un assistente che identifica eventi futuri citati in articoli di stampa italiana.\n"
                     f"Oggi è {today_str}.\n"
-                    f"Cerca SOLO eventi FUTURI espliciti: convegni, assemblee, conferenze stampa, "
-                    f"scadenze, presentazioni, inaugurazioni.\n"
-                    f"Non includere eventi passati o notizie generiche.\n"
+                    f"Cerca SOLO eventi FUTURI espliciti con una data identificabile: CDA, assemblee, "
+                    f"convegni, conferenze stampa, inaugurazioni, scadenze, presentazioni, udienze, vertici.\n"
+                    f"Includi anche eventi menzionati nel testo come 'il prossimo 12 aprile', 'giovedì prossimo', ecc.\n"
+                    f"NON includere: eventi già passati, notizie generiche senza data futura precisa.\n"
                     f"Rispondi SOLO con JSON array. Se nessun evento futuro chiaro: [].\n"
-                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":null,"descrizione":"Da rassegna stampa"}}]'
+                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo o null","descrizione":"breve contesto dall\'articolo"}}]'
                 )},
                 {"role": "user", "content": combined}
             ],
             temperature=0.1,
-            max_tokens=500
+            max_tokens=1200
         )
         raw = resp.choices[0].message.content.strip() \
             .replace("```json", "").replace("```", "").strip()
         events = json.loads(raw)
 
-        inserted = 0
+        inserted = skipped = 0
         for ev in events:
-            if ev.get("data", "") >= today_str:
-                try:
-                    supabase.table("events").insert({
-                        "titolo":      ev.get("titolo", "")[:200],
-                        "data":        ev["data"],
-                        "ora":         ev.get("ora") or None,
-                        "descrizione": ev.get("descrizione", "Da rassegna stampa"),
-                        "fonte":       "ingestion",
-                        "stato":       "bozza"
-                    }).execute()
-                    inserted += 1
-                except Exception:
-                    pass
+            ev_data = ev.get("data", "")
+            ev_titolo = ev.get("titolo", "")
+            if not ev_titolo or ev_data < today_str:
+                continue
+            # Anti-doppione
+            if _event_exists(ev_titolo, ev_data):
+                skipped += 1
+                continue
+            try:
+                supabase.table("events").insert({
+                    "titolo":       ev_titolo[:200],
+                    "data":         ev_data,
+                    "ora":          ev.get("ora") or None,
+                    "luogo":        ev.get("luogo") or None,
+                    "descrizione":  ev.get("descrizione", ""),
+                    "fonte":        "rassegna",
+                    "stato":        "bozza",
+                    "content_hash": _event_hash(ev_titolo, ev_data)
+                }).execute()
+                inserted += 1
+            except Exception as e:
+                print(f"[EVENTS-RASSEGNA] Errore insert: {e}")
 
-        if inserted:
-            print(f"[EVENTS-INGESTION] {inserted} eventi estratti da rassegna stampa")
+        print(f"[EVENTS-RASSEGNA] {inserted} inseriti, {skipped} doppioni saltati")
+        return {"inserted": inserted, "skipped": skipped, "error": None}
 
     except Exception as e:
-        print(f"[EVENTS-INGESTION] Errore: {e}")
+        print(f"[EVENTS-RASSEGNA] Errore: {e}")
+        return {"inserted": 0, "skipped": 0, "error": str(e)}
 
 
 def _get_agenda_recipients_list():
@@ -233,70 +277,144 @@ def _get_agenda_recipients_list():
 
 
 def _send_agenda_email(periodo: str, events: list, to_list: list):
-    """Invia email agenda via Gmail SMTP."""
+    """Invia email agenda in HTML via Resend."""
     try:
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.utils import formataddr
+        import resend
     except ImportError:
-        print("[AGENDA-EMAIL] librerie email non disponibili"); return
+        print("[AGENDA-EMAIL] resend non installato"); return
+
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key or not to_list:
+        return
+    resend.api_key = api_key
 
     giorni_it = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
     mesi_it   = ["","gennaio","febbraio","marzo","aprile","maggio","giugno",
                  "luglio","agosto","settembre","ottobre","novembre","dicembre"]
 
-    def fmt_data(d_str):
+    def fmt_data_short(d_str):
         try:
             d = date.fromisoformat(d_str)
             return f"{giorni_it[d.weekday()]} {d.day} {mesi_it[d.month]}"
         except Exception:
             return d_str
 
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
-    if not gmail_user or not gmail_pass or not to_list:
-        print("[AGENDA-EMAIL] credenziali Gmail o destinatari mancanti"); return
+    def fmt_ora(o):
+        return o[:5] if o else ""
+
+    # Raggruppa per data
+    by_date = {}
+    for ev in events:
+        by_date.setdefault(ev.get("data",""), []).append(ev)
+
+    # Blocchi HTML per ogni giorno
+    day_blocks = ""
+    for d in sorted(by_date.keys()):
+        evs = by_date[d]
+        event_rows = ""
+        for ev in evs:
+            ora    = fmt_ora(ev.get("ora",""))
+            titolo = ev.get("titolo","")
+            luogo  = ev.get("luogo","")
+            desc   = ev.get("descrizione","")
+
+            luogo_html = f'<div style="margin-top:3px;font-size:11px;color:#5a6a84">📍 {luogo}</div>' if luogo else ""
+            desc_html  = f'<div style="margin-top:3px;font-size:12px;color:#5a6a84;line-height:1.4">{desc}</div>' if desc else ""
+
+            event_rows += f"""
+            <tr>
+              <td style="width:56px;padding:14px 10px 14px 0;vertical-align:top;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#0ea5c9;white-space:nowrap">
+                {ora if ora else "—"}
+              </td>
+              <td style="padding:14px 0;vertical-align:top;border-bottom:1px solid #eef1f6">
+                <div style="font-size:13px;font-weight:600;color:#1a2236;line-height:1.3">{titolo}</div>
+                {luogo_html}
+                {desc_html}
+              </td>
+            </tr>"""
+
+        day_blocks += f"""
+        <div style="margin-bottom:28px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0ea5c9;padding:8px 0;border-bottom:2px solid #0ea5c9;margin-bottom:2px">
+            {fmt_data_short(d)}
+            <span style="float:right;color:#9aabc0;font-weight:400">{len(evs)} evento{"" if len(evs)==1 else "i"}</span>
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">{event_rows}</table>
+        </div>"""
 
     if not events:
-        body = f"Nessun appuntamento confermato per {periodo}."
+        day_blocks = '<div style="text-align:center;padding:40px 0;font-family:monospace;font-size:12px;color:#9aabc0">Nessun appuntamento confermato.</div>'
+
+    oggi = date.today()
+    oggi_str = f"{giorni_it[oggi.weekday()]} {oggi.day} {mesi_it[oggi.month]} {oggi.year}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f6f9;padding:32px 16px">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%">
+
+  <tr><td style="background:linear-gradient(135deg,#0ea5c9,#d4367a);border-radius:12px 12px 0 0;padding:28px 32px">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td>
+        <div style="font-family:monospace;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:4px">MAIM Intelligence</div>
+        <div style="font-size:22px;font-weight:700;color:#fff;line-height:1.2">📅 Agenda {periodo}</div>
+        <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,0.8);margin-top:6px">{oggi_str}</div>
+      </td>
+      <td align="right" style="vertical-align:top">
+        <div style="background:rgba(255,255,255,0.18);border-radius:8px;padding:8px 14px;font-family:monospace;font-size:22px;font-weight:700;color:#fff;text-align:center">{len(events)}</div>
+        <div style="font-family:monospace;font-size:9px;color:rgba(255,255,255,0.7);text-align:center;margin-top:3px;text-transform:uppercase">eventi</div>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="background:#fff;padding:28px 32px;border-left:1px solid #dde3ed;border-right:1px solid #dde3ed">
+    {day_blocks}
+  </td></tr>
+
+  <tr><td style="background:#f4f6f9;border:1px solid #dde3ed;border-top:none;border-radius:0 0 12px 12px;padding:14px 32px">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="font-family:monospace;font-size:9px;color:#9aabc0">MAIM · Public Diplomacy &amp; Media Relations</td>
+      <td align="right" style="font-family:monospace;font-size:9px;color:#9aabc0">Solo eventi confermati</td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>"""
+
+    # Plain text fallback
+    if not events:
+        plain = f"MAIM AGENDA — {periodo}\n\nNessun appuntamento."
     else:
-        lines = [f"MAIM AGENDA — {periodo}", "═" * 40, ""]
-        current_date = None
+        lines = [f"MAIM AGENDA — {periodo}", "=" * 40, ""]
+        cur = None
         for ev in events:
-            if ev.get("data") != current_date:
-                current_date = ev.get("data")
-                lines.append(f"\n📅  {fmt_data(current_date).upper()}")
-                lines.append("─" * 30)
-            ora = f" · {ev['ora'][:5]}" if ev.get("ora") else ""
-            lines.append(f"  • {ev.get('titolo','')}{ora}")
+            if ev.get("data") != cur:
+                cur = ev.get("data")
+                lines.append(f"\n{fmt_data_short(cur).upper()}")
+                lines.append("-" * 30)
+            ora = fmt_ora(ev.get("ora",""))
+            lines.append(f"{'['+ora+']  ' if ora else '       '}{ev.get('titolo','')}")
+            if ev.get("luogo"):
+                lines.append(f"       📍 {ev['luogo']}")
             if ev.get("descrizione"):
-                lines.append(f"    {ev['descrizione']}")
-        body = "\n".join(lines)
+                lines.append(f"       {ev['descrizione']}")
+        plain = "\n".join(lines)
 
     try:
-        msg = MIMEMultipart()
-        msg["From"] = formataddr(("MAIM Agenda", gmail_user))
-        msg["To"] = ", ".join(to_list)
-        msg["Subject"] = f"MAIM AGENDA — {periodo}"
-        msg.attach(MIMEText(body, "plain", "utf-8"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(gmail_user, gmail_pass)
-            smtp.sendmail(gmail_user, to_list, msg.as_string())
-        print(f"[AGENDA-EMAIL] Inviato da {gmail_user} a {len(to_list)} destinatari — {len(events)} eventi")
+        resend.Emails.send({
+            "from":    "MAIM Agenda <digest@maim.it>",
+            "to":      to_list,
+            "subject": f"📅 MAIM AGENDA — {periodo}",
+            "html":    html,
+            "text":    plain,
+        })
+        print(f"[AGENDA-EMAIL] Inviato a {len(to_list)} destinatari — {len(events)} eventi")
     except Exception as e:
         print(f"[AGENDA-EMAIL] Errore invio: {e}")
 
-
-def _smtp_diagnostics():
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
-    return {
-        "configured": bool(gmail_user and gmail_pass),
-        "from": gmail_user,
-        "smtp_host": "smtp.gmail.com",
-        "smtp_port": 465,
-    }
 
 def _send_agenda_morning():
     """07:00 — appuntamenti confermati di oggi."""
@@ -433,6 +551,7 @@ class EventModel(BaseModel):
     titolo:      str
     data:        str
     ora:         Optional[str]  = None
+    luogo:       Optional[str]  = None
     descrizione: Optional[str]  = None
     fonte:       Optional[str]  = "manuale"
     stato:       Optional[str]  = "confermato"
@@ -1055,16 +1174,13 @@ def _generate_audio_bytes(text: str) -> bytes | None:
 
 def _send_digest_email(text, today_str, to_override=None):
     try:
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.utils import formataddr
+        import resend
+        import base64
     except ImportError:
-        print("[EMAIL] librerie email non disponibili"); return
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
-    if not gmail_user or not gmail_pass:
-        print("[EMAIL] credenziali Gmail non configurate"); return
+        print("[EMAIL] resend non installato"); return
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key: print("[EMAIL] RESEND_API_KEY non configurata"); return
+    resend.api_key = api_key
 
     if to_override:
         to_list = to_override
@@ -1085,17 +1201,18 @@ def _send_digest_email(text, today_str, to_override=None):
     filename = f"MAIM_Digest_{today_str.replace('/', '-')}.mp3"
 
     try:
-        body = text
+        payload = {
+            "from":    "MAIM Digest <digest@maim.it>",
+            "to":      to_list,
+            "subject": f"MAIM DIGEST — {today_str}",
+            "text":    text,
+        }
         if audio_bytes:
-            body += f"\n\nAudio digest generato: {filename}"
-        msg = MIMEMultipart()
-        msg["From"] = formataddr(("MAIM Digest", gmail_user))
-        msg["To"] = ", ".join(to_list)
-        msg["Subject"] = f"MAIM DIGEST — {today_str}"
-        msg.attach(MIMEText(body, "plain", "utf-8"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(gmail_user, gmail_pass)
-            smtp.sendmail(gmail_user, to_list, msg.as_string())
+            payload["attachments"] = [{"filename": filename, "content": list(audio_bytes)}]
+            print(f"[EMAIL] Audio allegato: {len(audio_bytes)} bytes")
+        else:
+            print("[EMAIL] Audio non generato — invio solo testo")
+        resend.Emails.send(payload)
         print(f"[EMAIL] Inviato a {len(to_list)} destinatari")
     except Exception as e:
         print(f"[EMAIL] Errore invio: {e}")
@@ -1518,14 +1635,19 @@ async def get_events(
 @app.post("/api/events")
 async def create_event(data: EventModel):
     try:
+        # Anti-doppione per inserimento manuale e incolla
+        if _event_exists(data.titolo, data.data):
+            return {"success": False, "error": "Evento già presente con stesso titolo e data"}
         res = supabase.table("events").insert({
-            "titolo":      data.titolo[:200],
-            "data":        data.data,
-            "ora":         data.ora or None,
-            "descrizione": data.descrizione,
-            "fonte":       data.fonte or "manuale",
-            "stato":       data.stato or "confermato",
-            "mittente":    data.mittente
+            "titolo":       data.titolo[:200],
+            "data":         data.data,
+            "ora":          data.ora or None,
+            "luogo":        data.luogo or None,
+            "descrizione":  data.descrizione,
+            "fonte":        data.fonte or "manuale",
+            "stato":        data.stato or "confermato",
+            "mittente":     data.mittente,
+            "content_hash": _event_hash(data.titolo, data.data)
         }).execute()
         return {"success": True, "event": res.data[0] if res.data else {}}
     except Exception as e:
@@ -1573,7 +1695,7 @@ async def extract_events_from_text(req: ExtractTextRequest):
                     f"Estrai TUTTI gli appuntamenti, eventi, scadenze menzionati.\n"
                     f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
                     f"Rispondi SOLO con JSON array. Se nessun appuntamento: [].\n"
-                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","descrizione":"..."}}]'
+                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo/indirizzo o null","descrizione":"..."}}]'
                 )},
                 {"role": "user", "content": req.text[:4000]}
             ],
@@ -1585,6 +1707,24 @@ async def extract_events_from_text(req: ExtractTextRequest):
         return {"events": json.loads(raw)}
     except Exception as e:
         return {"events": [], "error": str(e)}
+
+@app.post("/api/events/extract-from-rassegna")
+async def extract_events_from_rassegna(request: Request):
+    """Estrae eventi futuri dalla rassegna stampa del giorno (o data specificata)."""
+    try:
+        body = await request.json()
+        target_date = body.get("data") or date.today().isoformat()
+    except Exception:
+        target_date = date.today().isoformat()
+
+    result = _extract_events_from_recent_articles(target_date=target_date)
+    return {
+        "success": result["error"] is None,
+        "inserted": result["inserted"],
+        "skipped":  result["skipped"],
+        "error":    result["error"]
+    }
+
 
 @app.post("/api/gmail/agenda-import")
 async def gmail_agenda_import_endpoint():

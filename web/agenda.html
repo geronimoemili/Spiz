@@ -16,14 +16,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
 
-.topnav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.logo-img{height:38px;width:auto;display:block;flex-shrink:0}
-.nav-links{display:flex;gap:2px;margin-left:auto}
-.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;text-decoration:none}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
-
-.layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1200px;margin:0 auto;padding:24px 20px}
+.layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1200px;margin:0 auto;padding:24px}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
 .card:last-child{margin-bottom:0}
@@ -62,6 +55,7 @@ body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--tex
 .bozza-content{flex:1;min-width:0}
 .bozza-title{font-weight:600;font-size:12px;margin-bottom:2px}
 .bozza-meta{font-family:var(--mono);font-size:9px;color:var(--amber)}
+.bozza-luogo{font-size:11px;color:var(--muted);margin-top:2px}
 .bozza-from{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bozza-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 
@@ -69,24 +63,27 @@ body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--tex
 .day-group{margin-bottom:18px}
 .day-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 0 6px 4px;border-bottom:2px solid var(--border2);margin-bottom:8px}
 .day-label.today{color:var(--cyan);border-bottom-color:var(--cyan)}
-.event-row{display:flex;align-items:flex-start;gap:10px;padding:7px 8px;border-radius:6px;transition:background .15s}
+.event-row{display:flex;align-items:flex-start;gap:10px;padding:8px 8px;border-radius:6px;transition:background .15s}
 .event-row:hover{background:var(--border2)}
-.event-time{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--cyan);min-width:38px;flex-shrink:0;padding-top:2px}
+.event-time{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--cyan);min-width:42px;flex-shrink:0;padding-top:2px}
 .event-content{flex:1;min-width:0}
-.event-title{font-size:12px;font-weight:600;margin-bottom:2px}
-.event-desc{font-size:11px;color:var(--muted);margin-bottom:2px}
-.event-fonte{font-family:var(--mono);font-size:8px;color:var(--faint)}
+.event-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.event-luogo{font-size:11px;color:var(--muted);margin-bottom:1px}
+.event-desc{font-size:11px;color:var(--faint)}
+.event-fonte{font-family:var(--mono);font-size:8px;color:var(--faint);margin-top:3px}
 .event-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
 .event-row:hover .event-actions{opacity:1}
 .empty-msg{font-family:var(--mono);font-size:10px;color:var(--faint);padding:16px 0;text-align:center}
 
 /* Form */
-.form-row{display:grid;grid-template-columns:1fr 130px 90px;gap:8px;margin-bottom:8px}
+.form-row{display:grid;grid-template-columns:1fr 120px 80px;gap:8px;margin-bottom:8px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 input[type=text],input[type=date],input[type=time],textarea,select{
   font-family:var(--sans);font-size:12px;padding:7px 10px;border:1px solid var(--border);
   border-radius:5px;background:var(--border2);color:var(--text);outline:none;width:100%}
 input:focus,textarea:focus{border-color:var(--cyan);background:#fff}
 textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px;line-height:1.6}
+label.form-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
 
 /* Estrai */
 .extract-preview{margin-top:12px}
@@ -94,6 +91,7 @@ textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px
 .extract-body{flex:1;min-width:0}
 .extract-title{font-weight:600;font-size:12px}
 .extract-meta{font-family:var(--mono);font-size:9px;color:var(--cyan);margin-top:2px}
+.extract-luogo{font-size:11px;color:var(--muted);margin-top:1px}
 
 /* Destinatari */
 .r-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2)}
@@ -131,18 +129,8 @@ textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px
 </head>
 <body>
 
-<div class="topnav">
-  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
-  <div class="nav-links">
-    <a class="nav-link" href="/">Home</a>
-    <a class="nav-link" href="/press">Press</a>
-    <a class="nav-link" href="/web">Web</a>
-    <a class="nav-link" href="/clients">Clienti</a>
-    <a class="nav-link" href="/giornalisti">Giornalisti</a>
-    <a class="nav-link" href="/testate">Testate</a>
-    <a class="nav-link active" href="/agenda">Agenda</a>
-  </div>
-</div>
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
 
 <div class="layout">
 
@@ -186,13 +174,29 @@ textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px
     <div class="card">
       <div class="card-head"><span class="card-title">➕ Nuovo appuntamento</span></div>
       <div class="card-body">
-        <div class="form-row">
-          <input type="text" id="new-titolo" placeholder="Titolo *"/>
-          <input type="date" id="new-data"/>
-          <input type="time" id="new-ora" placeholder="Ora"/>
+        <div class="form-row" style="margin-bottom:8px">
+          <div>
+            <label class="form-label">Titolo *</label>
+            <input type="text" id="new-titolo" placeholder="Es. Conferenza stampa Mediobanca"/>
+          </div>
+          <div>
+            <label class="form-label">Data *</label>
+            <input type="date" id="new-data"/>
+          </div>
+          <div>
+            <label class="form-label">Ora</label>
+            <input type="time" id="new-ora"/>
+          </div>
         </div>
-        <div style="margin-bottom:10px">
-          <input type="text" id="new-desc" placeholder="Note / descrizione (opzionale)"/>
+        <div class="form-row-2" style="margin-bottom:8px">
+          <div>
+            <label class="form-label">📍 Luogo</label>
+            <input type="text" id="new-luogo" placeholder="Es. Sala stampa, Milano"/>
+          </div>
+          <div>
+            <label class="form-label">Note</label>
+            <input type="text" id="new-desc" placeholder="Descrizione opzionale"/>
+          </div>
         </div>
         <button class="btn btn-grad" onclick="addEvent()">➕ Aggiungi</button>
       </div>
@@ -246,10 +250,25 @@ textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px
       </div>
       <div class="card-body">
         <button class="btn btn-out" id="btn-gmail" onclick="importGmail()" style="width:100%;margin-bottom:8px">
-          📥 Controlla ora
+          📥 Controlla Gmail ora
         </button>
         <div style="font-family:var(--mono);font-size:9px;color:var(--faint)">Controllo automatico ogni ora</div>
         <div class="log-box" id="gmail-log"></div>
+      </div>
+    </div>
+
+    <!-- RASSEGNA -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">📰 Rassegna stampa</span></div>
+      <div class="card-body">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+          <input type="date" id="rassegna-data" style="flex:1"/>
+          <button class="btn btn-out" id="btn-rassegna" onclick="estraiRassegna()">📰 Estrai eventi</button>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--faint)">
+          Legge testo completo degli articoli e cerca eventi futuri · Auto dopo ogni upload
+        </div>
+        <div id="rassegna-result" style="display:none;margin-top:8px;font-family:var(--mono);font-size:10px"></div>
       </div>
     </div>
 
@@ -305,8 +324,13 @@ function fmtData(d){
 function fmtOra(o){ return o ? o.slice(0,5) : ''; }
 
 function fonteIcon(f){
-  const m = {gmail:'📧', ingestion:'📰', manuale:'✏️', incolla:'📋'};
+  const m = {gmail:'📧', rassegna:'📰', manuale:'✏️', incolla:'📋'};
   return m[f] || '📌';
+}
+
+function fonteLabel(f){
+  const m = {gmail:'Gmail', rassegna:'Rassegna', manuale:'Manuale', incolla:'Incolla'};
+  return m[f] || f;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
@@ -315,6 +339,7 @@ window.addEventListener('load', async ()=>{
   const to = new Date(); to.setDate(to.getDate()+30);
   document.getElementById('filter-to').value = to.toISOString().split('T')[0];
   document.getElementById('new-data').value = today;
+  document.getElementById('rassegna-data').value = today;
 
   await loadEvents();
   await loadRecipients();
@@ -380,6 +405,7 @@ function renderBozze(bozze){
       <div class="bozza-content">
         <div class="bozza-title">${esc(e.titolo)}</div>
         <div class="bozza-meta">${fmtData(e.data)}${fmtOra(e.ora) ? ' · '+fmtOra(e.ora) : ''}</div>
+        ${e.luogo ? `<div class="bozza-luogo">📍 ${esc(e.luogo)}</div>` : ''}
         ${e.descrizione ? `<div class="bozza-from">${esc(e.descrizione)}</div>` : ''}
         ${e.mittente ? `<div class="bozza-from">Da: ${esc(e.mittente.split('|')[0].trim())}</div>` : ''}
         <div class="bozza-actions">
@@ -418,8 +444,9 @@ function renderConfermati(list){
           <div class="event-time">${fmtOra(e.ora)||'—'}</div>
           <div class="event-content">
             <div class="event-title">${esc(e.titolo)}</div>
-            ${e.descrizione?`<div class="event-desc">${esc(e.descrizione)}</div>`:''}
-            <div class="event-fonte">${fonteIcon(e.fonte)} ${e.fonte}</div>
+            ${e.luogo ? `<div class="event-luogo">📍 ${esc(e.luogo)}</div>` : ''}
+            ${e.descrizione ? `<div class="event-desc">${esc(e.descrizione)}</div>` : ''}
+            <div class="event-fonte">${fonteIcon(e.fonte)} ${fonteLabel(e.fonte)}</div>
           </div>
           <div class="event-actions">
             <button class="btn btn-out" style="font-size:9px;padding:3px 8px" onclick="editEvent('${e.id}')">✏️</button>
@@ -434,18 +461,20 @@ async function addEvent(){
   const titolo = document.getElementById('new-titolo').value.trim();
   const data   = document.getElementById('new-data').value;
   const ora    = document.getElementById('new-ora').value || null;
-  const desc   = document.getElementById('new-desc').value.trim();
+  const luogo  = document.getElementById('new-luogo').value.trim() || null;
+  const desc   = document.getElementById('new-desc').value.trim() || null;
   if(!titolo){ toast('Titolo obbligatorio','err'); return; }
   if(!data)  { toast('Data obbligatoria','err');   return; }
   try{
     const res = await fetch('/api/events',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({titolo, data, ora, descrizione:desc, fonte:'manuale', stato:'confermato'})
+      body: JSON.stringify({titolo, data, ora, luogo, descrizione:desc, fonte:'manuale', stato:'confermato'})
     }).then(r=>r.json());
     if(res.error){ toast('Errore: '+res.error,'err'); return; }
     toast('✅ Aggiunto');
     document.getElementById('new-titolo').value = '';
     document.getElementById('new-ora').value    = '';
+    document.getElementById('new-luogo').value  = '';
     document.getElementById('new-desc').value   = '';
     await loadEvents();
   }catch(e){ toast('Errore connessione','err'); }
@@ -469,15 +498,16 @@ function editEvent(id){
   if(!ev) return;
   const titolo = prompt('Titolo:', ev.titolo);
   if(titolo===null) return;
-  const data = prompt('Data (YYYY-MM-DD):', ev.data);
+  const data  = prompt('Data (YYYY-MM-DD):', ev.data);
   if(data===null) return;
-  const ora  = prompt('Ora (HH:MM, vuoto per nessuna):', fmtOra(ev.ora));
-  const desc = prompt('Descrizione:', ev.descrizione||'');
+  const ora   = prompt('Ora (HH:MM, vuoto = nessuna):', fmtOra(ev.ora));
+  const luogo = prompt('Luogo (vuoto = nessuno):', ev.luogo||'');
+  const desc  = prompt('Descrizione:', ev.descrizione||'');
   fetch(`/api/events/${id}`,{
     method:'PUT', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       titolo: titolo||ev.titolo, data: data||ev.data,
-      ora: ora||null, descrizione: desc||'',
+      ora: ora||null, luogo: luogo||null, descrizione: desc||null,
       fonte: ev.fonte, stato: ev.stato
     })
   }).then(r=>r.json()).then(res=>{
@@ -520,7 +550,9 @@ function renderExtracted(){
       <div class="extract-item">
         <div class="extract-body">
           <div class="extract-title">${esc(ev.titolo||'')}</div>
-          <div class="extract-meta">${fmtData(ev.data)}${ev.ora?' · '+ev.ora:''}${ev.descrizione?' · '+esc(ev.descrizione):''}</div>
+          <div class="extract-meta">${fmtData(ev.data)}${ev.ora?' · '+ev.ora:''}</div>
+          ${ev.luogo ? `<div class="extract-luogo">📍 ${esc(ev.luogo)}</div>` : ''}
+          ${ev.descrizione ? `<div style="font-size:11px;color:var(--faint)">${esc(ev.descrizione)}</div>` : ''}
         </div>
         <button class="btn btn-green" style="font-size:9px;padding:4px 9px;flex-shrink:0" onclick="addExtracted(${i})">+ Aggiungi</button>
       </div>`).join('')}`;
@@ -531,8 +563,11 @@ async function addExtracted(i){
   if(!ev) return;
   const res = await fetch('/api/events',{
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({titolo:ev.titolo, data:ev.data, ora:ev.ora||null,
-      descrizione:ev.descrizione||'', fonte:'incolla', stato:'confermato'})
+    body: JSON.stringify({
+      titolo:ev.titolo, data:ev.data, ora:ev.ora||null,
+      luogo:ev.luogo||null, descrizione:ev.descrizione||null,
+      fonte:'incolla', stato:'confermato'
+    })
   }).then(r=>r.json());
   if(res.error){ toast('Errore','err'); return; }
   toast('✅ Aggiunto');
@@ -564,14 +599,12 @@ async function refreshGmailStatus(){
     const dot = document.getElementById('gmail-dot');
     const txt = document.getElementById('gmail-txt');
     const log = document.getElementById('gmail-log');
-
     dot.className = 'sdot ' + (s.status==='running'?'sdot-running':s.status==='error'?'sdot-error':'sdot-idle');
     if(s.status==='running') txt.textContent='In esecuzione…';
     else if(s.status==='error') txt.textContent='Errore';
     else txt.textContent = s.last_check
       ? `${new Date(s.last_check).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} · ${s.found||0} estratti`
       : 'In attesa';
-
     if(s.log&&s.log.length) log.innerHTML=s.log.map(l=>`<div>${esc(l)}</div>`).join('');
   }catch(e){}
 }
@@ -586,6 +619,43 @@ async function inviaAgenda(periodo){
     if(res.success) toast(`✅ Inviato — ${res.events} eventi a ${res.recipients} destinatari`);
     else toast('Errore: '+(res.error||''),'err');
   }catch(e){ toast('Errore connessione','err'); }
+}
+
+// ── ESTRAI DA RASSEGNA ────────────────────────────────────────────
+async function estraiRassegna(){
+  const data = document.getElementById('rassegna-data').value || today;
+  const btn  = document.getElementById('btn-rassegna');
+  const res_div = document.getElementById('rassegna-result');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-top-color:var(--cyan);border-color:rgba(14,165,201,.2)"></div> Analisi…';
+  res_div.style.display = 'none';
+  try{
+    const res = await fetch('/api/events/extract-from-rassegna',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({data})
+    }).then(r=>r.json());
+
+    if(res.error){
+      res_div.style.display = 'block';
+      res_div.style.color = 'var(--red)';
+      res_div.textContent = 'Errore: ' + res.error;
+    } else {
+      res_div.style.display = 'block';
+      res_div.style.color = res.inserted > 0 ? 'var(--green)' : 'var(--faint)';
+      res_div.textContent = `✓ ${res.inserted} nuovi eventi · ${res.skipped} doppioni saltati`;
+      if(res.inserted > 0){
+        toast(`✅ ${res.inserted} eventi estratti dalla rassegna`);
+        await loadEvents();
+      } else {
+        toast('Nessun evento futuro trovato nella rassegna');
+      }
+    }
+  }catch(e){
+    toast('Errore connessione','err');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '📰 Estrai eventi';
+  }
 }
 
 // ── DESTINATARI ───────────────────────────────────────────────────
