@@ -1,53 +1,8 @@
-run = "python3.11 main.py"
-modules = ["nodejs-20", "python-3.11"]
-
-[nix]
-packages = ["cargo", "fetchutils", "glibcLocales", "libiconv", "libxcrypt", "lsof", "python37", "rustc", "tree", "zip"]
-
-[[ports]]
-localPort = 5904
-externalPort = 3000
-
-[[ports]]
-localPort = 8080
-externalPort = 80
-
-[deployment]
-deploymentTarget = "autoscale"
-run = ["python3.11", "main.py"]
-build = ["python3.11", "-m", "pip", "install", "--break-system-packages", "-r", "requirements.txt"]
-healthcheckPath = "/health"
-
-[workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "FastAPI Server"
-
-[[workflows.workflow]]
-name = "FastAPI Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3.11 main.py"
-waitForPort = 8080
-
-[workflows.workflow.metadata]
-outputType = "webview"
+language = "python3"
+run = "python3 main.py"
+entrypoint = "main.py"
+[env]
+PYTHON_VERSION = "3.10"
 
 [agent]
 expertMode = true
-
-[userenv]
-
-[userenv.shared]
-GMAIL_APP_PASSWORD = "rlnm cqup gzyf afbl"
-GMAIL_USER = "rassegnamaim@gmail.com"
-DEEPSEEK_API_KEY = "sk-a39e9f5c8a2b4cc0b217215850d55011"
