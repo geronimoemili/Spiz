@@ -28,6 +28,18 @@ try:
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
+# ──────────────────────────────────────────────────────────────────
+# Client OpenAI per DeepSeek (chat) e per OpenAI (audio)
+from openai import OpenAI
+
+deepseek_client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+    base_url="https://api.deepseek.com/v1"
+)
+
+openai_client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY", "")
+)
 
 # ══════════════════════════════════════════════════════════════════
 # FUNZIONI AGENDA (devono stare prima dello scheduler)
@@ -286,13 +298,13 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
             <tr>
               <td style="width:56px;padding:14px 10px 14px 0;vertical-align:top;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#0ea5c9;white-space:nowrap">
                 {ora if ora else "—"}
-              </td>
+               </td>
               <td style="padding:14px 0;vertical-align:top;border-bottom:1px solid #eef1f6">
                 <div style="font-size:13px;font-weight:600;color:#1a2236;line-height:1.3">{titolo}</div>
                 {luogo_html}
                 {desc_html}
-              </td>
-            </tr>"""
+               </td>
+             </tr>"""
 
         day_blocks += f"""
         <div style="margin-bottom:28px">
@@ -316,7 +328,7 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%">
 
-  <tr><td style="background:linear-gradient(135deg,#0ea5c9,#d4367a);border-radius:12px 12px 0 0;padding:28px 32px">
+   <tr><td style="background:linear-gradient(135deg,#0ea5c9,#d4367a);border-radius:12px 12px 0 0;padding:28px 32px">
     <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
       <td>
         <div style="font-family:monospace;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:4px">MAIM Intelligence</div>
@@ -328,21 +340,21 @@ def _send_agenda_email(periodo: str, events: list, to_list: list):
         <div style="font-family:monospace;font-size:9px;color:rgba(255,255,255,0.7);text-align:center;margin-top:3px;text-transform:uppercase">eventi</div>
       </td>
     </tr></table>
-  </td></tr>
+   </td></tr>
 
-  <tr><td style="background:#fff;padding:28px 32px;border-left:1px solid #dde3ed;border-right:1px solid #dde3ed">
+   <tr><td style="background:#fff;padding:28px 32px;border-left:1px solid #dde3ed;border-right:1px solid #dde3ed">
     {day_blocks}
-  </td></tr>
+   </td></tr>
 
-  <tr><td style="background:#f4f6f9;border:1px solid #dde3ed;border-top:none;border-radius:0 0 12px 12px;padding:14px 32px">
+   <tr><td style="background:#f4f6f9;border:1px solid #dde3ed;border-top:none;border-radius:0 0 12px 12px;padding:14px 32px">
     <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
       <td style="font-family:monospace;font-size:9px;color:#9aabc0">MAIM · Public Diplomacy &amp; Media Relations</td>
       <td align="right" style="font-family:monospace;font-size:9px;color:#9aabc0">Solo eventi confermati</td>
     </tr></table>
-  </td></tr>
+   </td></tr>
 
 </table>
-</td></tr></table>
+</td></tr>
 </body></html>"""
 
     # Plain text fallback
@@ -1114,10 +1126,13 @@ async def get_monitor_meta():
 
 def _generate_audio_bytes(text: str) -> bytes | None:
     try:
-        from openai import OpenAI
+        # usa il client OpenAI per audio
         api_key = os.getenv("OPENAI_API_KEY", "")
         if not api_key: return None
-        ai = OpenAI(api_key=api_key)
+        # riutilizziamo il client globale
+        if not openai_client.api_key:
+            # fallback
+            return None
         clean = text.replace("*","").replace("_","").replace("————————————————————",". ")
         if len(clean) > 4000:
             clean = clean[:4000] + "... Fine del digest."
@@ -1125,7 +1140,7 @@ def _generate_audio_bytes(text: str) -> bytes | None:
         parts = []
         for ch in chunks:
             if not ch.strip(): continue
-            r = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=ch, response_format="mp3")
+            r = openai_client.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=ch, response_format="mp3")
             parts.append(r.content)
         return b"".join(parts)
     except Exception as e:
@@ -1283,18 +1298,18 @@ def _split_text_chunks(text: str, max_chars: int = 4096) -> list:
 
 @app.post("/api/digest-audio")
 async def digest_audio(req: DigestAudioRequest):
-    from openai import OpenAI
+    # usa il client OpenAI per audio
     if not req.text or not req.text.strip(): raise HTTPException(status_code=400, detail="Testo vuoto")
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key: raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
     try:
-        ai = OpenAI(api_key=api_key)
+        # riutilizza openai_client
         clean = req.text.replace("*","").replace("_","").replace("————————————————————",". ")
         chunks = _split_text_chunks(clean, 4096)
         audio_parts = []
         for chunk in chunks:
             if not chunk.strip(): continue
-            resp = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
+            resp = openai_client.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
             audio_parts.append(resp.content)
         combined = b"".join(audio_parts)
         return StreamingResponse(iter([combined]), media_type="audio/mpeg",
@@ -1353,7 +1368,7 @@ async def toggle_digest_recipient(rid: str, request: Request):
 
 @app.get("/api/digest-audio-download")
 async def digest_audio_download(data: str = Query("")):
-    from openai import OpenAI
+    # usa client OpenAI per audio
     today = date.today().isoformat()
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key: raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
@@ -1361,13 +1376,12 @@ async def digest_audio_download(data: str = Query("")):
         res = supabase.table("digests").select("text").eq("data", today).execute()
         if not res.data: raise HTTPException(status_code=404, detail="Nessun digest oggi")
         text = res.data[0]["text"]
-        ai = OpenAI(api_key=api_key)
         clean = text.replace("*","").replace("_","").replace("————————————————————",". ")
         chunks = _split_text_chunks(clean, 4096)
         audio_parts = []
         for chunk in chunks:
             if not chunk.strip(): continue
-            resp = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
+            resp = openai_client.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
             audio_parts.append(resp.content)
         combined = b"".join(audio_parts)
         filename = f"MAIM_Digest_{today}.mp3"
@@ -1383,11 +1397,11 @@ async def digest_audio_download(data: str = Query("")):
 
 @app.post("/api/web-digest/generate")
 async def generate_web_digest():
-    from openai import OpenAI
-    import secrets
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key: raise HTTPException(status_code=500, detail="OPENAI_API_KEY non configurata")
-    ai = OpenAI(api_key=api_key)
+    # ora usiamo deepseek_client per chat
+    api_key = os.getenv("DEEPSEEK_API_KEY", "")
+    if not api_key: raise HTTPException(status_code=500, detail="DEEPSEEK_API_KEY non configurata")
+    # non serve ricreare il client, usiamo quello globale
+    # deepseek_client già definito
     today = date.today()
     now_utc = datetime.now(timezone.utc).isoformat()
     start_utc = datetime(today.year, today.month, today.day, 6, 0, 0, tzinfo=timezone.utc).isoformat()
@@ -1400,10 +1414,15 @@ async def generate_web_digest():
     mesi = ["","gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"]
     data_ext = f"{giorni[today.weekday()]} {today.day} {mesi[today.month]} {today.year}"
     try:
-        resp = ai.chat.completions.create(model="gpt-4o-mini",
-            messages=[{"role":"system","content":"Sei MAIM Intelligence. Produci contenuto conciso e professionale."},
-                      {"role":"user","content":f"Data: {data_ext} | Totale: {len(mentions)}\nTITOLI:\n{titoli_block}\n\nProduci:\n▶️ *TEMI PRINCIPALI*\n[Max 5 temi, 2 righe]\n\n▶️ *DA TENERE D'OCCHIO*\n[1-2 segnali deboli]"}],
-            temperature=0.1, max_tokens=900)
+        resp = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role":"system","content":"Sei MAIM Intelligence. Produci contenuto conciso e professionale."},
+                {"role":"user","content":f"Data: {data_ext} | Totale: {len(mentions)}\nTITOLI:\n{titoli_block}\n\nProduci:\n▶️ *TEMI PRINCIPALI*\n[Max 5 temi, 2 righe]\n\n▶️ *DA TENERE D'OCCHIO*\n[1-2 segnali deboli]"}
+            ],
+            temperature=0.1,
+            max_tokens=900
+        )
         themes_text = resp.choices[0].message.content.strip()
     except Exception as e: themes_text = f"Errore: {e}"
     clients_map = {}
@@ -1641,14 +1660,12 @@ async def confirm_event(event_id: str):
 
 @app.post("/api/events/extract-text")
 async def extract_events_from_text(req: ExtractTextRequest):
-    from openai import OpenAI
     if not req.text.strip():
         return {"events": [], "error": "Testo vuoto"}
     try:
-        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
         today_str = date.today().isoformat()
-        resp = ai.chat.completions.create(
-            model="gpt-4o-mini",
+        resp = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": (
                     f"Sei un assistente che estrae appuntamenti da testi italiani.\n"

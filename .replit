@@ -50,3 +50,4 @@ expertMode = true
 [userenv.shared]
 GMAIL_APP_PASSWORD = "rlnm cqup gzyf afbl"
 GMAIL_USER = "rassegnamaim@gmail.com"
+DEEPSEEK_API_KEY = "sk-a39e9f5c8a2b4cc0b217215850d55011"

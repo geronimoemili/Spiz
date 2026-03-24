@@ -1,5 +1,5 @@
 """
-api/chat.py  —  SPIZ AI v16
+api/chat.py  —  SPIZ AI v16 (DeepSeek per chat, OpenAI per embedding)
 ═══════════════════════════════════════════════════════════════════
 
 DUE TIPI DI REPORT:
@@ -39,7 +39,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from openai import OpenAI
 from services.database import supabase
 
-ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Client per completions (DeepSeek)
+chat_client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+    base_url="https://api.deepseek.com/v1"
+)
+
+# Client per embeddings (OpenAI)
+embedding_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
 DB_COLS = (
     "id, testata, data, giornalista, occhiello, titolo, sottotitolo, "
@@ -452,8 +459,8 @@ perché questo lo rende il profilo giusto.
 def _direct_report(articles, stats, system_prompt) -> str:
     corpus_blocks = "\n\n════\n\n".join(
         _article_block(a, DIRECT_TEXT_CHARS) for a in articles)
-    resp = ai.chat.completions.create(
-        model="gpt-4o",
+    resp = chat_client.chat.completions.create(
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": system_prompt},
             {
@@ -497,8 +504,8 @@ def _map_batch(batch: list, idx: int) -> tuple:
     blocks = "\n\n════\n\n".join(
         _article_block(a, MAP_TEXT_CHARS) for a in batch)
     try:
-        resp = ai.chat.completions.create(
-            model="gpt-4o-mini",
+        resp = chat_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": _MAP_SYSTEM},
                 {"role": "user", "content": blocks},
@@ -543,8 +550,8 @@ def _reduce_report(extracted, stats, system_prompt) -> str:
     if len(extracted_txt) > 18000:
         extracted_txt = extracted_txt[:18000] + "...]"
 
-    resp = ai.chat.completions.create(
-        model="gpt-4o",
+    resp = chat_client.chat.completions.create(
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": system_prompt},
             {
@@ -593,7 +600,7 @@ def ask_spiz(
         from_date, to_date = _date_range(context, message)
         search_query = client_name or topic_name or message
         try:
-            emb = ai.embeddings.create(
+            emb = embedding_client.embeddings.create(
                 model="text-embedding-3-small",
                 input=search_query[:8000],
             ).data[0].embedding
@@ -787,8 +794,8 @@ def generate_digest(articles_today: list, clients: list) -> dict:
             batch = arts[i:i + BATCH]
             blocchi = "\n\n---\n\n".join(_art_block_gpt(a) for a in batch)
             msg = f"{contesto}\n\nArticoli ({len(batch)}):\n\n{blocchi}\n\n{_ISTR_ARTICOLI}"
-            resp = ai.chat.completions.create(
-                model="gpt-4o-mini",
+            resp = chat_client.chat.completions.create(
+                model="deepseek-chat",
                 messages=[
                     {"role": "system", "content": _SYS},
                     {"role": "user",   "content": msg},
@@ -810,8 +817,8 @@ def generate_digest(articles_today: list, clients: list) -> dict:
         for a in articles_today
     )
     print("[DIGEST] Chiamata — temi del giorno")
-    resp_temi = ai.chat.completions.create(
-        model="gpt-4o-mini",
+    resp_temi = chat_client.chat.completions.create(
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": _SYS},
             {
