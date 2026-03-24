@@ -109,17 +109,40 @@ def _run_gmail_agenda_import():
                             f"Oggi è {today_str}.\n"
                             f"Estrai TUTTI gli appuntamenti, scadenze, promemoria, eventi menzionati.\n"
                             f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
-                            f"Rispondi SOLO con JSON array. Se nessun appuntamento: [].\n"
+                            f"Rispondi SOLO con JSON array valido e completo. Se nessun appuntamento: [].\n"
                             f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo/indirizzo o null","descrizione":"..."}}]'
                         )},
-                        {"role": "user", "content": full_text[:3000]}
+                        {"role": "user", "content": full_text[:4000]}
                     ],
                     temperature=0.1,
-                    max_tokens=800
+                    max_tokens=2000
                 )
                 raw = resp.choices[0].message.content.strip() \
                     .replace("```json", "").replace("```", "").strip()
-                appointments = json.loads(raw)
+
+                # Parser robusto: se il JSON è troncato, prova a recuperarlo
+                try:
+                    appointments = json.loads(raw)
+                except json.JSONDecodeError:
+                    # Prova a chiudere l'array troncato
+                    try:
+                        # Trova l'ultimo oggetto completo e chiude l'array
+                        last_brace = raw.rfind("},")
+                        if last_brace > 0:
+                            raw_fixed = raw[:last_brace+1] + "]"
+                            appointments = json.loads(raw_fixed)
+                        else:
+                            last_brace = raw.rfind("}")
+                            if last_brace > 0:
+                                raw_fixed = raw[:last_brace+1] + "]"
+                                appointments = json.loads(raw_fixed)
+                            else:
+                                raise ValueError("JSON non recuperabile")
+                        _agenda_log(f"JSON troncato recuperato: {len(appointments)} appuntamenti")
+                    except Exception:
+                        _agenda_log(f"JSON non parsabile — salto email '{subj[:40]}'")
+                        continue
+
             except Exception as e:
                 _agenda_log(f"Errore GPT su '{subj[:40]}': {e}")
                 continue
@@ -162,11 +185,18 @@ def _run_gmail_agenda_import():
         _agenda_log(f"ERRORE: {e}")
 
 
+def _normalize_title(titolo: str) -> str:
+    """Normalizza il titolo per anti-doppione fuzzy: lowercase, no punteggiatura, no spazi extra."""
+    import re
+    t = titolo.lower().strip()
+    t = re.sub(r"[^\w\s]", "", t)       # rimuove punteggiatura
+    t = re.sub(r"\s+", " ", t).strip()  # normalizza spazi
+    return t
+
 def _event_exists(titolo: str, data: str) -> bool:
-    """Controlla se esiste già un evento con stesso titolo e data (anti-doppione)."""
+    """Controlla se esiste già un evento con stesso titolo (fuzzy) e data."""
     try:
-        import hashlib
-        key = hashlib.md5(f"{titolo.strip().lower()}|{data}".encode()).hexdigest()
+        key = _event_hash(titolo, data)
         res = supabase.table("events").select("id") \
             .eq("content_hash", key).limit(1).execute().data
         return bool(res)
@@ -175,67 +205,84 @@ def _event_exists(titolo: str, data: str) -> bool:
 
 def _event_hash(titolo: str, data: str) -> str:
     import hashlib
-    return hashlib.md5(f"{titolo.strip().lower()}|{data}".encode()).hexdigest()
+    normalized = _normalize_title(titolo)
+    return hashlib.md5(f"{normalized}|{data}".encode()).hexdigest()
 
 
 def _extract_events_from_recent_articles(target_date: str = None):
     """
     Legge il testo completo degli articoli del giorno e cerca eventi futuri via GPT.
-    Chiamata automaticamente dopo ogni ingestion e manualmente dall'endpoint.
+    Processa a gruppi di 10 articoli per non superare il context window.
     """
     from openai import OpenAI
     try:
         today_str = target_date or date.today().isoformat()
         arts = supabase.table("articles") \
-            .select("titolo, occhiello, testo_completo, data, testata") \
-            .eq("data", today_str).limit(60).execute().data or []
+            .select("titolo, occhiello, testo_completo, testata") \
+            .eq("data", today_str).limit(200).execute().data or []
         if not arts:
             print(f"[EVENTS-RASSEGNA] Nessun articolo per {today_str}")
             return {"inserted": 0, "skipped": 0, "error": None}
 
+        print(f"[EVENTS-RASSEGNA] {len(arts)} articoli da analizzare")
         ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
-        # Costruisce blocchi articolo con testo completo (troncato a 800 chars)
-        blocks = []
-        for a in arts:
-            testo = (a.get("testo_completo") or "").strip()[:800]
-            occhiello = (a.get("occhiello") or "").strip()
-            titolo = (a.get("titolo") or "").strip()
-            testata = (a.get("testata") or "").strip()
-            block = f"[{testata}] {titolo}"
-            if occhiello: block += f"\n{occhiello}"
-            if testo:     block += f"\n{testo}"
-            blocks.append(block)
+        BATCH = 10
+        all_events = []
 
-        combined = "\n\n---\n\n".join(blocks[:40])
+        for i in range(0, len(arts), BATCH):
+            batch = arts[i:i+BATCH]
+            blocks = []
+            for a in batch:
+                testo    = (a.get("testo_completo") or "").strip()[:1200]
+                occhiello = (a.get("occhiello") or "").strip()
+                titolo   = (a.get("titolo") or "").strip()
+                testata  = (a.get("testata") or "").strip()
+                block    = f"[{testata}] {titolo}"
+                if occhiello: block += f"\n{occhiello}"
+                if testo:     block += f"\n{testo}"
+                blocks.append(block)
 
-        resp = ai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": (
-                    f"Sei un assistente che identifica eventi futuri citati in articoli di stampa italiana.\n"
-                    f"Oggi è {today_str}.\n"
-                    f"Cerca SOLO eventi FUTURI espliciti con una data identificabile: CDA, assemblee, "
-                    f"convegni, conferenze stampa, inaugurazioni, scadenze, presentazioni, udienze, vertici.\n"
-                    f"Includi anche eventi menzionati nel testo come 'il prossimo 12 aprile', 'giovedì prossimo', ecc.\n"
-                    f"NON includere: eventi già passati, notizie generiche senza data futura precisa.\n"
-                    f"Rispondi SOLO con JSON array. Se nessun evento futuro chiaro: [].\n"
-                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","luogo":"luogo o null","descrizione":"breve contesto dall\'articolo"}}]'
-                )},
-                {"role": "user", "content": combined}
-            ],
-            temperature=0.1,
-            max_tokens=1200
-        )
-        raw = resp.choices[0].message.content.strip() \
-            .replace("```json", "").replace("```", "").strip()
-        events = json.loads(raw)
+            combined = "\n\n---\n\n".join(blocks)
+
+            try:
+                resp = ai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": (
+                            f"Sei un assistente che identifica eventi futuri citati in articoli di stampa italiana.\n"
+                            f"Oggi è {today_str}.\n"
+                            f"Cerca eventi FUTURI con una data futura identificabile: CDA, assemblee, "
+                            f"convegni, conferenze stampa, inaugurazioni, scadenze, presentazioni, udienze, vertici.\n"
+                            f"Includi anche frasi come 'il prossimo 12 aprile', 'giovedì prossimo', "
+                            f"'nella prossima settimana', 'il mese prossimo' ecc.\n"
+                            f"NON includere: eventi già passati, notizie generiche senza data futura.\n"
+                            f"Rispondi SOLO con JSON array. Se nessun evento futuro: [].\n"
+                            f'Formato: [{{"titolo":"titolo breve e descrittivo","data":"YYYY-MM-DD",'
+                            f'"ora":"HH:MM o null","luogo":"luogo o null","descrizione":"contesto breve"}}]'
+                        )},
+                        {"role": "user", "content": combined}
+                    ],
+                    temperature=0.1,
+                    max_tokens=800
+                )
+                raw = resp.choices[0].message.content.strip() \
+                    .replace("```json", "").replace("```", "").strip()
+                batch_events = json.loads(raw)
+                if batch_events:
+                    print(f"[EVENTS-RASSEGNA] Batch {i//BATCH+1}: {len(batch_events)} eventi trovati")
+                all_events.extend(batch_events)
+            except Exception as e:
+                print(f"[EVENTS-RASSEGNA] Errore batch {i//BATCH+1}: {e}")
+                continue
+
+        print(f"[EVENTS-RASSEGNA] Totale eventi trovati: {len(all_events)}")
 
         inserted = skipped = 0
-        for ev in events:
-            ev_data = ev.get("data", "")
+        for ev in all_events:
+            ev_data   = ev.get("data", "")
             ev_titolo = ev.get("titolo", "")
-            if not ev_titolo or ev_data < today_str:
+            if not ev_titolo or not ev_data or ev_data <= today_str:
                 continue
             # Anti-doppione
             if _event_exists(ev_titolo, ev_data):
@@ -1645,7 +1692,7 @@ async def create_event(data: EventModel):
             "luogo":        data.luogo or None,
             "descrizione":  data.descrizione,
             "fonte":        data.fonte or "manuale",
-            "stato":        data.stato or "confermato",
+            "stato":        data.stato or "bozza",
             "mittente":     data.mittente,
             "content_hash": _event_hash(data.titolo, data.data)
         }).execute()
