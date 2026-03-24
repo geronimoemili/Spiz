@@ -4,17 +4,25 @@ import uvicorn
 import json
 import uuid
 import time
+import secrets
 import threading
 import imaplib
 import email as _email_lib
 import hashlib as _hashlib
+import hmac
 from email.header import decode_header as _decode_header
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
-from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Request
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
@@ -54,12 +62,32 @@ def _agenda_log(msg):
     print(f"[AGENDA-GMAIL] {msg}")
     _agenda_gmail_state["log"] = ([msg] + _agenda_gmail_state["log"])[:30]
 
+
+def _get_gmail_credentials() -> tuple[str, str]:
+    """Legge credenziali Gmail supportando alias comuni delle env vars."""
+    user = (
+        os.getenv("GMAIL_USER", "")
+        or os.getenv("GMAIL_EMAIL", "")
+        or os.getenv("EMAIL_USER", "")
+    ).strip()
+    password = (
+        os.getenv("GMAIL_APP_PASSWORD", "")
+        or os.getenv("GMAIL_PASSWORD", "")
+        or os.getenv("GOOGLE_APP_PASSWORD", "")
+        or os.getenv("EMAIL_PASSWORD", "")
+    ).strip()
+    return user, password
+
+
 def _run_gmail_agenda_import():
     """Legge le email delle ultime 2h ed estrae appuntamenti senza AI."""
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    gmail_user, gmail_pass = _get_gmail_credentials()
     if not gmail_user or not gmail_pass:
-        _agenda_log("Credenziali non configurate"); return
+        _agenda_log(
+            "Credenziali non configurate: imposta GMAIL_USER/GMAIL_APP_PASSWORD "
+            "(o alias GMAIL_EMAIL/GMAIL_PASSWORD)."
+        )
+        return
 
     _agenda_gmail_state["status"] = "running"
     _agenda_gmail_state["last_check"] = datetime.now().isoformat()
@@ -448,6 +476,51 @@ app.mount("/static", StaticFiles(directory="web"), name="static")
 os.makedirs("data/raw", exist_ok=True)
 os.makedirs("web", exist_ok=True)
 
+_AUTH_COOKIE = "spiz_session"
+_AUTH_TTL_SECONDS = 60 * 60 * 12  # 12h
+_AUTH_SESSIONS = {}
+
+
+def _is_public_path(path: str) -> bool:
+    if path.startswith("/static"):
+        return True
+    return path in {
+        "/login",
+        "/health",
+        "/healthcheck",
+        "/api/login",
+        "/api/logout",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+    }
+
+
+def _is_authenticated(request: Request) -> bool:
+    token = request.cookies.get(_AUTH_COOKIE)
+    if not token:
+        return False
+    exp = _AUTH_SESSIONS.get(token)
+    if not exp:
+        return False
+    if exp < time.time():
+        _AUTH_SESSIONS.pop(token, None)
+        return False
+    return True
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    if _is_public_path(request.url.path):
+        return await call_next(request)
+
+    if _is_authenticated(request):
+        return await call_next(request)
+
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=401, content={"success": False, "error": "UNAUTHORIZED"})
+    return RedirectResponse(url="/login", status_code=307)
+
 # ── ROUTER GIORNALISTI ──────────────────────────────────────────────
 try:
     from api.journalists import router as journalists_router
@@ -539,12 +612,19 @@ class AgendaRecipientModel(BaseModel):
     active: Optional[bool] = True
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 # ══════════════════════════════════════════════════════════════════
 # NAVIGAZIONE
 # ══════════════════════════════════════════════════════════════════
 
 @app.get("/")
-async def root(): return FileResponse("web/home.html")
+async def root(): return RedirectResponse(url="/login", status_code=307)
+@app.get("/login")
+async def login_page(): return FileResponse("web/login.html")
 @app.get("/home")
 async def home_page(): return FileResponse("web/home.html")
 @app.get("/press")
@@ -579,6 +659,42 @@ async def agenda_page(): return FileResponse("web/agenda.html")
 async def health_check(): return {"status": "ok"}
 @app.get("/healthcheck")
 async def healthcheck(): return {"status": "ok"}
+
+
+@app.post("/api/login")
+async def login_api(payload: LoginRequest):
+    user_expected = os.getenv("APP_USERNAME", "").strip()
+    pass_expected = os.getenv("APP_PASSWORD", "")
+    if not user_expected or not pass_expected:
+        return {"success": False, "error": "AUTH_NOT_CONFIGURED"}
+
+    user_ok = hmac.compare_digest((payload.username or "").strip(), user_expected)
+    pass_ok = hmac.compare_digest(payload.password or "", pass_expected)
+    if not (user_ok and pass_ok):
+        return {"success": False}
+
+    token = secrets.token_urlsafe(32)
+    _AUTH_SESSIONS[token] = time.time() + _AUTH_TTL_SECONDS
+    response = JSONResponse({"success": True})
+    response.set_cookie(
+        key=_AUTH_COOKIE,
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=_AUTH_TTL_SECONDS,
+    )
+    return response
+
+
+@app.post("/api/logout")
+async def logout_api(request: Request):
+    token = request.cookies.get(_AUTH_COOKIE)
+    if token:
+        _AUTH_SESSIONS.pop(token, None)
+    response = JSONResponse({"success": True})
+    response.delete_cookie(_AUTH_COOKIE)
+    return response
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1151,7 +1267,6 @@ def _generate_audio_bytes(text: str) -> bytes | None:
 def _send_digest_email(text, today_str, to_override=None):
     try:
         import resend
-        import base64
     except ImportError:
         print("[EMAIL] resend non installato"); return
     api_key = os.getenv("RESEND_API_KEY", "")
@@ -1481,12 +1596,15 @@ def _gmail_log(msg):
     _gmail_state["log"] = ([msg] + _gmail_state["log"])[:50]
 
 def _run_gmail_import(auto=False):
-    import re, requests
-    from bs4 import BeautifulSoup
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    import requests
+    gmail_user, gmail_pass = _get_gmail_credentials()
     if not gmail_user or not gmail_pass:
-        _gmail_state["status"] = "error"; _gmail_log("Credenziali non configurate"); return
+        _gmail_state["status"] = "error"
+        _gmail_log(
+            "Credenziali non configurate: imposta GMAIL_USER/GMAIL_APP_PASSWORD "
+            "(o alias GMAIL_EMAIL/GMAIL_PASSWORD)."
+        )
+        return
     _gmail_state["status"] = "running"
     _gmail_state["last_check"] = datetime.now().isoformat()
     _gmail_state["errors"] = []
@@ -1685,6 +1803,133 @@ async def extract_events_from_text(req: ExtractTextRequest):
         return {"events": json.loads(raw)}
     except Exception as e:
         return {"events": [], "error": str(e)}
+
+
+def _extract_events_from_recent_articles(target_date: Optional[str] = None) -> dict:
+    """Estrae eventi da articoli recenti e li salva in agenda (bozza, no duplicati)."""
+    inserted = 0
+    skipped = 0
+    error = None
+
+    try:
+        selected_date = target_date or date.today().isoformat()
+        deepseek_enabled = bool(os.getenv("DEEPSEEK_API_KEY", ""))
+        query = (
+            supabase.table("articles")
+            .select("id, titolo, occhiello, testo_completo, testata, data")
+            .eq("data", selected_date)
+            .limit(500)
+        )
+        articles = query.execute().data or []
+
+        # Fallback solo per run automatico senza data esplicita.
+        if not articles:
+            if target_date:
+                return {"inserted": 0, "skipped": 0, "error": None}
+            articles = (
+                supabase.table("articles")
+                .select("id, titolo, occhiello, testo_completo, testata, data")
+                .order("data", desc=True)
+                .limit(120)
+                .execute()
+                .data
+                or []
+            )
+
+        today = date.today()
+        for art in articles:
+            testo = " ".join(
+                filter(
+                    None,
+                    [
+                        art.get("titolo", ""),
+                        art.get("occhiello", ""),
+                        art.get("testo_completo", ""),
+                    ],
+                )
+            ).strip()
+            if len(testo) < 30:
+                skipped += 1
+                continue
+
+            extracted_events = []
+            if deepseek_enabled:
+                try:
+                    resp = deepseek_client.chat.completions.create(
+                        model="deepseek-chat",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "Estrai appuntamenti/eventi da testi italiani. "
+                                    "Rispondi SOLO con JSON array nel formato "
+                                    "[{\"titolo\":\"...\",\"data\":\"YYYY-MM-DD\","
+                                    "\"ora\":\"HH:MM o null\",\"luogo\":\"... o null\","
+                                    "\"descrizione\":\"...\"}]. Se nessun evento: []"
+                                ),
+                            },
+                            {"role": "user", "content": testo[:5000]},
+                        ],
+                        temperature=0.1,
+                        max_tokens=700,
+                    )
+                    raw = (resp.choices[0].message.content or "").strip()
+                    raw = raw.replace("```json", "").replace("```", "").strip()
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        extracted_events = parsed
+                except Exception:
+                    extracted_events = []
+
+            if not extracted_events:
+                extracted_events = _parse_gmail_agenda_text(testo[:12000])
+            if not extracted_events:
+                skipped += 1
+                continue
+
+            for ev in extracted_events:
+                ev_titolo = (ev.get("titolo") or art.get("titolo") or "Evento").strip()
+                ev_data = ev.get("data")
+                if not ev_data:
+                    skipped += 1
+                    continue
+
+                try:
+                    ev_date_obj = date.fromisoformat(ev_data)
+                except ValueError:
+                    skipped += 1
+                    continue
+
+                # Solo eventi futuri o odierni.
+                if ev_date_obj < today:
+                    skipped += 1
+                    continue
+
+                if _event_exists(ev_titolo, ev_data):
+                    skipped += 1
+                    continue
+
+                payload = {
+                    "titolo": ev_titolo[:200],
+                    "data": ev_data,
+                    "ora": ev.get("ora") or None,
+                    "luogo": ev.get("luogo") or None,
+                    "descrizione": (
+                        ev.get("descrizione")
+                        or f"Estratto da rassegna: {art.get('testata', 'N/D')}"
+                    )[:1000],
+                    "fonte": "rassegna_auto",
+                    "stato": "bozza",
+                    "mittente": art.get("testata") or "rassegna",
+                    "content_hash": _event_hash(ev_titolo, ev_data),
+                }
+                supabase.table("events").insert(payload).execute()
+                inserted += 1
+
+    except Exception as exc:
+        error = str(exc)
+
+    return {"inserted": inserted, "skipped": skipped, "error": error}
 
 @app.post("/api/events/extract-from-rassegna")
 async def extract_events_from_rassegna(request: Request):

@@ -8,7 +8,8 @@ import datetime
 from services.database import supabase
 from openai import OpenAI
 
-ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+_openai_key = os.getenv("OPENAI_API_KEY", "")
+ai = OpenAI(api_key=_openai_key) if _openai_key else None
 
 def clean_text(s):
     return ' '.join(str(s).strip().lower().split())
@@ -51,6 +52,8 @@ def normalize_macrosettori(value) -> str:
     return ', '.join(unique)
 
 def generate_embedding(text: str):
+    if ai is None:
+        return None
     try:
         if not text or len(text.strip()) == 0:
             text = "nessun contenuto"
