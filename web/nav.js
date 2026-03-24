@@ -28,7 +28,7 @@
   const secondaryLinks = secondary.map(mkLink).join('');
   nav.innerHTML = `
     <nav>
-      <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
+      <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img" style="height:38px;width:auto;display:block;flex-shrink:0;max-height:38px;"/>
       <div class="nav-links">
         ${mainLinks}
         <span style="display:inline-block;width:1px;height:20px;background:var(--border2);margin:0 6px;align-self:center;flex-shrink:0;"></span>
