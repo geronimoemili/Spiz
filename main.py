@@ -28,6 +28,286 @@ try:
 except ImportError as e:
     print(f"❌ ERRORE IMPORTAZIONE CORE: {e}")
 
+
+# ══════════════════════════════════════════════════════════════════
+# FUNZIONI AGENDA (devono stare prima dello scheduler)
+# ══════════════════════════════════════════════════════════════════
+
+_agenda_gmail_state = {
+    "status": "idle", "last_check": None,
+    "found": 0, "errors": [], "log": []
+}
+
+def _agenda_log(msg):
+    print(f"[AGENDA-GMAIL] {msg}")
+    _agenda_gmail_state["log"] = ([msg] + _agenda_gmail_state["log"])[:30]
+
+def _run_gmail_agenda_import():
+    """Legge le email delle ultime 2h ed estrae appuntamenti via GPT."""
+    from openai import OpenAI
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    if not gmail_user or not gmail_pass:
+        _agenda_log("Credenziali non configurate"); return
+
+    _agenda_gmail_state["status"] = "running"
+    _agenda_gmail_state["last_check"] = datetime.now().isoformat()
+    _agenda_gmail_state["errors"] = []
+
+    try:
+        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+        today_str = date.today().isoformat()
+        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail.login(gmail_user, gmail_pass)
+        mail.select("INBOX")
+
+        since = (datetime.now() - timedelta(hours=2)).strftime("%d-%b-%Y")
+        _, data = mail.search(None, f'SINCE "{since}"')
+        mail_ids = data[0].split()
+        _agenda_log(f"Email trovate: {len(mail_ids)}")
+
+        found = 0
+        for mid in mail_ids:
+            _, msg_data = mail.fetch(mid, "(RFC822)")
+            msg = _email_lib.message_from_bytes(msg_data[0][1])
+
+            message_id = msg.get("Message-ID", "").strip()
+            if message_id:
+                mid_hash = _hashlib.md5(message_id.encode()).hexdigest()
+                existing = supabase.table("events").select("id") \
+                    .eq("mittente", f"mid:{mid_hash}").limit(1).execute().data
+                if existing:
+                    continue
+
+            mittente = msg.get("From", "")
+            subj = ""
+            for part, enc in _decode_header(msg.get("Subject", "")):
+                subj += part.decode(enc or "utf-8", errors="ignore") \
+                    if isinstance(part, bytes) else part
+
+            body = ""
+            for part in msg.walk():
+                ct = part.get_content_type()
+                if ct == "text/plain":
+                    body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                    break
+                elif ct == "text/html" and not body:
+                    from bs4 import BeautifulSoup
+                    raw = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                    body = BeautifulSoup(raw, "html.parser").get_text(separator="\n")
+
+            full_text = f"Oggetto: {subj}\n\n{body}".strip()
+            if not full_text or len(full_text) < 10:
+                continue
+
+            try:
+                resp = ai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": (
+                            f"Sei un assistente che estrae appuntamenti da email aziendali italiane.\n"
+                            f"Oggi è {today_str}.\n"
+                            f"Estrai TUTTI gli appuntamenti, scadenze, promemoria, eventi menzionati.\n"
+                            f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
+                            f"Rispondi SOLO con JSON array. Se nessun appuntamento: [].\n"
+                            f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","descrizione":"..."}}]'
+                        )},
+                        {"role": "user", "content": full_text[:3000]}
+                    ],
+                    temperature=0.1,
+                    max_tokens=800
+                )
+                raw = resp.choices[0].message.content.strip() \
+                    .replace("```json", "").replace("```", "").strip()
+                appointments = json.loads(raw)
+            except Exception as e:
+                _agenda_log(f"Errore GPT su '{subj[:40]}': {e}")
+                continue
+
+            if not appointments:
+                continue
+
+            mid_tag = f"mid:{_hashlib.md5(message_id.encode()).hexdigest()}" \
+                if message_id else f"from:{mittente}"
+
+            for apt in appointments:
+                try:
+                    supabase.table("events").insert({
+                        "titolo":      apt.get("titolo", "")[:200],
+                        "data":        apt.get("data", today_str),
+                        "ora":         apt.get("ora") or None,
+                        "descrizione": apt.get("descrizione", ""),
+                        "fonte":       "gmail",
+                        "stato":       "bozza",
+                        "mittente":    f"{mittente} | {mid_tag}"
+                    }).execute()
+                    found += 1
+                except Exception as e:
+                    _agenda_log(f"Errore insert: {e}")
+
+        _agenda_gmail_state.update({"status": "idle", "found": found})
+        _agenda_log(f"Completato: {found} appuntamenti estratti")
+        mail.logout()
+
+    except Exception as e:
+        _agenda_gmail_state["status"] = "error"
+        _agenda_gmail_state["errors"].append(str(e))
+        _agenda_log(f"ERRORE: {e}")
+
+
+def _extract_events_from_recent_articles():
+    """Dopo ogni ingestion CSV cerca eventi futuri nei titoli degli articoli."""
+    from openai import OpenAI
+    try:
+        today_str = date.today().isoformat()
+        arts = supabase.table("articles").select("titolo, occhiello, data") \
+            .eq("data", today_str).limit(80).execute().data or []
+        if not arts:
+            return
+
+        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+        combined = "\n".join(
+            f"[{a.get('data','')}] {a.get('titolo','')} — {(a.get('occhiello') or '')[:120]}"
+            for a in arts[:60]
+        )
+
+        resp = ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    f"Sei un assistente che identifica eventi futuri da titoli di articoli di stampa.\n"
+                    f"Oggi è {today_str}.\n"
+                    f"Cerca SOLO eventi FUTURI espliciti: convegni, assemblee, conferenze stampa, "
+                    f"scadenze, presentazioni, inaugurazioni.\n"
+                    f"Non includere eventi passati o notizie generiche.\n"
+                    f"Rispondi SOLO con JSON array. Se nessun evento futuro chiaro: [].\n"
+                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":null,"descrizione":"Da rassegna stampa"}}]'
+                )},
+                {"role": "user", "content": combined}
+            ],
+            temperature=0.1,
+            max_tokens=500
+        )
+        raw = resp.choices[0].message.content.strip() \
+            .replace("```json", "").replace("```", "").strip()
+        events = json.loads(raw)
+
+        inserted = 0
+        for ev in events:
+            if ev.get("data", "") >= today_str:
+                try:
+                    supabase.table("events").insert({
+                        "titolo":      ev.get("titolo", "")[:200],
+                        "data":        ev["data"],
+                        "ora":         ev.get("ora") or None,
+                        "descrizione": ev.get("descrizione", "Da rassegna stampa"),
+                        "fonte":       "ingestion",
+                        "stato":       "bozza"
+                    }).execute()
+                    inserted += 1
+                except Exception:
+                    pass
+
+        if inserted:
+            print(f"[EVENTS-INGESTION] {inserted} eventi estratti da rassegna stampa")
+
+    except Exception as e:
+        print(f"[EVENTS-INGESTION] Errore: {e}")
+
+
+def _get_agenda_recipients_list():
+    """Legge destinatari con tipo='agenda' o tipo='entrambi' da digest_recipients."""
+    try:
+        data = supabase.table("digest_recipients").select("email") \
+            .eq("active", True) \
+            .in_("tipo", ["agenda", "entrambi"]) \
+            .execute().data or []
+        return [r["email"] for r in data if r.get("email")]
+    except Exception:
+        return []
+
+
+def _send_agenda_email(periodo: str, events: list, to_list: list):
+    """Invia email agenda via Resend."""
+    try:
+        import resend
+    except ImportError:
+        print("[AGENDA-EMAIL] resend non installato"); return
+
+    api_key = os.getenv("RESEND_API_KEY", "")
+    if not api_key or not to_list:
+        return
+    resend.api_key = api_key
+
+    giorni_it = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
+    mesi_it   = ["","gennaio","febbraio","marzo","aprile","maggio","giugno",
+                 "luglio","agosto","settembre","ottobre","novembre","dicembre"]
+
+    def fmt_data(d_str):
+        try:
+            d = date.fromisoformat(d_str)
+            return f"{giorni_it[d.weekday()]} {d.day} {mesi_it[d.month]}"
+        except Exception:
+            return d_str
+
+    if not events:
+        body = f"Nessun appuntamento confermato per {periodo}."
+    else:
+        lines = [f"MAIM AGENDA — {periodo}", "═" * 40, ""]
+        current_date = None
+        for ev in events:
+            if ev.get("data") != current_date:
+                current_date = ev.get("data")
+                lines.append(f"\n📅  {fmt_data(current_date).upper()}")
+                lines.append("─" * 30)
+            ora = f" · {ev['ora'][:5]}" if ev.get("ora") else ""
+            lines.append(f"  • {ev.get('titolo','')}{ora}")
+            if ev.get("descrizione"):
+                lines.append(f"    {ev['descrizione']}")
+        body = "\n".join(lines)
+
+    try:
+        resend.Emails.send({
+            "from":    "MAIM Agenda <digest@maim.it>",
+            "to":      to_list,
+            "subject": f"MAIM AGENDA — {periodo}",
+            "text":    body
+        })
+        print(f"[AGENDA-EMAIL] Inviato a {len(to_list)} destinatari — {len(events)} eventi")
+    except Exception as e:
+        print(f"[AGENDA-EMAIL] Errore invio: {e}")
+
+
+def _send_agenda_morning():
+    """07:00 — appuntamenti confermati di oggi."""
+    today_str = date.today().isoformat()
+    try:
+        events = supabase.table("events").select("*") \
+            .eq("data", today_str).eq("stato", "confermato") \
+            .order("ora").execute().data or []
+    except Exception as e:
+        print(f"[AGENDA-07:00] Errore: {e}"); return
+    to_list = _get_agenda_recipients_list()
+    if to_list:
+        _send_agenda_email("OGGI", events, to_list)
+
+
+def _send_agenda_evening():
+    """19:00 — appuntamenti confermati domani + 7 giorni."""
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    week_end = (date.today() + timedelta(days=7)).isoformat()
+    try:
+        events = supabase.table("events").select("*") \
+            .gte("data", tomorrow).lte("data", week_end) \
+            .eq("stato", "confermato") \
+            .order("data").order("ora").execute().data or []
+    except Exception as e:
+        print(f"[AGENDA-19:00] Errore: {e}"); return
+    to_list = _get_agenda_recipients_list()
+    if to_list:
+        _send_agenda_email("PROSSIMI 7 GIORNI", events, to_list)
+
+
 # ── SCHEDULER ──────────────────────────────────────────────────────
 run_monitoring = None
 try:
@@ -43,8 +323,11 @@ try:
             _run_gmail_import(auto=True)
 
     scheduler.add_job(_scheduled_gmail_check, 'interval', minutes=15)
+    scheduler.add_job(_run_gmail_agenda_import, 'interval', hours=1)
+    scheduler.add_job(_send_agenda_morning, 'cron', hour=7,  minute=0)
+    scheduler.add_job(_send_agenda_evening, 'cron', hour=19, minute=0)
     scheduler.start()
-    print("✅ Scheduler avviato (monitor 06:00 + Gmail ogni 15 min)")
+    print("✅ Scheduler avviato (monitor 06:00 + Gmail ogni 15 min + Agenda)")
 except Exception as e:
     print(f"⚠️ Scheduler non avviato: {e}")
 
@@ -80,6 +363,7 @@ def _cleanup_old_jobs():
     with _JOBS_LOCK:
         for k in [k for k, v in _JOBS.items() if v["created"] < cutoff]:
             del _JOBS[k]
+
 
 # ── MODELLI ─────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
@@ -124,6 +408,24 @@ class TestataUpdate(BaseModel):
 class TestateUpdateRequest(BaseModel):
     testate: List[TestataUpdate]
 
+# Modelli Agenda
+class EventModel(BaseModel):
+    titolo:      str
+    data:        str
+    ora:         Optional[str]  = None
+    descrizione: Optional[str]  = None
+    fonte:       Optional[str]  = "manuale"
+    stato:       Optional[str]  = "confermato"
+    mittente:    Optional[str]  = None
+
+class ExtractTextRequest(BaseModel):
+    text: str
+
+class AgendaRecipientModel(BaseModel):
+    email:  str
+    name:   Optional[str]  = None
+    active: Optional[bool] = True
+
 
 # ══════════════════════════════════════════════════════════════════
 # NAVIGAZIONE
@@ -153,14 +455,14 @@ async def web_digest_page(): return FileResponse("web/web_digest.html")
 async def webdigest_admin_page(): return FileResponse("web/webdigest.html")
 @app.get("/digest")
 async def digest_page(): return FileResponse("web/digest.html")
-
 @app.get("/giornalisti")
 async def giornalisti_page(): return FileResponse("web/giornalisti.html")
-
 @app.get("/intelligence")
 async def intelligence_page(): return FileResponse("web/intelligence.html")
 @app.get("/testate")
 async def testate_page(): return FileResponse("web/testate.html")
+@app.get("/agenda")
+async def agenda_page(): return FileResponse("web/agenda.html")
 @app.get("/health")
 async def health_check(): return {"status": "ok"}
 @app.get("/healthcheck")
@@ -184,13 +486,10 @@ async def upload_multiple(files: List[UploadFile] = File(...)):
             if os.path.exists(path): os.remove(path)
         except Exception as e:
             results.append({"file": file.filename, "status": "error", "message": str(e)})
-    digest_job_id = None
     if any(r["status"] == "success" for r in results):
         _cleanup_old_jobs()
-        digest_job_id = None
-        # Sync automatico giornalisti nel CRM dopo ogni ingestion
         threading.Thread(target=_sync_journalists_auto, daemon=True).start()
-    # Digest NON automatico — solo manuale dalla pagina Digest
+        threading.Thread(target=_extract_events_from_recent_articles, daemon=True).start()
     return {"results": results, "digest_job_id": None}
 
 
@@ -198,7 +497,6 @@ def _sync_journalists_auto():
     """Importa automaticamente nel CRM i nuovi giornalisti dopo ogni ingestion."""
     try:
         SKIP = {"", "n.d.", "n/d", "redazione", "autore non indicato"}
-        # Carica TUTTI gli articoli (non solo i primi 1000)
         all_arts = []
         offset = 0
         batch_size = 500
@@ -219,7 +517,9 @@ def _sync_journalists_auto():
         for gl, tc in testate.items():
             if gl in existing: continue
             tm = tc.most_common(1)[0][0]
-            tipo = "agenzia" if any(x in tm.lower() for x in ["ansa","adnkronos","askanews"]) else                    "web" if any(x in tm.lower() for x in [".it","web","online"]) else                    "radio_tv" if any(x in tm.lower() for x in ["radio","tv","rai","tele"]) else "quotidiano"
+            tipo = "agenzia" if any(x in tm.lower() for x in ["ansa","adnkronos","askanews"]) else \
+                   "web" if any(x in tm.lower() for x in [".it","web","online"]) else \
+                   "radio_tv" if any(x in tm.lower() for x in ["radio","tv","rai","tele"]) else "quotidiano"
             try:
                 supabase.table("journalists").insert({"nome": gl.title(), "testata_principale": tm, "tipo_testata": tipo}).execute()
                 inserted += 1
@@ -394,7 +694,6 @@ async def macro_groups_count(from_date: Optional[str] = None, to_date: Optional[
         if all_oids:
             for m in (supabase.table("official_macrosectors").select("id, name").in_("id", all_oids).execute().data or []):
                 macro_names_map[m["id"]] = m["name"]
-        # Carica articoli col range di date (max 5000 per non sovraccaricare)
         articles = supabase.table("articles").select("id, macrosettori").gte("data", from_date).lte("data", to_date).limit(5000).execute().data or []
         result = []
         for g in groups:
@@ -710,24 +1009,16 @@ async def get_monitor_meta():
 
 
 # ══════════════════════════════════════════════════════════════════
-# PITCH
-# ══════════════════════════════════════════════════════════════════
-
-
-
-# ══════════════════════════════════════════════════════════════════
 # DAILY DIGEST
 # ══════════════════════════════════════════════════════════════════
 
 def _generate_audio_bytes(text: str) -> bytes | None:
-    """Genera MP3 dal testo del digest via OpenAI TTS. Ritorna bytes o None se fallisce."""
     try:
         from openai import OpenAI
         api_key = os.getenv("OPENAI_API_KEY", "")
         if not api_key: return None
         ai = OpenAI(api_key=api_key)
         clean = text.replace("*","").replace("_","").replace("————————————————————",". ")
-        # Limita a 4000 caratteri per non superare il limite TTS
         if len(clean) > 4000:
             clean = clean[:4000] + "... Fine del digest."
         chunks = _split_text_chunks(clean, 4096)
@@ -743,10 +1034,6 @@ def _generate_audio_bytes(text: str) -> bytes | None:
 
 
 def _send_digest_email(text, today_str, to_override=None):
-    """
-    Invia il digest via email con audio MP3 allegato.
-    to_override: lista email opzionale — se None usa digest_recipients da Supabase.
-    """
     try:
         import resend
         import base64
@@ -760,15 +1047,17 @@ def _send_digest_email(text, today_str, to_override=None):
         to_list = to_override
     else:
         try:
-            recipients = supabase.table("digest_recipients").select("email, name").eq("active", True).execute().data or []
-        except Exception as e:
-            print(f"[EMAIL] Errore lettura destinatari: {e}"); return
+            recipients = supabase.table("digest_recipients").select("email, name").eq("active", True).in_("tipo", ["digest", "entrambi"]).execute().data or []
+        except Exception:
+            try:
+                recipients = supabase.table("digest_recipients").select("email, name").eq("active", True).execute().data or []
+            except Exception as e:
+                print(f"[EMAIL] Errore lettura destinatari: {e}"); return
         if not recipients: print("[EMAIL] Nessun destinatario"); return
         to_list = [r["email"] for r in recipients if r.get("email")]
 
     if not to_list: return
 
-    # Genera audio
     audio_bytes = _generate_audio_bytes(text)
     filename = f"MAIM_Digest_{today_str.replace('/', '-')}.mp3"
 
@@ -780,14 +1069,10 @@ def _send_digest_email(text, today_str, to_override=None):
             "text":    text,
         }
         if audio_bytes:
-            payload["attachments"] = [{
-                "filename": filename,
-                "content":  list(audio_bytes),
-            }]
+            payload["attachments"] = [{"filename": filename, "content": list(audio_bytes)}]
             print(f"[EMAIL] Audio allegato: {len(audio_bytes)} bytes")
         else:
             print("[EMAIL] Audio non generato — invio solo testo")
-
         resend.Emails.send(payload)
         print(f"[EMAIL] Inviato a {len(to_list)} destinatari")
     except Exception as e:
@@ -818,7 +1103,6 @@ def _run_digest_job(job_id):
 
 @app.post("/api/digest-send-email")
 async def send_digest_email_manual():
-    """Invia manualmente il digest del giorno via email con audio."""
     today = date.today().isoformat()
     today_str = date.today().strftime("%d/%m/%Y")
     try:
@@ -826,15 +1110,10 @@ async def send_digest_email_manual():
         if not res.data or not res.data[0].get("text"):
             return {"success": False, "error": "Nessun digest disponibile per oggi. Generalo prima."}
         digest_text = res.data[0]["text"]
-        threading.Thread(
-            target=_send_digest_email,
-            args=(digest_text, today_str),
-            daemon=True
-        ).start()
+        threading.Thread(target=_send_digest_email, args=(digest_text, today_str), daemon=True).start()
         return {"success": True, "message": "Invio in corso…"}
     except Exception as e:
         return {"success": False, "error": str(e)}
-
 
 @app.post("/api/daily-digest")
 async def daily_digest_endpoint():
@@ -880,7 +1159,6 @@ async def get_digest_by_date(data_str: str):
 # ══════════════════════════════════════════════════════════════════
 
 def _split_text_chunks(text: str, max_chars: int = 4096) -> list:
-    """Divide testo in chunk rispettando i paragrafi, max max_chars per chunk."""
     paragraphs = text.split("\n")
     chunks, current = [], ""
     for p in paragraphs:
@@ -888,7 +1166,6 @@ def _split_text_chunks(text: str, max_chars: int = 4096) -> list:
             current += ("\n" if current else "") + p
         else:
             if current: chunks.append(current)
-            # Se il paragrafo stesso supera il limite, lo spezzo per frasi
             if len(p) > max_chars:
                 words = p.split(". ")
                 sub = ""
@@ -904,7 +1181,6 @@ def _split_text_chunks(text: str, max_chars: int = 4096) -> list:
     if current: chunks.append(current)
     return [c for c in chunks if c.strip()]
 
-
 @app.post("/api/digest-audio")
 async def digest_audio(req: DigestAudioRequest):
     from openai import OpenAI
@@ -918,21 +1194,15 @@ async def digest_audio(req: DigestAudioRequest):
         audio_parts = []
         for chunk in chunks:
             if not chunk.strip(): continue
-            resp = ai.audio.speech.create(
-                model="tts-1", voice="onyx", speed=1.15,
-                input=chunk, response_format="mp3"
-            )
+            resp = ai.audio.speech.create(model="tts-1", voice="onyx", speed=1.15, input=chunk, response_format="mp3")
             audio_parts.append(resp.content)
         combined = b"".join(audio_parts)
         return StreamingResponse(iter([combined]), media_type="audio/mpeg",
                                  headers={"Content-Disposition": "inline; filename=digest.mp3"})
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-
-
 @app.put("/api/digest/{data_str}/text")
 async def update_digest_text(data_str: str, request: Request):
-    """Aggiorna il testo del digest per una data."""
     try:
         body = await request.json()
         text = body.get("text", "")
@@ -940,7 +1210,6 @@ async def update_digest_text(data_str: str, request: Request):
         return {"success": True}
     except Exception as e:
         return {"error": str(e)}
-
 
 @app.get("/api/digest-recipients")
 async def get_digest_recipients():
@@ -950,23 +1219,20 @@ async def get_digest_recipients():
     except Exception as e:
         return {"error": str(e)}
 
-
 class RecipientModel(BaseModel):
     email: str
     name:  Optional[str] = None
     active: Optional[bool] = True
 
-
 @app.post("/api/digest-recipients")
 async def add_digest_recipient(data: RecipientModel):
     try:
         res = supabase.table("digest_recipients").insert(
-            {"email": data.email, "name": data.name, "active": data.active}
+            {"email": data.email, "name": data.name, "active": data.active, "tipo": "digest"}
         ).execute()
         return {"success": True, "recipient": res.data[0] if res.data else {}}
     except Exception as e:
         return {"error": str(e)}
-
 
 @app.delete("/api/digest-recipients/{rid}")
 async def delete_digest_recipient(rid: str):
@@ -975,7 +1241,6 @@ async def delete_digest_recipient(rid: str):
         return {"success": True}
     except Exception as e:
         return {"error": str(e)}
-
 
 @app.patch("/api/digest-recipients/{rid}/toggle")
 async def toggle_digest_recipient(rid: str, request: Request):
@@ -986,10 +1251,8 @@ async def toggle_digest_recipient(rid: str, request: Request):
     except Exception as e:
         return {"error": str(e)}
 
-
 @app.get("/api/digest-audio-download")
 async def digest_audio_download(data: str = Query("")):
-    """Genera e scarica MP3 del digest del giorno."""
     from openai import OpenAI
     today = date.today().isoformat()
     api_key = os.getenv("OPENAI_API_KEY", "")
@@ -1088,7 +1351,7 @@ async def save_testate_tier(req: TestateUpdateRequest):
 
 
 # ══════════════════════════════════════════════════════════════════
-# GMAIL IMAP
+# GMAIL IMAP (rassegna stampa)
 # ══════════════════════════════════════════════════════════════════
 
 _gmail_state = {"status": "idle", "last_check": None, "last_import": None,
@@ -1201,7 +1464,6 @@ def _parse_rassegna_html(html):
         articoli.append({"testata": testata, "titolo": titolo, "data": data, "url": href})
     return articoli
 
-
 @app.post("/api/gmail/import")
 async def gmail_import_manual():
     if _gmail_state["status"] == "running": return {"status": "already_running"}
@@ -1210,6 +1472,190 @@ async def gmail_import_manual():
 
 @app.get("/api/gmail/status")
 async def gmail_status(): return _gmail_state
+
+
+# ══════════════════════════════════════════════════════════════════
+# AGENDA / EVENTI
+# ══════════════════════════════════════════════════════════════════
+
+@app.get("/api/events")
+async def get_events(
+    from_date: Optional[str] = None,
+    to_date:   Optional[str] = None,
+    stato:     Optional[str] = None
+):
+    try:
+        q = supabase.table("events").select("*")
+        if from_date: q = q.gte("data", from_date)
+        if to_date:   q = q.lte("data", to_date)
+        if stato:     q = q.eq("stato", stato)
+        return q.order("data").order("ora").execute().data or []
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/events")
+async def create_event(data: EventModel):
+    try:
+        res = supabase.table("events").insert({
+            "titolo":      data.titolo[:200],
+            "data":        data.data,
+            "ora":         data.ora or None,
+            "descrizione": data.descrizione,
+            "fonte":       data.fonte or "manuale",
+            "stato":       data.stato or "confermato",
+            "mittente":    data.mittente
+        }).execute()
+        return {"success": True, "event": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.put("/api/events/{event_id}")
+async def update_event(event_id: str, data: EventModel):
+    try:
+        upd = {k: v for k, v in data.dict().items() if v is not None}
+        res = supabase.table("events").update(upd).eq("id", event_id).execute()
+        return {"success": True, "event": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/api/events/{event_id}")
+async def delete_event(event_id: str):
+    try:
+        supabase.table("events").delete().eq("id", event_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.patch("/api/events/{event_id}/confirm")
+async def confirm_event(event_id: str):
+    try:
+        supabase.table("events").update({"stato": "confermato"}).eq("id", event_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/events/extract-text")
+async def extract_events_from_text(req: ExtractTextRequest):
+    from openai import OpenAI
+    if not req.text.strip():
+        return {"events": [], "error": "Testo vuoto"}
+    try:
+        ai = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+        today_str = date.today().isoformat()
+        resp = ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    f"Sei un assistente che estrae appuntamenti da testi italiani.\n"
+                    f"Oggi è {today_str}.\n"
+                    f"Estrai TUTTI gli appuntamenti, eventi, scadenze menzionati.\n"
+                    f"Interpreta riferimenti relativi: 'domani', 'lunedì prossimo', '3 aprile', ecc.\n"
+                    f"Rispondi SOLO con JSON array. Se nessun appuntamento: [].\n"
+                    f'Formato: [{{"titolo":"...","data":"YYYY-MM-DD","ora":"HH:MM o null","descrizione":"..."}}]'
+                )},
+                {"role": "user", "content": req.text[:4000]}
+            ],
+            temperature=0.1,
+            max_tokens=1000
+        )
+        raw = resp.choices[0].message.content.strip() \
+            .replace("```json", "").replace("```", "").strip()
+        return {"events": json.loads(raw)}
+    except Exception as e:
+        return {"events": [], "error": str(e)}
+
+@app.post("/api/gmail/agenda-import")
+async def gmail_agenda_import_endpoint():
+    if _agenda_gmail_state["status"] == "running":
+        return {"status": "already_running"}
+    threading.Thread(target=_run_gmail_agenda_import, daemon=True).start()
+    return {"status": "started"}
+
+@app.get("/api/gmail/agenda-status")
+async def gmail_agenda_status_endpoint():
+    return _agenda_gmail_state
+
+@app.post("/api/agenda/send-now")
+async def send_agenda_now(request: Request):
+    try:
+        body = await request.json()
+        periodo = body.get("periodo", "oggi")
+    except Exception:
+        periodo = "oggi"
+
+    today_str = date.today().isoformat()
+    if periodo == "settimana":
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        week_end = (date.today() + timedelta(days=7)).isoformat()
+        events = supabase.table("events").select("*") \
+            .gte("data", tomorrow).lte("data", week_end) \
+            .eq("stato", "confermato") \
+            .order("data").order("ora").execute().data or []
+        label = "PROSSIMI 7 GIORNI"
+    else:
+        events = supabase.table("events").select("*") \
+            .eq("data", today_str).eq("stato", "confermato") \
+            .order("ora").execute().data or []
+        label = "OGGI"
+
+    to_list = _get_agenda_recipients_list()
+    if not to_list:
+        return {"success": False, "error": "Nessun destinatario attivo con tipo agenda o entrambi"}
+
+    threading.Thread(target=_send_agenda_email, args=(label, events, to_list), daemon=True).start()
+    return {"success": True, "events": len(events), "recipients": len(to_list)}
+
+@app.get("/api/agenda-recipients")
+async def get_agenda_recipients():
+    try:
+        res = supabase.table("digest_recipients").select("*") \
+            .in_("tipo", ["agenda", "entrambi"]) \
+            .order("name").execute()
+        return res.data or []
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/agenda-recipients")
+async def add_agenda_recipient(data: AgendaRecipientModel):
+    try:
+        existing = supabase.table("digest_recipients").select("*") \
+            .eq("email", data.email).execute().data
+        if existing:
+            row = existing[0]
+            new_tipo = "entrambi" if row.get("tipo") == "digest" else row.get("tipo", "agenda")
+            supabase.table("digest_recipients").update(
+                {"tipo": new_tipo, "active": data.active}
+            ).eq("id", row["id"]).execute()
+            return {"success": True, "updated": True}
+        res = supabase.table("digest_recipients").insert(
+            {"email": data.email, "name": data.name, "active": data.active, "tipo": "agenda"}
+        ).execute()
+        return {"success": True, "recipient": res.data[0] if res.data else {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/api/agenda-recipients/{rid}")
+async def delete_agenda_recipient(rid: str):
+    try:
+        row = supabase.table("digest_recipients").select("tipo").eq("id", rid).execute().data
+        if row and row[0].get("tipo") == "entrambi":
+            supabase.table("digest_recipients").update({"tipo": "digest"}).eq("id", rid).execute()
+        else:
+            supabase.table("digest_recipients").delete().eq("id", rid).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.patch("/api/agenda-recipients/{rid}/toggle")
+async def toggle_agenda_recipient(rid: str, request: Request):
+    try:
+        body = await request.json()
+        supabase.table("digest_recipients").update(
+            {"active": body.get("active", True)}
+        ).eq("id", rid).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ══════════════════════════════════════════════════════════════════

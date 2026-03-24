@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MAIM · Agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f4f6f9;--surface:#fff;--border:#dde3ed;--border2:#eef1f6;
+  --text:#1a2236;--muted:#5a6a84;--faint:#9aabc0;
+  --cyan:#0ea5c9;--pink:#d4367a;--amber:#d97706;--green:#059669;--red:#e03a5a;
+  --grad:linear-gradient(135deg,#0ea5c9,#d4367a);
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
+
+.layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1200px;margin:0 auto;padding:24px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.card:last-child{margin-bottom:0}
+.card-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.card-body{padding:14px 16px}
+
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:5px;padding:6px 12px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-grad{background:var(--grad);color:#fff}
+.btn-grad:hover:not(:disabled){opacity:.88}
+.btn-out{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.btn-out:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+.btn-green{background:rgba(5,150,105,.1);border:1px solid var(--green);color:var(--green)}
+.btn-green:hover:not(:disabled){background:var(--green);color:#fff}
+.btn-del{background:none;border:none;cursor:pointer;color:var(--faint);font-size:14px;padding:0 4px}
+.btn-del:hover{color:var(--red)}
+.btn-wide{width:100%;padding:11px;font-family:var(--mono);font-size:12px;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:opacity .15s}
+.btn-wide:hover:not(:disabled){opacity:.88}
+.btn-wide:disabled{opacity:.4;cursor:not-allowed}
+
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+
+.tab-group{display:flex;gap:2px;background:var(--border2);border-radius:6px;padding:3px}
+.tab{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:5px 10px;border:none;border-radius:4px;cursor:pointer;background:none;color:var(--muted);transition:all .15s}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+/* Bozze */
+.bozze-wrap{margin-bottom:16px}
+.bozze-header{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--amber);display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;background:rgba(217,119,6,.05);border:1px solid rgba(217,119,6,.2);border-radius:8px}
+.bozze-header::after{content:'▼';font-size:8px;margin-left:auto;transition:transform .2s}
+.bozze-header.collapsed::after{transform:rotate(-90deg)}
+.bozze-body{padding-top:8px}
+.bozza-card{background:rgba(217,119,6,.04);border:1px solid rgba(217,119,6,.2);border-radius:7px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.bozza-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.bozza-content{flex:1;min-width:0}
+.bozza-title{font-weight:600;font-size:12px;margin-bottom:2px}
+.bozza-meta{font-family:var(--mono);font-size:9px;color:var(--amber)}
+.bozza-from{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bozza-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+
+/* Agenda confermata */
+.day-group{margin-bottom:18px}
+.day-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:6px 0 6px 4px;border-bottom:2px solid var(--border2);margin-bottom:8px}
+.day-label.today{color:var(--cyan);border-bottom-color:var(--cyan)}
+.event-row{display:flex;align-items:flex-start;gap:10px;padding:7px 8px;border-radius:6px;transition:background .15s}
+.event-row:hover{background:var(--border2)}
+.event-time{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--cyan);min-width:38px;flex-shrink:0;padding-top:2px}
+.event-content{flex:1;min-width:0}
+.event-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.event-desc{font-size:11px;color:var(--muted);margin-bottom:2px}
+.event-fonte{font-family:var(--mono);font-size:8px;color:var(--faint)}
+.event-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.event-row:hover .event-actions{opacity:1}
+.empty-msg{font-family:var(--mono);font-size:10px;color:var(--faint);padding:16px 0;text-align:center}
+
+/* Form */
+.form-row{display:grid;grid-template-columns:1fr 130px 90px;gap:8px;margin-bottom:8px}
+input[type=text],input[type=date],input[type=time],textarea,select{
+  font-family:var(--sans);font-size:12px;padding:7px 10px;border:1px solid var(--border);
+  border-radius:5px;background:var(--border2);color:var(--text);outline:none;width:100%}
+input:focus,textarea:focus{border-color:var(--cyan);background:#fff}
+textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px;line-height:1.6}
+
+/* Estrai */
+.extract-preview{margin-top:12px}
+.extract-item{background:rgba(14,165,201,.05);border:1px solid rgba(14,165,201,.2);border-radius:7px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+.extract-body{flex:1;min-width:0}
+.extract-title{font-weight:600;font-size:12px}
+.extract-meta{font-family:var(--mono);font-size:9px;color:var(--cyan);margin-top:2px}
+
+/* Destinatari */
+.r-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2)}
+.r-row:last-child{border-bottom:none}
+.r-name{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-email{font-family:var(--mono);font-size:9px;color:var(--faint)}
+.toggle{width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle.on{background:var(--green)}
+.toggle.off{background:var(--border)}
+
+/* Gmail */
+.gmail-bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sdot-idle{background:var(--green)}
+.sdot-running{background:var(--amber);animation:blink 1s infinite}
+.sdot-error{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.badge{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px}
+.badge-amber{background:rgba(217,119,6,.1);color:var(--amber)}
+.badge-ok{background:rgba(5,150,105,.1);color:var(--green)}
+.badge-no{background:var(--border2);color:var(--faint)}
+
+.spinner{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.log-box{font-family:var(--mono);font-size:9px;color:var(--faint);line-height:1.7;max-height:80px;overflow-y:auto;margin-top:8px}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#1a2236;color:#fff;padding:10px 18px;border-radius:7px;font-family:var(--mono);font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.2);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="topnav"></div>
+<script src="/static/nav.js"></script>
+
+<div class="layout">
+
+  <!-- ══ SINISTRA ══ -->
+  <div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="tab-group">
+        <button class="tab active" onclick="setFiltro('tutti',this)">Tutti</button>
+        <button class="tab" onclick="setFiltro('confermato',this)">Confermati</button>
+        <button class="tab" onclick="setFiltro('bozza',this)">Bozze</button>
+      </div>
+      <input type="date" id="filter-from" style="width:130px" onchange="render()"/>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--faint)">→</span>
+      <input type="date" id="filter-to" style="width:130px" onchange="render()"/>
+      <button class="btn btn-out" onclick="resetDate()" style="padding:5px 10px">↺</button>
+    </div>
+
+    <!-- BOZZE -->
+    <div class="bozze-wrap" id="bozze-wrap" style="display:none">
+      <div class="bozze-header" id="bozze-toggle" onclick="toggleBozze()">
+        ⚠️ Bozze da revisionare
+        <span class="badge badge-amber" id="bozze-count">0</span>
+      </div>
+      <div class="bozze-body" id="bozze-body"></div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">📅 Agenda</span>
+        <span class="badge badge-no" id="events-count">0 eventi</span>
+      </div>
+      <div class="card-body" id="events-list">
+        <div class="empty-msg">Nessun evento. Aggiungine uno.</div>
+      </div>
+    </div>
+
+    <!-- NUOVO APPUNTAMENTO -->
+    <div class="card">
+      <div class="card-head"><span class="card-title">➕ Nuovo appuntamento</span></div>
+      <div class="card-body">
+        <div class="form-row">
+          <input type="text" id="new-titolo" placeholder="Titolo *"/>
+          <input type="date" id="new-data"/>
+          <input type="time" id="new-ora" placeholder="Ora"/>
+        </div>
+        <div style="margin-bottom:10px">
+          <input type="text" id="new-desc" placeholder="Note / descrizione (opzionale)"/>
+        </div>
+        <button class="btn btn-grad" onclick="addEvent()">➕ Aggiungi</button>
+      </div>
+    </div>
+
+    <!-- ESTRAI DA TESTO -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">📋 Estrai da testo</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--faint)">ANSA · email · comunicati</span>
+      </div>
+      <div class="card-body">
+        <textarea id="paste-text" placeholder="Incolla qualsiasi testo: agenzia ANSA, comunicato stampa, email, nota interna…"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn btn-grad" id="btn-extract" onclick="extractText()">🔍 Estrai appuntamenti</button>
+          <button class="btn btn-out" onclick="clearPaste()">✕</button>
+        </div>
+        <div class="extract-preview" id="extract-preview" style="display:none"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ DESTRA ══ -->
+  <div>
+
+    <!-- INVIA -->
+    <div class="card" style="border:2px solid var(--cyan)">
+      <div class="card-head"><span class="card-title">📧 Invia agenda</span></div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn-wide btn-grad" onclick="inviaAgenda('oggi')">
+          📅 Invia appuntamenti di oggi
+        </button>
+        <button class="btn-wide" style="background:rgba(14,165,201,.1);color:var(--cyan);border:1px solid rgba(14,165,201,.3)" onclick="inviaAgenda('settimana')">
+          📆 Invia prossimi 7 giorni
+        </button>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center;margin-top:2px">
+          Solo eventi <strong>confermati</strong> · Auto 07:00 e 19:00
+        </div>
+      </div>
+    </div>
+
+    <!-- GMAIL -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">📥 Gmail</span>
+        <div class="gmail-bar">
+          <div class="sdot sdot-idle" id="gmail-dot"></div>
+          <span id="gmail-txt">Idle</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <button class="btn btn-out" id="btn-gmail" onclick="importGmail()" style="width:100%;margin-bottom:8px">
+          📥 Controlla ora
+        </button>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--faint)">Controllo automatico ogni ora</div>
+        <div class="log-box" id="gmail-log"></div>
+      </div>
+    </div>
+
+    <!-- DESTINATARI -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">👥 Destinatari agenda</span>
+        <span class="badge badge-no" id="r-count">0 attivi</span>
+      </div>
+      <div class="card-body">
+        <div id="r-list" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="r-nome" placeholder="Nome" style="width:80px;flex-shrink:0"/>
+          <input type="text" id="r-email" placeholder="email@…" style="flex:1"/>
+          <button class="btn btn-grad" onclick="addRecipient()" style="padding:6px 10px">+</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATO ─────────────────────────────────────────────────────────
+let allEvents = [];
+let filtro = 'tutti';
+let bozzeOpen = true;
+const today = new Date().toISOString().split('T')[0];
+
+const GIORNI = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+const MESI   = ['','gennaio','febbraio','marzo','aprile','maggio','giugno',
+                'luglio','agosto','settembre','ottobre','novembre','dicembre'];
+
+// ── UTILS ─────────────────────────────────────────────────────────
+function toast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtData(d){
+  if(!d) return '—';
+  try{
+    const dt = new Date(d+'T12:00:00');
+    return `${GIORNI[dt.getDay()]} ${dt.getDate()} ${MESI[dt.getMonth()+1]}`;
+  }catch(e){ return d; }
+}
+
+function fmtOra(o){ return o ? o.slice(0,5) : ''; }
+
+function fonteIcon(f){
+  const m = {gmail:'📧', ingestion:'📰', manuale:'✏️', incolla:'📋'};
+  return m[f] || '📌';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.addEventListener('load', async ()=>{
+  document.getElementById('filter-from').value = today;
+  const to = new Date(); to.setDate(to.getDate()+30);
+  document.getElementById('filter-to').value = to.toISOString().split('T')[0];
+  document.getElementById('new-data').value = today;
+
+  await loadEvents();
+  await loadRecipients();
+  setInterval(refreshGmailStatus, 4000);
+  refreshGmailStatus();
+});
+
+// ── FILTRI ────────────────────────────────────────────────────────
+function setFiltro(f, el){
+  filtro = f;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function resetDate(){
+  document.getElementById('filter-from').value = today;
+  const to = new Date(); to.setDate(to.getDate()+30);
+  document.getElementById('filter-to').value = to.toISOString().split('T')[0];
+  render();
+}
+
+// ── CARICA EVENTI ─────────────────────────────────────────────────
+async function loadEvents(){
+  try{
+    const from = document.getElementById('filter-from').value || today;
+    const to   = document.getElementById('filter-to').value   || '';
+    const url  = `/api/events?from_date=${from}${to ? '&to_date='+to : ''}`;
+    const data = await fetch(url).then(r=>r.json());
+    allEvents  = Array.isArray(data) ? data : [];
+  }catch(e){ allEvents = []; }
+  render();
+}
+
+function render(){
+  const from = document.getElementById('filter-from').value || today;
+  const to   = document.getElementById('filter-to').value   || '9999-12-31';
+
+  const visible = allEvents.filter(e => {
+    if(e.data < from || e.data > to) return false;
+    if(filtro === 'confermato') return e.stato === 'confermato';
+    if(filtro === 'bozza')      return e.stato === 'bozza';
+    return true;
+  });
+
+  renderBozze(visible.filter(e=>e.stato==='bozza'));
+  renderConfermati(visible.filter(e=>e.stato==='confermato'));
+}
+
+// ── BOZZE ─────────────────────────────────────────────────────────
+function renderBozze(bozze){
+  const wrap = document.getElementById('bozze-wrap');
+  const body = document.getElementById('bozze-body');
+  const cnt  = document.getElementById('bozze-count');
+  if(!bozze.length){ wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  cnt.textContent = bozze.length;
+  body.style.display = bozzeOpen ? '' : 'none';
+
+  body.innerHTML = bozze.map(e=>`
+    <div class="bozza-card">
+      <div class="bozza-icon">${fonteIcon(e.fonte)}</div>
+      <div class="bozza-content">
+        <div class="bozza-title">${esc(e.titolo)}</div>
+        <div class="bozza-meta">${fmtData(e.data)}${fmtOra(e.ora) ? ' · '+fmtOra(e.ora) : ''}</div>
+        ${e.descrizione ? `<div class="bozza-from">${esc(e.descrizione)}</div>` : ''}
+        ${e.mittente ? `<div class="bozza-from">Da: ${esc(e.mittente.split('|')[0].trim())}</div>` : ''}
+        <div class="bozza-actions">
+          <button class="btn btn-green" style="font-size:9px;padding:4px 9px" onclick="confirmEvent('${e.id}')">✓ Conferma</button>
+          <button class="btn btn-out"   style="font-size:9px;padding:4px 9px" onclick="editEvent('${e.id}')">✏️ Modifica</button>
+          <button class="btn-del" onclick="deleteEvent('${e.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleBozze(){
+  bozzeOpen = !bozzeOpen;
+  document.getElementById('bozze-toggle').classList.toggle('collapsed', !bozzeOpen);
+  document.getElementById('bozze-body').style.display = bozzeOpen ? '' : 'none';
+}
+
+// ── CONFERMATI ────────────────────────────────────────────────────
+function renderConfermati(list){
+  const el = document.getElementById('events-list');
+  document.getElementById('events-count').textContent = `${list.length} confermati`;
+
+  if(!list.length){
+    el.innerHTML = '<div class="empty-msg">Nessun evento confermato nel periodo.</div>';
+    return;
+  }
+
+  const byDate = {};
+  list.forEach(e=>{ (byDate[e.data]=byDate[e.data]||[]).push(e); });
+
+  el.innerHTML = Object.keys(byDate).sort().map(d=>`
+    <div class="day-group">
+      <div class="day-label ${d===today?'today':''}">${fmtData(d)}</div>
+      ${byDate[d].map(e=>`
+        <div class="event-row">
+          <div class="event-time">${fmtOra(e.ora)||'—'}</div>
+          <div class="event-content">
+            <div class="event-title">${esc(e.titolo)}</div>
+            ${e.descrizione?`<div class="event-desc">${esc(e.descrizione)}</div>`:''}
+            <div class="event-fonte">${fonteIcon(e.fonte)} ${e.fonte}</div>
+          </div>
+          <div class="event-actions">
+            <button class="btn btn-out" style="font-size:9px;padding:3px 8px" onclick="editEvent('${e.id}')">✏️</button>
+            <button class="btn-del" onclick="deleteEvent('${e.id}')">✕</button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── CRUD EVENTI ───────────────────────────────────────────────────
+async function addEvent(){
+  const titolo = document.getElementById('new-titolo').value.trim();
+  const data   = document.getElementById('new-data').value;
+  const ora    = document.getElementById('new-ora').value || null;
+  const desc   = document.getElementById('new-desc').value.trim();
+  if(!titolo){ toast('Titolo obbligatorio','err'); return; }
+  if(!data)  { toast('Data obbligatoria','err');   return; }
+  try{
+    const res = await fetch('/api/events',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({titolo, data, ora, descrizione:desc, fonte:'manuale', stato:'confermato'})
+    }).then(r=>r.json());
+    if(res.error){ toast('Errore: '+res.error,'err'); return; }
+    toast('✅ Aggiunto');
+    document.getElementById('new-titolo').value = '';
+    document.getElementById('new-ora').value    = '';
+    document.getElementById('new-desc').value   = '';
+    await loadEvents();
+  }catch(e){ toast('Errore connessione','err'); }
+}
+
+async function confirmEvent(id){
+  await fetch(`/api/events/${id}/confirm`,{method:'PATCH'});
+  toast('✅ Confermato');
+  await loadEvents();
+}
+
+async function deleteEvent(id){
+  if(!confirm('Eliminare questo appuntamento?')) return;
+  await fetch(`/api/events/${id}`,{method:'DELETE'});
+  toast('Rimosso');
+  await loadEvents();
+}
+
+function editEvent(id){
+  const ev = allEvents.find(e=>e.id===id);
+  if(!ev) return;
+  const titolo = prompt('Titolo:', ev.titolo);
+  if(titolo===null) return;
+  const data = prompt('Data (YYYY-MM-DD):', ev.data);
+  if(data===null) return;
+  const ora  = prompt('Ora (HH:MM, vuoto per nessuna):', fmtOra(ev.ora));
+  const desc = prompt('Descrizione:', ev.descrizione||'');
+  fetch(`/api/events/${id}`,{
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      titolo: titolo||ev.titolo, data: data||ev.data,
+      ora: ora||null, descrizione: desc||'',
+      fonte: ev.fonte, stato: ev.stato
+    })
+  }).then(r=>r.json()).then(res=>{
+    if(res.error){ toast('Errore','err'); return; }
+    toast('✅ Salvato'); loadEvents();
+  });
+}
+
+// ── ESTRAI DA TESTO ───────────────────────────────────────────────
+let _extracted = [];
+
+async function extractText(){
+  const text = document.getElementById('paste-text').value.trim();
+  if(!text){ toast('Testo vuoto','err'); return; }
+  const btn = document.getElementById('btn-extract');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Estrazione…';
+  try{
+    const res = await fetch('/api/events/extract-text',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text})
+    }).then(r=>r.json());
+    if(res.error){ toast('Errore: '+res.error,'err'); return; }
+    _extracted = res.events||[];
+    renderExtracted();
+    if(!_extracted.length) toast('Nessun appuntamento trovato','err');
+    else toast(`✅ ${_extracted.length} appuntamenti estratti`);
+  }catch(e){ toast('Errore','err'); }
+  finally{ btn.disabled=false; btn.innerHTML='🔍 Estrai appuntamenti'; }
+}
+
+function renderExtracted(){
+  const wrap = document.getElementById('extract-preview');
+  if(!_extracted.length){ wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="font-family:var(--mono);font-size:9px;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+      Appuntamenti trovati — clicca per aggiungere
+    </div>
+    ${_extracted.map((ev,i)=>`
+      <div class="extract-item">
+        <div class="extract-body">
+          <div class="extract-title">${esc(ev.titolo||'')}</div>
+          <div class="extract-meta">${fmtData(ev.data)}${ev.ora?' · '+ev.ora:''}${ev.descrizione?' · '+esc(ev.descrizione):''}</div>
+        </div>
+        <button class="btn btn-green" style="font-size:9px;padding:4px 9px;flex-shrink:0" onclick="addExtracted(${i})">+ Aggiungi</button>
+      </div>`).join('')}`;
+}
+
+async function addExtracted(i){
+  const ev = _extracted[i];
+  if(!ev) return;
+  const res = await fetch('/api/events',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({titolo:ev.titolo, data:ev.data, ora:ev.ora||null,
+      descrizione:ev.descrizione||'', fonte:'incolla', stato:'confermato'})
+  }).then(r=>r.json());
+  if(res.error){ toast('Errore','err'); return; }
+  toast('✅ Aggiunto');
+  _extracted.splice(i,1);
+  renderExtracted();
+  loadEvents();
+}
+
+function clearPaste(){
+  document.getElementById('paste-text').value='';
+  document.getElementById('extract-preview').style.display='none';
+  _extracted=[];
+}
+
+// ── GMAIL ─────────────────────────────────────────────────────────
+async function importGmail(){
+  const btn = document.getElementById('btn-gmail');
+  btn.disabled=true; btn.innerHTML='<div class="spinner" style="border-top-color:var(--cyan);border-color:rgba(14,165,201,.2)"></div> Importazione…';
+  try{
+    await fetch('/api/gmail/agenda-import',{method:'POST'});
+    toast('Importazione Gmail avviata…');
+  }catch(e){ toast('Errore','err'); }
+  finally{ btn.disabled=false; btn.innerHTML='📥 Controlla ora'; }
+}
+
+async function refreshGmailStatus(){
+  try{
+    const s = await fetch('/api/gmail/agenda-status').then(r=>r.json());
+    const dot = document.getElementById('gmail-dot');
+    const txt = document.getElementById('gmail-txt');
+    const log = document.getElementById('gmail-log');
+
+    dot.className = 'sdot ' + (s.status==='running'?'sdot-running':s.status==='error'?'sdot-error':'sdot-idle');
+    if(s.status==='running') txt.textContent='In esecuzione…';
+    else if(s.status==='error') txt.textContent='Errore';
+    else txt.textContent = s.last_check
+      ? `${new Date(s.last_check).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} · ${s.found||0} estratti`
+      : 'In attesa';
+
+    if(s.log&&s.log.length) log.innerHTML=s.log.map(l=>`<div>${esc(l)}</div>`).join('');
+  }catch(e){}
+}
+
+// ── INVIA EMAIL ───────────────────────────────────────────────────
+async function inviaAgenda(periodo){
+  try{
+    const res = await fetch('/api/agenda/send-now',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({periodo})
+    }).then(r=>r.json());
+    if(res.success) toast(`✅ Inviato — ${res.events} eventi a ${res.recipients} destinatari`);
+    else toast('Errore: '+(res.error||''),'err');
+  }catch(e){ toast('Errore connessione','err'); }
+}
+
+// ── DESTINATARI ───────────────────────────────────────────────────
+async function loadRecipients(){
+  try{
+    const data = await fetch('/api/agenda-recipients').then(r=>r.json());
+    const active = (data||[]).filter(r=>r.active).length;
+    document.getElementById('r-count').textContent = `${active} attivi`;
+    document.getElementById('r-list').innerHTML = (data||[]).map(r=>`
+      <div class="r-row">
+        <div style="flex:1;min-width:0">
+          <div class="r-name">${esc(r.name||'—')}</div>
+          <div class="r-email">${esc(r.email)}</div>
+        </div>
+        <button class="toggle ${r.active?'on':'off'}" onclick="toggleR('${r.id}',${!r.active})"></button>
+        <button class="btn-del" onclick="delR('${r.id}')">✕</button>
+      </div>`).join('') ||
+      '<div style="font-family:var(--mono);font-size:10px;color:var(--faint)">Nessun destinatario</div>';
+  }catch(e){}
+}
+
+async function addRecipient(){
+  const email = document.getElementById('r-email').value.trim();
+  const name  = document.getElementById('r-nome').value.trim();
+  if(!email){ toast('Email obbligatoria','err'); return; }
+  const res = await fetch('/api/agenda-recipients',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email, name, active:true})
+  }).then(r=>r.json());
+  if(res.success||res.updated){
+    toast('✅ Aggiunto');
+    document.getElementById('r-email').value='';
+    document.getElementById('r-nome').value='';
+    loadRecipients();
+  } else toast('Errore: '+(res.error||''),'err');
+}
+
+async function delR(id){
+  if(!confirm('Rimuovere?')) return;
+  await fetch(`/api/agenda-recipients/${id}`,{method:'DELETE'});
+  toast('Rimosso'); loadRecipients();
+}
+
+async function toggleR(id, active){
+  await fetch(`/api/agenda-recipients/${id}/toggle`,{
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({active})
+  });
+  loadRecipients();
+}
+</script>
+</body>
+</html>
