@@ -16,7 +16,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);font-size:13px;background:var(--bg);color:var(--text);min-height:100vh}
 
-.layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1200px;margin:0 auto;padding:24px}
+.topnav{background:var(--surface);border-bottom:2px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.logo-img{height:38px;width:auto;display:block;flex-shrink:0}
+.nav-links{display:flex;gap:2px;margin-left:auto}
+.nav-link{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:6px 14px;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;text-decoration:none}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--pink);border-bottom-color:var(--pink)}
+
+.layout{display:grid;grid-template-columns:1fr 300px;gap:20px;max-width:1200px;margin:0 auto;padding:24px 20px}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
 .card:last-child{margin-bottom:0}
@@ -124,8 +131,18 @@ textarea{resize:vertical;min-height:100px;font-family:var(--mono);font-size:11px
 </head>
 <body>
 
-<div id="topnav"></div>
-<script src="/static/nav.js"></script>
+<div class="topnav">
+  <img src="/static/Logo-MAIM_orizzontale.jpg" alt="MAIM" class="logo-img"/>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/press">Press</a>
+    <a class="nav-link" href="/web">Web</a>
+    <a class="nav-link" href="/clients">Clienti</a>
+    <a class="nav-link" href="/giornalisti">Giornalisti</a>
+    <a class="nav-link" href="/testate">Testate</a>
+    <a class="nav-link active" href="/agenda">Agenda</a>
+  </div>
+</div>
 
 <div class="layout">
 
