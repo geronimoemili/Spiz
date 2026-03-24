@@ -62,12 +62,32 @@ def _agenda_log(msg):
     print(f"[AGENDA-GMAIL] {msg}")
     _agenda_gmail_state["log"] = ([msg] + _agenda_gmail_state["log"])[:30]
 
+
+def _get_gmail_credentials() -> tuple[str, str]:
+    """Legge credenziali Gmail supportando alias comuni delle env vars."""
+    user = (
+        os.getenv("GMAIL_USER", "")
+        or os.getenv("GMAIL_EMAIL", "")
+        or os.getenv("EMAIL_USER", "")
+    ).strip()
+    password = (
+        os.getenv("GMAIL_APP_PASSWORD", "")
+        or os.getenv("GMAIL_PASSWORD", "")
+        or os.getenv("GOOGLE_APP_PASSWORD", "")
+        or os.getenv("EMAIL_PASSWORD", "")
+    ).strip()
+    return user, password
+
+
 def _run_gmail_agenda_import():
     """Legge le email delle ultime 2h ed estrae appuntamenti senza AI."""
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    gmail_user, gmail_pass = _get_gmail_credentials()
     if not gmail_user or not gmail_pass:
-        _agenda_log("Credenziali non configurate"); return
+        _agenda_log(
+            "Credenziali non configurate: imposta GMAIL_USER/GMAIL_APP_PASSWORD "
+            "(o alias GMAIL_EMAIL/GMAIL_PASSWORD)."
+        )
+        return
 
     _agenda_gmail_state["status"] = "running"
     _agenda_gmail_state["last_check"] = datetime.now().isoformat()
@@ -1577,10 +1597,14 @@ def _gmail_log(msg):
 
 def _run_gmail_import(auto=False):
     import requests
-    gmail_user = os.getenv("GMAIL_USER", "")
-    gmail_pass = os.getenv("GMAIL_APP_PASSWORD", "")
+    gmail_user, gmail_pass = _get_gmail_credentials()
     if not gmail_user or not gmail_pass:
-        _gmail_state["status"] = "error"; _gmail_log("Credenziali non configurate"); return
+        _gmail_state["status"] = "error"
+        _gmail_log(
+            "Credenziali non configurate: imposta GMAIL_USER/GMAIL_APP_PASSWORD "
+            "(o alias GMAIL_EMAIL/GMAIL_PASSWORD)."
+        )
+        return
     _gmail_state["status"] = "running"
     _gmail_state["last_check"] = datetime.now().isoformat()
     _gmail_state["errors"] = []
